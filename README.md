@@ -115,6 +115,13 @@ merges `lab1-staging` into `main`.
 | GET | `/api/health` | Returns `{ status: "ok", service: "TokTickIT API" }` |
 | GET | `/api/categories` | Returns the four seeded IT request categories |
 
+## Issue 4 verification
+
+Verified locally on 2026-08-16:
+- `GET /api/categories` returns categories from PostgreSQL via Prisma, ordered by id
+- Supertest test `server/tests/lab-01/categories.test.ts` passes
+- React UI fetches and displays the categories from the API (not hard-coded)
+- Loading and error states verified via Vitest tests and manual Check System demo
 ## Issue 3 verification
 
 Verified locally on 2026-08-16:
