@@ -115,6 +115,14 @@ merges `lab1-staging` into `main`.
 | GET | `/api/health` | Returns `{ status: "ok", service: "TokTickIT API" }` |
 | GET | `/api/categories` | Returns the four seeded IT request categories |
 
+## Issue 2 verification
+
+Verified locally on 2026-08-16:
+- `GET /api/health` returns HTTP 200 with `{ "status": "ok", "service": "TokTickIT API" }`
+- Supertest test `server/tests/lab-01/health.test.ts` passes
+- Frontend Check System button displays backend status from a real API call
+- Frontend shows a useful error message when the backend is unavailable (verified — see failure case screenshot)
+
 ## Issue 1 verification
 
 Verified locally on 2026-08-16:
