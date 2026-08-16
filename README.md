@@ -122,3 +122,25 @@ Verified locally on 2026-08-16:
 - Supertest test `server/tests/lab-01/categories.test.ts` passes
 - React UI fetches and displays the categories from the API (not hard-coded)
 - Loading and error states verified via Vitest tests and manual Check System demo
+## Issue 3 verification
+
+Verified locally on 2026-08-16:
+- Prisma `Category` model (id, unique name, createdAt) migrated successfully to PostgreSQL
+- `npx prisma db seed` inserted the four categories: Account and Access, Hardware, Software, Network
+- Ran the seed twice to confirm it is idempotent (no duplicate rows created)
+- No database credentials committed (.env is gitignored; only .env.example is tracked)
+## Issue 2 verification
+
+Verified locally on 2026-08-16:
+- `GET /api/health` returns HTTP 200 with `{ "status": "ok", "service": "TokTickIT API" }`
+- Supertest test `server/tests/lab-01/health.test.ts` passes
+- Frontend Check System button displays backend status from a real API call
+- Frontend shows a useful error message when the backend is unavailable (verified — see failure case screenshot)
+
+## Issue 1 verification
+
+Verified locally on 2026-08-16:
+- Frontend (`npm run dev` in `client/`) starts successfully at http://localhost:5173
+- Backend (`npm run dev` in `server/`) starts successfully at http://localhost:4000
+- `npx prisma migrate dev` and `npx prisma db seed` run successfully against PostgreSQL
+
