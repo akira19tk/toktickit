@@ -12,20 +12,32 @@ All tests required by the Lab 1 specification, their location, and what they ver
 
 ## How to run
 
-```bash
+\`\`\`bash
 cd server && npm test    # API-01, API-02
 cd client && npm test    # UI-01, UI-02, UI-03
-```
+\`\`\`
 
 ## Evidence
 
-Paste your terminal output (or a screenshot) of both `npm test` runs showing all
-tests passing here before submitting the PDF.
+Server test run (2026-08-16):
 
-```
-(paste server `npm test` output here)
-```
+\`\`\`
+✓ tests/lab-01/health.test.ts (1 test)
+✓ tests/lab-01/categories.test.ts (1 test)
 
-```
-(paste client `npm test` output here)
-```
+Test Files  2 passed (2)
+     Tests  2 passed (2)
+\`\`\`
+
+Client test run (2026-08-16):
+
+\`\`\`
+✓ tests/lab-01/heading.test.tsx (1 test)
+✓ tests/lab-01/checkSystemSuccess.test.tsx (1 test)
+✓ tests/lab-01/checkSystemFailure.test.tsx (1 test)
+
+Test Files  3 passed (3)
+     Tests  3 passed (3)
+\`\`\`
+
+All 5 required tests pass on both `lab1-staging` and `main` after peer review and merge.
