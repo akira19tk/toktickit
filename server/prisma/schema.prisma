@@ -1,0 +1,17 @@
+// Prisma schema for TokTickIT - Lab 1
+// Defines the Category model used to seed and list IT request categories.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
