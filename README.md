@@ -114,3 +114,10 @@ merges `lab1-staging` into `main`.
 |---|---|---|
 | GET | `/api/health` | Returns `{ status: "ok", service: "TokTickIT API" }` |
 | GET | `/api/categories` | Returns the four seeded IT request categories |
+
+## Issue 1 verification
+
+Verified locally on 2026-08-16:
+- Frontend (`npm run dev` in `client/`) starts successfully at http://localhost:5173
+- Backend (`npm run dev` in `server/`) starts successfully at http://localhost:4000
+- `npx prisma migrate dev` and `npx prisma db seed` run successfully against PostgreSQL
