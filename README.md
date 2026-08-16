@@ -114,3 +114,11 @@ merges `lab1-staging` into `main`.
 |---|---|---|
 | GET | `/api/health` | Returns `{ status: "ok", service: "TokTickIT API" }` |
 | GET | `/api/categories` | Returns the four seeded IT request categories |
+
+## Issue 3 verification
+
+Verified locally on 2026-08-16:
+- Prisma `Category` model (id, unique name, createdAt) migrated successfully to PostgreSQL
+- `npx prisma db seed` inserted the four categories: Account and Access, Hardware, Software, Network
+- Ran the seed twice to confirm it is idempotent (no duplicate rows created)
+- No database credentials committed (.env is gitignored; only .env.example is tracked)
