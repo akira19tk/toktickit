@@ -1,5 +1,6 @@
-// Prisma schema for TokTickIT - Lab 1
-// Defines the Category model used to seed and list IT request categories.
+// Prisma schema for TokTickIT
+// Lab 1: Category
+// Lab 2: DevRequester, RelatedSystem, Ticket, Attachment, TicketCounter
 
 generator client {
   provider = "prisma-client-js"
@@ -10,8 +11,78 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TicketStatus {
+  NEW
+}
+
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+  tickets   Ticket[]
+}
+
+model DevRequester {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  tickets   Ticket[]
+}
+
+model RelatedSystem {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  isActive Boolean @default(true)
+  tickets  Ticket[]
+}
+
+// Separate counter per year; avoids using ticket.id as the ticket number sequence.
+model TicketCounter {
+  year  Int @id
+  count Int @default(0)
+}
+
+model Ticket {
+  id                Int           @id @default(autoincrement())
+  ticketNumber      String        @unique
+  requesterId       Int
+  requester         DevRequester  @relation(fields: [requesterId], references: [id])
+  categoryId        Int
+  category          Category      @relation(fields: [categoryId], references: [id])
+  relatedSystemId   Int
+  relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
+  summary           String
+  description       String
+  requestedPriority Priority
+  currentStatus     TicketStatus  @default(NEW)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  attachments       Attachment[]
+
+  @@index([requesterId])
+  @@index([createdAt])
+}
+
+model Attachment {
+  id             Int       @id @default(autoincrement())
+  ticketId       Int
+  ticket         Ticket    @relation(fields: [ticketId], references: [id])
+  fileName       String
+  storedFileName String
+  mimeType       String
+  sizeBytes      Int
+  uploadedAt     DateTime  @default(now())
+  removedAt      DateTime?
+  removalReason  String?
+
+  @@index([ticketId])
 }

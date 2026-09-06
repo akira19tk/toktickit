@@ -1,79 +1,124 @@
+// Application shell — Issue #2–5
+// Routing: selection → my-tickets | create-ticket | ticket-detail
 import { useState } from "react";
-import { fetchHealth, fetchCategories, type Category } from "./api";
+import { RequesterProvider, useRequester } from "./context/RequesterContext";
+import RequesterSelect from "./components/RequesterSelect";
+import CreateTicket from "./components/CreateTicket";
+import MyTickets from "./components/MyTickets";
+import TicketDetail from "./components/TicketDetail";
+import type { DevRequester } from "./api";
 
-type CheckState = "idle" | "loading" | "success" | "error";
+type Screen = "home" | "create" | { detail: number };
 
-function App() {
-  const [state, setState] = useState<CheckState>("idle");
-  const [online, setOnline] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [errorMessage, setErrorMessage] = useState("");
+function AppContent() {
+  const { requester, setRequester } = useRequester();
+  const [screen, setScreen] = useState<Screen>("home");
+  const [showChangePicker, setShowChangePicker] = useState(false);
 
-  async function handleCheckSystem() {
-    setState("loading");
-    setErrorMessage("");
+  if (!requester) {
+    return <RequesterSelect onSelect={setRequester} canCancel={false} />;
+  }
 
-    try {
-      const health = await fetchHealth();
-      const fetchedCategories = await fetchCategories();
+  function handleChange(r: DevRequester) {
+    setRequester(r);
+    setShowChangePicker(false);
+  }
 
-      setOnline(health.status === "ok");
-      setCategories(fetchedCategories);
-      setState("success");
-    } catch (err) {
-      setOnline(false);
-      setCategories([]);
-      setErrorMessage("Unable to connect to TokTickIT API");
-      setState("error");
-    }
+  function isHome() { return screen === "home"; }
+  function isCreate() { return screen === "create"; }
+
+  function navClass(s: "home" | "create") {
+    return `zen-nav-link${screen === s ? " zen-nav-link--active" : ""}`;
   }
 
   return (
-    <div className="container py-5" style={{ maxWidth: 560 }}>
-      <h1 className="mb-4">TokTickIT IT Service Desk</h1>
+    <>
+      <header className="zen-header">
+        <div className="zen-header-inner">
+          <button
+            className="zen-logo-btn"
+            onClick={() => setScreen("home")}
+            aria-label="TokTickIT home"
+          >
+            TokTickIT
+          </button>
 
-      <button
-        className="btn btn-primary mb-4"
-        onClick={handleCheckSystem}
-        disabled={state === "loading"}
-      >
-        Check System
-      </button>
+          <nav className="zen-nav" aria-label="Main navigation">
+            <button
+              className={navClass("home")}
+              onClick={() => setScreen("home")}
+              aria-current={isHome() ? "page" : undefined}
+            >
+              My Tickets
+            </button>
+            <button
+              className={navClass("create")}
+              onClick={() => setScreen("create")}
+              aria-current={isCreate() ? "page" : undefined}
+            >
+              Create Ticket
+            </button>
+          </nav>
 
-      {state === "loading" && (
-        <p role="status" className="text-muted">
-          ⏳ Loading...
-        </p>
-      )}
-
-      {state === "success" && (
-        <div data-testid="system-status">
-          <p>
-            <strong>System Status:</strong>{" "}
-            <span className={online ? "text-success" : "text-danger"}>
-              {online ? "Online" : "Offline"}
+          <div className="zen-header-right">
+            <span className="zen-requester-name" aria-label="Current requester">
+              {requester.name}
             </span>
-          </p>
-          <p className="mb-2">
-            <strong>Supported Request Categories:</strong>
-          </p>
-          <ul>
-            {categories.map((category) => (
-              <li key={category.id}>{category.name}</li>
-            ))}
-          </ul>
+            <button
+              className="zen-btn zen-btn-tertiary"
+              onClick={() => setShowChangePicker(true)}
+            >
+              Change Requester
+            </button>
+          </div>
         </div>
-      )}
+      </header>
 
-      {state === "error" && (
-        <div className="alert alert-danger" role="alert">
-          <p className="mb-1">
-            <strong>System Status:</strong> Offline
-          </p>
-          <p className="mb-0">{errorMessage}</p>
+      <main id="main-content">
+        {screen === "create" ? (
+          <CreateTicket
+            requesterId={requester.id}
+            onBack={() => setScreen("home")}
+          />
+        ) : typeof screen === "object" ? (
+          <TicketDetail
+            ticketId={screen.detail}
+            requesterId={requester.id}
+            onBack={() => setScreen("home")}
+          />
+        ) : (
+          // key={requester.id} forces full remount on requester switch → page+filter reset
+          <MyTickets
+            key={requester.id}
+            requesterId={requester.id}
+            onCreateTicket={() => setScreen("create")}
+          />
+        )}
+      </main>
+
+      {showChangePicker && (
+        <div
+          className="zen-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Change Development Requester"
+        >
+          <RequesterSelect
+            onSelect={handleChange}
+            canCancel={true}
+            onCancel={() => setShowChangePicker(false)}
+          />
         </div>
       )}
-    </div>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <RequesterProvider>
+      <AppContent />
+    </RequesterProvider>
   );
 }
 
