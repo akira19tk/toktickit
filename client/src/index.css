@@ -54,12 +54,7 @@ body {
   gap: 24px;
 }
 
-.zen-logo {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  white-space: nowrap;
-}
+/* .zen-logo replaced by .zen-logo-btn (button element) */
 
 .zen-nav {
   display: flex;
@@ -67,20 +62,7 @@ body {
   flex: 1;
 }
 
-.zen-nav-link {
-  color: rgba(255, 255, 255, 0.85);
-  text-decoration: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 0.15s;
-}
-.zen-nav-link:hover,
-.zen-nav-link[aria-current="page"] {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.15);
-}
+/* zen-nav-link styles moved to Create Ticket section above */
 
 .zen-header-right {
   display: flex;
@@ -300,6 +282,89 @@ body {
   margin: 0 auto 16px;
 }
 
+/* ── Field validation state ──────────────────────────────── */
+.zen-field-invalid {
+  border: 2px solid var(--color-error) !important;
+}
+
+.zen-field-error {
+  color: var(--color-error);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+/* ── Textarea ────────────────────────────────────────────── */
+.zen-textarea {
+  resize: vertical;
+  min-height: 96px; /* 4 rows approx */
+}
+
+/* ── Read-only input ─────────────────────────────────────── */
+.zen-readonly {
+  background: var(--color-readonly-bg) !important;
+  cursor: default;
+  color: var(--color-muted);
+}
+
+/* ── Create Ticket two-column classification group ────────── */
+.ct-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+
+/* ── Success panel ───────────────────────────────────────── */
+.zen-success-panel {
+  border-color: #b8dfc8;
+  background: var(--color-pale);
+  text-align: center;
+}
+
+/* ── Screen-reader only utility ───────────────────────────── */
+.zen-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* ── Header logo as button ───────────────────────────────── */
+.zen-logo-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+
+/* ── Nav link as button ──────────────────────────────────── */
+.zen-nav-link {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.zen-nav-link:hover,
+.zen-nav-link--active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  text-decoration: underline;
+}
+
 /* ── Modal Overlay ───────────────────────────────────────── */
 .zen-modal-overlay {
   position: fixed;
@@ -344,5 +409,18 @@ body {
 
   .zen-btn-row .zen-btn {
     width: 100%;
+    min-height: 44px;
+  }
+
+  /* Single-column on mobile (AC-30) */
+  .ct-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  /* Tablet: two-column for classification; summary/description full width handled by grid */
+  .ct-two-col {
+    grid-template-columns: 1fr 1fr;
   }
 }

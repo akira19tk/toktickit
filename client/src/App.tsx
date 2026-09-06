@@ -1,16 +1,18 @@
-// Application shell — Issue #2: requester context + selection screen
-// Redirects to RequesterSelect if no context is set (AC-07).
-// Header shows current requester name + Change Requester action (ui-spec §10.1).
+// Application shell — Issue #2 + Issue #3
+// Routing: selection → home | create-ticket (later: my-tickets)
 import { useState } from "react";
 import { RequesterProvider, useRequester } from "./context/RequesterContext";
 import RequesterSelect from "./components/RequesterSelect";
+import CreateTicket from "./components/CreateTicket";
 import type { DevRequester } from "./api";
+
+type Screen = "home" | "create";
 
 function AppContent() {
   const { requester, setRequester } = useRequester();
+  const [screen, setScreen] = useState<Screen>("home");
   const [showChangePicker, setShowChangePicker] = useState(false);
 
-  // No requester yet — show full-page selection (Cancel disabled, no prior context)
   if (!requester) {
     return <RequesterSelect onSelect={setRequester} canCancel={false} />;
   }
@@ -20,19 +22,37 @@ function AppContent() {
     setShowChangePicker(false);
   }
 
+  function navClass(s: Screen) {
+    return `zen-nav-link${screen === s ? " zen-nav-link--active" : ""}`;
+  }
+
   return (
     <>
       <header className="zen-header">
         <div className="zen-header-inner">
-          <span className="zen-logo">TokTickIT</span>
+          <button
+            className="zen-logo-btn"
+            onClick={() => setScreen("home")}
+            aria-label="TokTickIT home"
+          >
+            TokTickIT
+          </button>
 
           <nav className="zen-nav" aria-label="Main navigation">
-            <a href="#my-tickets" className="zen-nav-link">
+            <button
+              className={navClass("home")}
+              onClick={() => setScreen("home")}
+              aria-current={screen === "home" ? "page" : undefined}
+            >
               My Tickets
-            </a>
-            <a href="#create-ticket" className="zen-nav-link">
+            </button>
+            <button
+              className={navClass("create")}
+              onClick={() => setScreen("create")}
+              aria-current={screen === "create" ? "page" : undefined}
+            >
               Create Ticket
-            </a>
+            </button>
           </nav>
 
           <div className="zen-header-right">
@@ -50,15 +70,25 @@ function AppContent() {
       </header>
 
       <main className="zen-main" id="main-content">
-        {/* Placeholder — My Tickets and Create Ticket implemented in later issues */}
-        <div className="zen-card zen-welcome">
-          <h1 className="zen-section-title">
-            Welcome, {requester.name}
-          </h1>
-          <p className="zen-muted">
-            TokTickIT IT Service Desk — select a screen from the navigation.
-          </p>
-        </div>
+        {screen === "create" ? (
+          <CreateTicket
+            requesterId={requester.id}
+            onBack={() => setScreen("home")}
+          />
+        ) : (
+          <div className="zen-card zen-welcome">
+            <h1 className="zen-section-title">Welcome, {requester.name}</h1>
+            <p className="zen-muted" style={{ marginBottom: 24 }}>
+              TokTickIT IT Service Desk — select a screen from the navigation.
+            </p>
+            <button
+              className="zen-btn zen-btn-primary"
+              onClick={() => setScreen("create")}
+            >
+              Create Ticket
+            </button>
+          </div>
+        )}
       </main>
 
       {showChangePicker && (
