@@ -5,7 +5,7 @@ import {
   fetchTicketDetail,
   addAttachment,
   removeAttachment,
-  downloadAttachmentUrl,
+  downloadAttachment,
   type TicketDetail as TicketDetailData,
   type TicketAttachment,
 } from "../api";
@@ -104,8 +104,8 @@ export default function TicketDetail({ ticketId, requesterId, onBack }: Props) {
         <div className="td-fields">
           <ReadField label="Ticket No." value={ticket.ticketNumber} />
           <ReadField label="Ticket Date" value={new Date(ticket.createdAt).toLocaleString()} />
-          <ReadField label="Category" value={String(ticket.categoryId)} />
-          <ReadField label="Related System" value={String(ticket.relatedSystemId)} />
+          <ReadField label="Category" value={ticket.category} />
+          <ReadField label="Related System" value={ticket.relatedSystem} />
           <ReadField label="Requested Priority" value={ticket.requestedPriority} />
           <ReadField label="Current Status" value={ticket.currentStatus} />
         </div>
@@ -207,6 +207,20 @@ interface AttachmentRowProps {
 function AttachmentRow({ attachment: a, ticketId, requesterId, onRemoveClick }: AttachmentRowProps) {
   const removed = !!a.removedAt;
   const sizeKB = Math.round(a.sizeBytes / 1024);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  async function handleDownload() {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      await downloadAttachment(ticketId, a.id, a.fileName, requesterId);
+    } catch {
+      setDownloadError("Download failed. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <li className={`td-attach-item${removed ? " td-attach-removed" : ""}`}>
@@ -221,14 +235,17 @@ function AttachmentRow({ attachment: a, ticketId, requesterId, onRemoveClick }: 
         </span>
       ) : (
         <div className="td-attach-actions">
-          <a
-            href={downloadAttachmentUrl(ticketId, attachmentId(a, requesterId))}
+          <button
             className="zen-btn zen-btn-secondary td-icon-btn"
             aria-label={`Download ${a.fileName}`}
-            download
+            onClick={handleDownload}
+            disabled={downloading}
           >
-            ⬇ Download
-          </a>
+            {downloading ? "…" : "⬇ Download"}
+          </button>
+          {downloadError && (
+            <span className="zen-field-error" role="alert">{downloadError}</span>
+          )}
           <button
             className="zen-btn zen-btn-destructive td-icon-btn"
             aria-label={`Remove ${a.fileName}`}
@@ -240,14 +257,6 @@ function AttachmentRow({ attachment: a, ticketId, requesterId, onRemoveClick }: 
       )}
     </li>
   );
-}
-
-// build download URL embedding requesterId as query param isn't needed since
-// the header is sent by the browser only for XHR, not <a href>.
-// For a href download we rely on the server's x-requester-id check;
-// the link just passes ticketId + attachmentId.
-function attachmentId(a: TicketAttachment, _requesterId: number) {
-  return a.id;
 }
 
 interface RemoveDialogProps {

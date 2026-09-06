@@ -562,6 +562,15 @@ body {
   background: var(--color-pale);
 }
 
+.mt-row-clickable {
+  cursor: pointer;
+}
+
+.mt-row-clickable:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: -2px;
+}
+
 .mt-sort-btn {
   background: none;
   border: none;
