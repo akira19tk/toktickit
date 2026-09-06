@@ -357,4 +357,202 @@ router.post(
   }
 );
 
+// ── POST /api/tickets/:id/attachments ────────────────────────────────────────
+// Add a single attachment to an owned ticket (api-spec §7).
+
+const uploadSingle = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // validated per-file below
+});
+
+router.post(
+  "/:id/attachments",
+  uploadSingle.single("file"),
+  async (req: Request, res: Response) => {
+    const requesterId = parseRequesterId(req.headers["x-requester-id"]);
+    if (requesterId === null) {
+      res.status(400).json({ error: "x-requester-id header must be a positive integer" });
+      return;
+    }
+
+    const ticketId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      res.status(404).json({ error: "Ticket not found" });
+      return;
+    }
+
+    // Ownership check (BR-17)
+    const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
+    if (!ticket) {
+      res.status(404).json({ error: "Ticket not found" });
+      return;
+    }
+
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ error: "No file provided" });
+      return;
+    }
+
+    // Type check (BR-14)
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!ALLOWED_EXTS.has(ext) || !ALLOWED_MIMETYPES.has(file.mimetype)) {
+      res.status(400).json({ error: "Unsupported file type" });
+      return;
+    }
+
+    // Size check (BR-14)
+    if (file.size > MAX_FILE_BYTES) {
+      res.status(400).json({ error: "File exceeds 5MB limit" });
+      return;
+    }
+
+    // Active attachment count check (BR-14)
+    const activeCount = await prisma.attachment.count({
+      where: { ticketId, removedAt: null },
+    });
+    if (activeCount >= MAX_ATTACHMENTS) {
+      res.status(400).json({ error: "Ticket already has 5 active attachments" });
+      return;
+    }
+
+    const storedFileName = `${uuidv4()}${ext}`;
+    await fs.writeFile(path.join(UPLOAD_DIR, storedFileName), file.buffer);
+
+    const attachment = await prisma.attachment.create({
+      data: {
+        ticketId,
+        fileName: file.originalname,
+        storedFileName,
+        mimeType: file.mimetype,
+        sizeBytes: file.size,
+      },
+    });
+
+    res.status(201).json({
+      id: attachment.id,
+      fileName: attachment.fileName,
+      sizeBytes: attachment.sizeBytes,
+      uploadedAt: attachment.uploadedAt,
+    });
+  }
+);
+
+// ── GET /api/tickets/:id/attachments/:attachmentId/download ──────────────────
+// Stream an active attachment file (api-spec §8).
+
+router.get(
+  "/:id/attachments/:attachmentId/download",
+  async (req: Request, res: Response) => {
+    const requesterId = parseRequesterId(req.headers["x-requester-id"]);
+    if (requesterId === null) {
+      res.status(400).json({ error: "x-requester-id header must be a positive integer" });
+      return;
+    }
+
+    const ticketId = parseInt(req.params.id, 10);
+    const attachmentId = parseInt(req.params.attachmentId, 10);
+    if (!Number.isInteger(ticketId) || !Number.isInteger(attachmentId)) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    // Ownership check via ticket
+    const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
+    if (!ticket) {
+      res.status(404).json({ error: "Ticket not found" });
+      return;
+    }
+
+    const attachment = await prisma.attachment.findFirst({
+      where: { id: attachmentId, ticketId },
+    });
+    if (!attachment) {
+      res.status(404).json({ error: "Attachment not found" });
+      return;
+    }
+
+    // Soft-removed → 410 Gone (api-spec §8)
+    if (attachment.removedAt !== null) {
+      res.status(410).json({ error: "Attachment has been removed" });
+      return;
+    }
+
+    const filePath = path.join(UPLOAD_DIR, attachment.storedFileName);
+    try {
+      await fs.access(filePath);
+    } catch {
+      res.status(404).json({ error: "File not found on disk" });
+      return;
+    }
+
+    res.setHeader("Content-Type", attachment.mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${attachment.fileName}"`
+    );
+    res.sendFile(filePath, { root: "/" });
+  }
+);
+
+// ── DELETE /api/tickets/:id/attachments/:attachmentId ────────────────────────
+// Soft-remove an attachment with a reason (api-spec §9, BR-16, BR-18).
+
+router.delete(
+  "/:id/attachments/:attachmentId",
+  async (req: Request, res: Response) => {
+    const requesterId = parseRequesterId(req.headers["x-requester-id"]);
+    if (requesterId === null) {
+      res.status(400).json({ error: "x-requester-id header must be a positive integer" });
+      return;
+    }
+
+    const ticketId = parseInt(req.params.id, 10);
+    const attachmentId = parseInt(req.params.attachmentId, 10);
+    if (!Number.isInteger(ticketId) || !Number.isInteger(attachmentId)) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    // Reason validation (BR-18)
+    const reason = String((req.body as Record<string, unknown>).reason ?? "").trim();
+    if (reason.length < 3) {
+      res.status(400).json({ error: "Removal reason must be at least 3 characters" });
+      return;
+    }
+
+    // Ownership via ticket
+    const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
+    if (!ticket) {
+      res.status(404).json({ error: "Ticket not found" });
+      return;
+    }
+
+    const attachment = await prisma.attachment.findFirst({
+      where: { id: attachmentId, ticketId },
+    });
+    if (!attachment) {
+      res.status(404).json({ error: "Attachment not found" });
+      return;
+    }
+
+    // Already removed → 409 Conflict
+    if (attachment.removedAt !== null) {
+      res.status(409).json({ error: "Attachment already removed" });
+      return;
+    }
+
+    const updated = await prisma.attachment.update({
+      where: { id: attachmentId },
+      data: { removedAt: new Date(), removalReason: reason },
+    });
+
+    res.status(200).json({
+      id: updated.id,
+      removedAt: updated.removedAt,
+      removalReason: updated.removalReason,
+    });
+  }
+);
+
 export default router;
