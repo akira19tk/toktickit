@@ -383,6 +383,171 @@ body {
   padding: 0;
 }
 
+/* ── My Tickets ──────────────────────────────────────────── */
+.mt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.mt-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.mt-search {
+  flex: 1;
+  min-width: 180px;
+}
+
+.mt-filter-select {
+  width: auto;
+  min-width: 140px;
+}
+
+.mt-tickets {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Desktop table */
+.mt-table-wrap {
+  overflow-x: auto;
+}
+
+.mt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.mt-table th,
+.mt-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mt-table th {
+  background: var(--color-bg);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.mt-table tbody tr:hover {
+  background: var(--color-pale);
+}
+
+.mt-sort-btn {
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.mt-ticket-no {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.mt-summary {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badge */
+.mt-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* Mobile cards — hidden on desktop */
+.mt-cards {
+  display: none;
+}
+
+.mt-card {
+  margin: 12px;
+  padding: 16px;
+}
+
+.mt-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mt-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+  min-width: 90px;
+}
+
+/* Pagination */
+.mt-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.mt-count {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.mt-page-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mt-page-btn {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.mt-page-btn--active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.mt-ellipsis {
+  padding: 0 4px;
+  color: var(--color-muted);
+}
+
+/* Spacing helper */
+.mt-tickets.zen-card {
+  padding: 0;
+}
+
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 767px) {
   .zen-header-inner {
@@ -415,6 +580,23 @@ body {
   /* Single-column on mobile (AC-30) */
   .ct-two-col {
     grid-template-columns: 1fr;
+  }
+
+  /* My Tickets: table → cards on mobile (ui-spec §8) */
+  .mt-table-wrap {
+    display: none;
+  }
+  .mt-cards {
+    display: block;
+  }
+  .mt-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .mt-header .zen-btn {
+    width: 100%;
+    min-height: 44px;
   }
 }
 

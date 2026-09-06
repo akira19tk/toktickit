@@ -1,5 +1,6 @@
-// POST /api/tickets — create a Ticket with optional attachments
-// Validates x-requester-id, core fields, and each attachment per BR-06, BR-10–BR-15.
+// POST /api/tickets  — create Ticket + optional attachments (Issue #3)
+// GET  /api/tickets  — list own tickets with search/filter/sort/pagination (Issue #4)
+// GET  /api/tickets/:id — retrieve one owned Ticket (Issue #4 backend)
 import { Router, type Request, type Response } from "express";
 import multer from "multer";
 import path from "path";
@@ -35,6 +36,41 @@ const router = Router();
 function parseRequesterId(raw: unknown): number | null {
   const n = Number(raw);
   return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+// ── GET /api/tickets helpers ────────────────────────────────────────────────
+
+function parsePage(raw: unknown, defaultVal: number, max?: number): number {
+  const n = parseInt(String(raw ?? ""), 10);
+  if (!Number.isInteger(n) || n < 1) return defaultVal;
+  if (max !== undefined && n > max) return defaultVal;
+  return n;
+}
+
+function parseListQuery(query: Record<string, unknown>) {
+  const page = parsePage(query.page, 1);
+  const pageSize = parsePage(query.pageSize, 10, 50);
+
+  const sortByRaw = String(query.sortBy ?? "").toLowerCase();
+  const sortBy = sortByRaw === "ticketnumber" ? "ticketNumber" : "createdAt";
+  const sortDirRaw = String(query.sortDir ?? "").toLowerCase();
+  const sortDir: "asc" | "desc" = sortDirRaw === "asc" ? "asc" : "desc";
+
+  const search = String(query.search ?? "").trim() || undefined;
+
+  const catIdRaw = parseInt(String(query.categoryId ?? ""), 10);
+  const categoryId =
+    Number.isInteger(catIdRaw) && catIdRaw > 0 ? catIdRaw : undefined;
+
+  const priorityRaw = String(query.priority ?? "").toUpperCase().trim();
+  const priority = ["LOW", "MEDIUM", "HIGH"].includes(priorityRaw)
+    ? (priorityRaw as "LOW" | "MEDIUM" | "HIGH")
+    : undefined;
+
+  const statusRaw = String(query.status ?? "").toUpperCase().trim();
+  const status = statusRaw === "NEW" ? ("NEW" as const) : undefined;
+
+  return { page, pageSize, sortBy, sortDir, search, categoryId, priority, status };
 }
 
 interface FieldErrors {
@@ -77,7 +113,110 @@ function validateCoreFields(body: Record<string, unknown>): FieldErrors {
   return errors;
 }
 
-// ── route ──────────────────────────────────────────────────────────────────
+// ── GET /api/tickets ────────────────────────────────────────────────────────
+
+router.get("/", async (req: Request, res: Response) => {
+  const requesterId = parseRequesterId(req.headers["x-requester-id"]);
+  if (requesterId === null) {
+    res.status(400).json({ error: "x-requester-id header must be a positive integer" });
+    return;
+  }
+
+  const { page, pageSize, sortBy, sortDir, search, categoryId, priority, status } =
+    parseListQuery(req.query as Record<string, unknown>);
+
+  const where = {
+    requesterId,
+    ...(search
+      ? {
+          OR: [
+            { ticketNumber: { contains: search, mode: "insensitive" as const } },
+            { summary: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+    ...(categoryId !== undefined ? { categoryId } : {}),
+    ...(priority ? { requestedPriority: priority } : {}),
+    ...(status ? { currentStatus: status } : {}),
+  };
+
+  const [tickets, totalCount] = await Promise.all([
+    prisma.ticket.findMany({
+      where,
+      include: { category: { select: { name: true } } },
+      orderBy: { [sortBy]: sortDir },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.ticket.count({ where }),
+  ]);
+
+  const totalPages = totalCount === 0 ? 0 : Math.ceil(totalCount / pageSize);
+
+  res.status(200).json({
+    data: tickets.map((t) => ({
+      id: t.id,
+      ticketNumber: t.ticketNumber,
+      createdAt: t.createdAt,
+      summary: t.summary,
+      category: t.category.name,
+      requestedPriority: t.requestedPriority,
+      currentStatus: t.currentStatus,
+      updatedAt: t.updatedAt,
+    })),
+    pagination: { page, pageSize, totalCount, totalPages },
+  });
+});
+
+// ── GET /api/tickets/:id ─────────────────────────────────────────────────────
+
+router.get("/:id", async (req: Request, res: Response) => {
+  const requesterId = parseRequesterId(req.headers["x-requester-id"]);
+  if (requesterId === null) {
+    res.status(400).json({ error: "x-requester-id header must be a positive integer" });
+    return;
+  }
+
+  const ticketId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+
+  const ticket = await prisma.ticket.findFirst({
+    where: { id: ticketId, requesterId },
+    include: {
+      attachments: { where: { removedAt: null } },
+    },
+  });
+
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+
+  res.status(200).json({
+    id: ticket.id,
+    ticketNumber: ticket.ticketNumber,
+    requesterId: ticket.requesterId,
+    categoryId: ticket.categoryId,
+    relatedSystemId: ticket.relatedSystemId,
+    summary: ticket.summary,
+    description: ticket.description,
+    requestedPriority: ticket.requestedPriority,
+    currentStatus: ticket.currentStatus,
+    createdAt: ticket.createdAt,
+    updatedAt: ticket.updatedAt,
+    attachments: ticket.attachments.map((a) => ({
+      id: a.id,
+      fileName: a.fileName,
+      sizeBytes: a.sizeBytes,
+      uploadedAt: a.uploadedAt,
+    })),
+  });
+});
+
+// ── POST /api/tickets ────────────────────────────────────────────────────────
 
 router.post(
   "/",

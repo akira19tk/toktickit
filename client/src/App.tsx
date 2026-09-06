@@ -1,9 +1,10 @@
-// Application shell — Issue #2 + Issue #3
-// Routing: selection → home | create-ticket (later: my-tickets)
+// Application shell — Issue #2 + Issue #3 + Issue #4
+// Routing: selection → my-tickets (home) | create-ticket
 import { useState } from "react";
 import { RequesterProvider, useRequester } from "./context/RequesterContext";
 import RequesterSelect from "./components/RequesterSelect";
 import CreateTicket from "./components/CreateTicket";
+import MyTickets from "./components/MyTickets";
 import type { DevRequester } from "./api";
 
 type Screen = "home" | "create";
@@ -69,25 +70,19 @@ function AppContent() {
         </div>
       </header>
 
-      <main className="zen-main" id="main-content">
+      <main id="main-content">
         {screen === "create" ? (
           <CreateTicket
             requesterId={requester.id}
             onBack={() => setScreen("home")}
           />
         ) : (
-          <div className="zen-card zen-welcome">
-            <h1 className="zen-section-title">Welcome, {requester.name}</h1>
-            <p className="zen-muted" style={{ marginBottom: 24 }}>
-              TokTickIT IT Service Desk — select a screen from the navigation.
-            </p>
-            <button
-              className="zen-btn zen-btn-primary"
-              onClick={() => setScreen("create")}
-            >
-              Create Ticket
-            </button>
-          </div>
+          // key={requester.id} forces full remount on requester switch → page+filter reset
+          <MyTickets
+            key={requester.id}
+            requesterId={requester.id}
+            onCreateTicket={() => setScreen("create")}
+          />
         )}
       </main>
 
