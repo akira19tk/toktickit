@@ -62,6 +62,58 @@ export interface CreatedTicket {
   attachmentErrors: AttachmentError[];
 }
 
+export interface TicketListItem {
+  id: number;
+  ticketNumber: string;
+  createdAt: string;
+  summary: string;
+  category: string;
+  requestedPriority: string;
+  currentStatus: string;
+  updatedAt: string;
+}
+
+export interface Pagination {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+
+export interface TicketListResponse {
+  data: TicketListItem[];
+  pagination: Pagination;
+}
+
+export interface TicketListParams {
+  search?: string;
+  categoryId?: number;
+  priority?: string;
+  status?: string;
+  sortBy?: string;
+  sortDir?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function fetchTickets(
+  requesterId: number,
+  params: TicketListParams = {}
+): Promise<TicketListResponse> {
+  const query = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== "" && v !== null) {
+      query.set(k, String(v));
+    }
+  }
+  const url = `${API_BASE_URL}/api/tickets${query.toString() ? "?" + query : ""}`;
+  const res = await fetch(url, {
+    headers: { "x-requester-id": String(requesterId) },
+  });
+  if (!res.ok) throw new Error(`Failed to load tickets: ${res.status}`);
+  return res.json();
+}
+
 // Thrown when the server responds 400 with field-level errors.
 export class ApiValidationError extends Error {
   constructor(
