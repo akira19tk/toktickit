@@ -6,6 +6,7 @@ import healthRouter from "./routes/health";
 import categoriesRouter from "./routes/categories";
 import devRequestersRouter from "./routes/dev-requesters";
 import relatedSystemsRouter from "./routes/related-systems";
+import ticketsRouter from "./routes/tickets";
 
 export function createApp() {
   const app = express();
@@ -17,6 +18,7 @@ export function createApp() {
   app.use("/api/categories", categoriesRouter);
   app.use("/api/dev-requesters", devRequestersRouter);
   app.use("/api/related-systems", relatedSystemsRouter);
+  app.use("/api/tickets", ticketsRouter);
 
   return app;
 }
