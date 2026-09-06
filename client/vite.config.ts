@@ -8,6 +8,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    pool: "vmForks",
     setupFiles: "./tests/setup.ts",
     include: ["tests/**/*.test.tsx"],
   },

@@ -1,29 +1,32 @@
-// UI-03: API failure displays a useful error message
+// UI-03: Selection screen shows error state when API is unreachable
+// Lab 2 note: The "Check System" failure flow from Lab 1 is replaced by the
+// error state of the Development Requester Selection screen. This test covers
+// the App-level integration for the failure path (loading → error state → retry).
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import App from "../../src/App";
 import * as api from "../../src/api";
 
-describe("Check System - failure flow", () => {
-  it("shows Offline and a useful error message when the API is unreachable", async () => {
-    vi.spyOn(api, "fetchHealth").mockRejectedValue(
-      new Error("Health check failed with status 500")
-    );
-    vi.spyOn(api, "fetchCategories").mockResolvedValue([]);
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
-    const user = userEvent.setup();
+describe("Development Requester Selection — failure flow", () => {
+  it("shows the error state when the requester API is unreachable", async () => {
+    vi.spyOn(api, "fetchDevRequesters").mockRejectedValue(
+      new Error("Network error")
+    );
+
     render(<App />);
 
-    await user.click(screen.getByRole("button", { name: /check system/i }));
-
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(screen.getByTestId("error-state")).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("alert")).toHaveTextContent(/offline/i);
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      /unable to connect to toktickit api/i
-    );
+    // Error message and retry button are visible (FR-16, AC-10)
+    expect(screen.getByText(/unable to load requesters/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /try again/i })
+    ).toBeInTheDocument();
   });
 });

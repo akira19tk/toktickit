@@ -4,6 +4,8 @@ import express from "express";
 import cors from "cors";
 import healthRouter from "./routes/health";
 import categoriesRouter from "./routes/categories";
+import devRequestersRouter from "./routes/dev-requesters";
+import relatedSystemsRouter from "./routes/related-systems";
 
 export function createApp() {
   const app = express();
@@ -13,6 +15,8 @@ export function createApp() {
 
   app.use("/api/health", healthRouter);
   app.use("/api/categories", categoriesRouter);
+  app.use("/api/dev-requesters", devRequestersRouter);
+  app.use("/api/related-systems", relatedSystemsRouter);
 
   return app;
 }

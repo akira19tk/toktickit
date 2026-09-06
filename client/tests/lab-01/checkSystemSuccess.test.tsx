@@ -1,43 +1,51 @@
-// UI-02: Loading state changes to category list once the API calls resolve
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+// UI-02: Selection screen shows loaded requesters when API succeeds
+// Lab 2 note: The "Check System" flow from Lab 1 is replaced by the
+// Development Requester Selection screen. This test covers the success path
+// (loading → dropdown with requester names → Continue button enabled).
+import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import App from "../../src/App";
 import * as api from "../../src/api";
 
-describe("Check System - success flow", () => {
-  it("shows a loading state, then the Online status and categories", async () => {
-    vi.spyOn(api, "fetchHealth").mockImplementation(
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe("Development Requester Selection — success flow", () => {
+  it("shows a loading state, then the dropdown with active requesters", async () => {
+    vi.spyOn(api, "fetchDevRequesters").mockImplementation(
       () =>
         new Promise((resolve) =>
           setTimeout(
-            () => resolve({ status: "ok", service: "TokTickIT API" }),
+            () =>
+              resolve([
+                { id: 1, name: "Alice Johnson", email: "alice@example.com" },
+                { id: 2, name: "Bob Smith",     email: "bob@example.com"   },
+              ]),
             10
           )
         )
     );
-    vi.spyOn(api, "fetchCategories").mockResolvedValue([
-      { id: 1, name: "Account and Access" },
-      { id: 2, name: "Hardware" },
-      { id: 3, name: "Software" },
-      { id: 4, name: "Network" },
-    ]);
 
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: /check system/i }));
+    // Loading state is visible first
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(screen.getByText(/loading requesters/i)).toBeInTheDocument();
 
-    // Loading state appears first
-    expect(screen.getByRole("status")).toHaveTextContent(/loading/i);
-
-    // Then resolves to success state
+    // After API resolves the dropdown appears
     await waitFor(() => {
-      expect(screen.getByTestId("system-status")).toBeInTheDocument();
+      expect(
+        screen.getByRole("combobox", { name: /development requester/i })
+      ).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/online/i)).toBeInTheDocument();
-    expect(screen.getByText("Account and Access")).toBeInTheDocument();
-    expect(screen.getByText("Hardware")).toBeInTheDocument();
-    expect(screen.getByText("Software")).toBeInTheDocument();
-    expect(screen.getByText("Network")).toBeInTheDocument();
+    expect(screen.getByText(/alice johnson/i)).toBeInTheDocument();
+    expect(screen.getByText(/bob smith/i)).toBeInTheDocument();
+
+    // Continue button is disabled until a requester is chosen
+    expect(
+      screen.getByRole("button", { name: /continue/i })
+    ).toBeDisabled();
   });
 });
