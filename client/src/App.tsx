@@ -1,13 +1,14 @@
-// Application shell — Issue #2 + Issue #3 + Issue #4
-// Routing: selection → my-tickets (home) | create-ticket
+// Application shell — Issue #2–5
+// Routing: selection → my-tickets | create-ticket | ticket-detail
 import { useState } from "react";
 import { RequesterProvider, useRequester } from "./context/RequesterContext";
 import RequesterSelect from "./components/RequesterSelect";
 import CreateTicket from "./components/CreateTicket";
 import MyTickets from "./components/MyTickets";
+import TicketDetail from "./components/TicketDetail";
 import type { DevRequester } from "./api";
 
-type Screen = "home" | "create";
+type Screen = "home" | "create" | { detail: number };
 
 function AppContent() {
   const { requester, setRequester } = useRequester();
@@ -23,7 +24,10 @@ function AppContent() {
     setShowChangePicker(false);
   }
 
-  function navClass(s: Screen) {
+  function isHome() { return screen === "home"; }
+  function isCreate() { return screen === "create"; }
+
+  function navClass(s: "home" | "create") {
     return `zen-nav-link${screen === s ? " zen-nav-link--active" : ""}`;
   }
 
@@ -43,14 +47,14 @@ function AppContent() {
             <button
               className={navClass("home")}
               onClick={() => setScreen("home")}
-              aria-current={screen === "home" ? "page" : undefined}
+              aria-current={isHome() ? "page" : undefined}
             >
               My Tickets
             </button>
             <button
               className={navClass("create")}
               onClick={() => setScreen("create")}
-              aria-current={screen === "create" ? "page" : undefined}
+              aria-current={isCreate() ? "page" : undefined}
             >
               Create Ticket
             </button>
@@ -73,6 +77,12 @@ function AppContent() {
       <main id="main-content">
         {screen === "create" ? (
           <CreateTicket
+            requesterId={requester.id}
+            onBack={() => setScreen("home")}
+          />
+        ) : typeof screen === "object" ? (
+          <TicketDetail
+            ticketId={screen.detail}
             requesterId={requester.id}
             onBack={() => setScreen("home")}
           />

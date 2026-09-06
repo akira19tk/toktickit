@@ -151,6 +151,94 @@ export async function fetchRelatedSystems(): Promise<RelatedSystem[]> {
   return res.json();
 }
 
+// ── Ticket Detail types ────────────────────────────────────────────────────
+
+export interface TicketAttachment {
+  id: number;
+  fileName: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  // removedAt is present only when attachment is soft-removed (from Detail endpoint)
+  removedAt?: string | null;
+  removalReason?: string | null;
+}
+
+export interface TicketDetail {
+  id: number;
+  ticketNumber: string;
+  requesterId: number;
+  categoryId: number;
+  relatedSystemId: number;
+  summary: string;
+  description: string;
+  requestedPriority: string;
+  currentStatus: string;
+  createdAt: string;
+  updatedAt: string;
+  attachments: TicketAttachment[];
+}
+
+export async function fetchTicketDetail(
+  ticketId: number,
+  requesterId: number
+): Promise<TicketDetail> {
+  const res = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}`, {
+    headers: { "x-requester-id": String(requesterId) },
+  });
+  if (!res.ok) throw new Error(`Ticket not found: ${res.status}`);
+  return res.json();
+}
+
+export async function addAttachment(
+  ticketId: number,
+  file: File,
+  requesterId: number
+): Promise<TicketAttachment> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE_URL}/api/tickets/${ticketId}/attachments`, {
+    method: "POST",
+    headers: { "x-requester-id": String(requesterId) },
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.error ?? "Upload failed"), { status: res.status, body });
+  }
+  return res.json();
+}
+
+export async function removeAttachment(
+  ticketId: number,
+  attachmentId: number,
+  reason: string,
+  requesterId: number
+): Promise<{ id: number; removedAt: string; removalReason: string }> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/tickets/${ticketId}/attachments/${attachmentId}`,
+    {
+      method: "DELETE",
+      headers: {
+        "x-requester-id": String(requesterId),
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ reason }),
+    }
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.error ?? "Remove failed"), { status: res.status, body });
+  }
+  return res.json();
+}
+
+export function downloadAttachmentUrl(
+  ticketId: number,
+  attachmentId: number
+): string {
+  return `${API_BASE_URL}/api/tickets/${ticketId}/attachments/${attachmentId}/download`;
+}
+
 export async function createTicket(
   payload: CreateTicketPayload,
   requesterId: number
