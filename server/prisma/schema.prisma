@@ -1,5 +1,6 @@
-// Prisma schema for TokTickIT - Lab 1
-// Defines the Category model used to seed and list IT request categories.
+// Prisma schema for TokTickIT
+// Lab 1: Category model
+// Lab 2: DevRequester, RelatedSystem; isActive added to Category
 
 generator client {
   provider = "prisma-client-js"
@@ -13,5 +14,20 @@ datasource db {
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+model DevRequester {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model RelatedSystem {
+  id       Int     @id @default(autoincrement())
+  name     String  @unique
+  isActive Boolean @default(true)
 }
