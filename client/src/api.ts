@@ -168,7 +168,9 @@ export interface TicketDetail {
   ticketNumber: string;
   requesterId: number;
   categoryId: number;
+  category: string;
   relatedSystemId: number;
+  relatedSystem: string;
   summary: string;
   description: string;
   requestedPriority: string;
@@ -232,11 +234,37 @@ export async function removeAttachment(
   return res.json();
 }
 
-export function downloadAttachmentUrl(
+// Fetch the attachment via XHR (so x-requester-id header is sent), convert to a
+// blob URL, then trigger a programmatic click on a hidden <a download> element.
+// Returns after the click is dispatched; caller is responsible for cleanup if needed.
+export async function downloadAttachment(
   ticketId: number,
-  attachmentId: number
-): string {
-  return `${API_BASE_URL}/api/tickets/${ticketId}/attachments/${attachmentId}/download`;
+  attachmentId: number,
+  fileName: string,
+  requesterId: number
+): Promise<void> {
+  const url = `${API_BASE_URL}/api/tickets/${ticketId}/attachments/${attachmentId}/download`;
+  const res = await fetch(url, {
+    headers: { "x-requester-id": String(requesterId) },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.error ?? "Download failed"), {
+      status: res.status,
+      body,
+    });
+  }
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = fileName;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // Release the object URL after the browser has had a tick to start the download
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 }
 
 export async function createTicket(

@@ -186,7 +186,9 @@ router.get("/:id", async (req: Request, res: Response) => {
   const ticket = await prisma.ticket.findFirst({
     where: { id: ticketId, requesterId },
     include: {
-      attachments: { where: { removedAt: null } },
+      category:      { select: { name: true } },
+      relatedSystem: { select: { name: true } },
+      attachments:   { where: { removedAt: null } },
     },
   });
 
@@ -200,7 +202,9 @@ router.get("/:id", async (req: Request, res: Response) => {
     ticketNumber: ticket.ticketNumber,
     requesterId: ticket.requesterId,
     categoryId: ticket.categoryId,
+    category: ticket.category.name,
     relatedSystemId: ticket.relatedSystemId,
+    relatedSystem: ticket.relatedSystem.name,
     summary: ticket.summary,
     description: ticket.description,
     requestedPriority: ticket.requestedPriority,

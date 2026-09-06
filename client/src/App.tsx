@@ -92,6 +92,7 @@ function AppContent() {
             key={requester.id}
             requesterId={requester.id}
             onCreateTicket={() => setScreen("create")}
+            onOpenTicket={(id) => setScreen({ detail: id })}
           />
         )}
       </main>

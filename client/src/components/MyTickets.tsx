@@ -13,6 +13,7 @@ import {
 interface Props {
   requesterId: number;
   onCreateTicket: () => void;
+  onOpenTicket?: (ticketId: number) => void;
 }
 
 interface Filters {
@@ -40,7 +41,7 @@ function pageWindow(current: number, total: number, max = 5) {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export default function MyTickets({ requesterId, onCreateTicket }: Props) {
+export default function MyTickets({ requesterId, onCreateTicket, onOpenTicket }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [sortBy, setSortBy] = useState<"createdAt" | "ticketNumber">("createdAt");
@@ -241,7 +242,20 @@ export default function MyTickets({ requesterId, onCreateTicket }: Props) {
               </thead>
               <tbody>
                 {tickets.map((t) => (
-                  <tr key={t.id}>
+                  <tr
+                    key={t.id}
+                    className="mt-row-clickable"
+                    onClick={() => onOpenTicket?.(t.id)}
+                    role={onOpenTicket ? "button" : undefined}
+                    tabIndex={onOpenTicket ? 0 : undefined}
+                    onKeyDown={(e) => {
+                      if (onOpenTicket && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        onOpenTicket(t.id);
+                      }
+                    }}
+                    aria-label={onOpenTicket ? `Open ticket ${t.ticketNumber}` : undefined}
+                  >
                     <td className="mt-ticket-no">{t.ticketNumber}</td>
                     <td>{new Date(t.createdAt).toLocaleDateString()}</td>
                     <td className="mt-summary" data-testid={`summary-${t.id}`}>{t.summary}</td>
@@ -258,7 +272,11 @@ export default function MyTickets({ requesterId, onCreateTicket }: Props) {
           {/* Mobile card list (visually shown via CSS, hidden on desktop) */}
           <div className="mt-cards" aria-hidden="true">
             {tickets.map((t) => (
-              <div key={t.id} className="mt-card zen-card">
+              <div
+                key={t.id}
+                className="mt-card zen-card mt-row-clickable"
+                onClick={() => onOpenTicket?.(t.id)}
+              >
                 <div className="mt-card-row">
                   <span className="mt-card-label">Ticket No.</span>
                   <span className="mt-ticket-no">{t.ticketNumber}</span>
