@@ -10,6 +10,10 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 
 **Test database.** Automated tests never use the development database. They run against `toktickit_test` (`TEST_DATABASE_URL`), recreated by `npm run test:db:setup`, which refuses to run unless the name ends in `_test` and differs from `DATABASE_URL`. Each API test file creates exactly the users it needs (for example the exact number of Administrators for LAST_ADMIN) and does not rely on seeded passwords. Migration tests (MIG-01–MIG-04) run through `npm run test:migration` on `toktickit_migration_test`: Lab 2 migrations and a small Lab 2 fixture are applied first, a snapshot is recorded, then the Lab 3 migration and seed run and the data is compared.
 
+**Shared password vectors.** `shared/password-vectors.json` (repository root) lists passwords with the expected result and reason (length, 72-byte boundary in ASCII and Thai, missing letter, missing digit). UNIT-01, API-12 and API-58 on the server and UI-05 on the client all read this one file, so the client-side check cannot drift from the API. (If the client's Vite config blocks files outside its root, add `server.fs.allow` for `shared/`.)
+
+**Sequential server tests.** Server test files run one after another (`fileParallelism: false`) because they share and empty `toktickit_test`; the test database holds no seeded users.
+
 **Concurrency.** API-64 and API-65 fire simultaneous requests (`Promise.all`) to prove the claim and last-Administrator rules are atomic.
 
 **Authorization coverage.** API-16–API-22 are table-driven across every protected route in the authorization matrix (`specification.md` §5.8), so a newly added endpoint without a guard fails the suite.
@@ -18,7 +22,7 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 
 | Test ID | Type | AC | What It Tests | Expected Result | Automated Test File | Status |
 |---|---|---|---|---|---|---|
-| UNIT-01 | Unit | AC-15 | Password policy validator: min length, 72-byte limit (ASCII and Thai), letter+digit, differs from current, confirmation | Valid/invalid sets classified correctly; 72 bytes accepted, 73 rejected; 25 Thai characters rejected | server/tests/lab-03/lib.unit.test.ts | Planned |
+| UNIT-01 | Unit | AC-15 | Password policy validator using shared/password-vectors.json: min length, 72-byte limit (ASCII and Thai), letter+digit | Every vector classified as the file says; 72 bytes accepted, 73 rejected; 25 Thai characters rejected | server/tests/lab-03/lib.unit.test.ts | Planned |
 | UNIT-02 | Unit | AC-08 | Email normalizer (trim, lowercase, format) | Normalized output; invalid formats rejected | server/tests/lab-03/lib.unit.test.ts | Planned |
 | UNIT-03 | Unit | AC-46, AC-48, AC-49, AC-51 | Status transition matrix function | Allowed and blocked pairs match the matrix, terminal states have no exits | server/tests/lab-03/lib.unit.test.ts | Planned |
 | UNIT-04 | Unit | AC-13 | Session token generator and SHA-256 hasher | Token is long and random; only the hash is persistable | server/tests/lab-03/lib.unit.test.ts | Planned |
@@ -36,7 +40,7 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | API-09 | API | AC-12 | Expired session | 401 | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-10 | API | AC-13 | Scan responses and DB for secrets | No password/hash in any response; stored hash is bcrypt | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-11 | API | AC-14 | CORS from allowed and foreign origin | Allowed origin echoed with credentials; foreign gets none | server/tests/lab-03/auth.api.test.ts | Planned |
-| API-12 | API | AC-15 | Change password with invalid new password / mismatch | 400 field errors, unchanged | server/tests/lab-03/auth.api.test.ts | Planned |
+| API-12 | API | AC-15 | Change password with invalid new password / mismatch (cases from shared/password-vectors.json) | 400 field errors, unchanged | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-13 | API | AC-16 | Change password with wrong current password | 400 error on currentPassword | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-14 | API | AC-17 | Successful password change | Flag cleared, other sessions revoked, current kept, old password fails, new password works | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-15 | API | AC-02 | mustChangePassword user calls protected endpoints | 403 PASSWORD_CHANGE_REQUIRED except me/logout/change-password | server/tests/lab-03/auth.api.test.ts | Planned |
@@ -74,7 +78,7 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | API-47 | API | AC-46 | Allowed status transitions | 200 and new status | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
 | API-48 | API | AC-46 | Disallowed status transitions | 409 INVALID_TRANSITION | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
 | API-49 | API | AC-47 | Resolve with and without summary | 400 without; 200 with; resolvedAt set; Requester indicator cleared; Requester sees summary | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
-| API-50 | API | AC-48 | Close/cancel with and without confirm | 400 without confirm; CLOSED only from RESOLVED and sets closedAt | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
+| API-50 | API | AC-48 | Close/cancel with and without confirm | 400 without confirm; CLOSED only from RESOLVED and sets closedAt; CANCELLED leaves closedAt null | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
 | API-51 | API | AC-49 | Reopen from RESOLVED and CLOSED | REOPENED; dates and indicator cleared | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
 | API-52 | API | AC-50 | Status change on unassigned Ticket | 409 TICKET_UNASSIGNED | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
 | API-53 | API | AC-51 | Owner and IT Priority changes on CLOSED/CANCELLED; status changes from CLOSED and CANCELLED | Owner/priority: 409 TICKET_CLOSED. CLOSED → REOPENED: 200. Any status change from CANCELLED: 409 INVALID_TRANSITION | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
@@ -82,10 +86,10 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | API-55 | API | AC-58 | Admin lists, searches and filters users | Correct rows; no password data | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-56 | API | AC-59 | Admin creates user; new user logs in | 201; mustChangePassword true; first login gated | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-57 | API | AC-60 | Duplicate email (different case) on create and edit | 409 EMAIL_TAKEN | server/tests/lab-03/users-admin.api.test.ts | Planned |
-| API-58 | API | AC-61 | Invalid name, email, role; weak initial password on create and on set-initial-password | 400 field errors, nothing saved | server/tests/lab-03/users-admin.api.test.ts | Planned |
+| API-58 | API | AC-61 | Invalid name, email, role; weak initial password on create and on set-initial-password; weak password shapes from shared vectors | 400 field errors, nothing saved; no current-password/confirmation errors for Admin-set passwords | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-59 | API | AC-62 | Edit name, email, role, activation | Saved and listed | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-60 | API | AC-63 | Admin deactivates self | 409 SELF_DEACTIVATION | server/tests/lab-03/users-admin.api.test.ts | Planned |
-| API-61 | API | AC-64 | Deactivate/demote the last active Admin vs with a second Admin (test creates exactly the Admins it needs) | 409 LAST_ADMIN / 200 | server/tests/lab-03/users-admin.api.test.ts | Planned |
+| API-61 | API | AC-64 | Deactivate/demote the last active Admin vs with a second Admin (empty test DB; the test creates the Admins it needs, no seeded admin exists) | 409 LAST_ADMIN / 200 | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-62 | API | AC-65 | Set initial password for another user and for self | Sessions revoked, old password fails, new works then forces change; self 409 | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-63 | API | AC-66 | DELETE /api/admin/users/:id | 404 or 405 | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-64 | API | AC-79 | Two simultaneous claims on one unassigned Ticket (Promise.all) | Exactly one 200 and one 409 ALREADY_OWNED | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
@@ -104,7 +108,7 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | UI-02 | UI | AC-76 | Login busy state and backend-down failure | Button busy; safe message; email retained | client/tests/lab-03/Login.test.tsx | Planned |
 | UI-03 | UI | AC-72 | Login success redirects by role | Requester, IT Staff, Admin go to their home | client/tests/lab-03/Login.test.tsx | Planned |
 | UI-04 | UI | AC-06 | Inactive account response | Inactive message without extra account details | client/tests/lab-03/Login.test.tsx | Planned |
-| UI-05 | UI | AC-15, AC-77 | Change Password rules and mismatch | Rules shown; mismatch flagged | client/tests/lab-03/ChangePassword.test.tsx | Planned |
+| UI-05 | UI | AC-15, AC-77 | Change Password rules and mismatch; client validator run against the same shared/password-vectors.json | Rules shown; mismatch flagged; client and server agree on every vector including 72/73 bytes and Thai | client/tests/lab-03/ChangePassword.test.tsx | Planned |
 | UI-06 | UI | AC-17, AC-77 | Change Password success | Continues to role home | client/tests/lab-03/ChangePassword.test.tsx | Planned |
 | UI-07 | UI | AC-02 | Forced change gating | Any route redirects to Change Password | client/tests/lab-03/RouteGuard.test.tsx | Planned |
 | UI-08 | UI | AC-28, AC-72 | App shell | Name, role badge, Logout; only role-permitted nav | client/tests/lab-03/AppShell.test.tsx | Planned |

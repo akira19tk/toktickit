@@ -66,7 +66,7 @@ Request `{ "currentPassword": "…", "newPassword": "…", "confirmPassword": "�
 
 - **429** `TOO_MANY_ATTEMPTS` after 5 wrong current passwords in a row for the same user (15-minute lock)
 
-Password policy: at least 8 characters, at most 72 **bytes** in UTF-8 (about 24 Thai characters), at least one letter and one digit; longer values are rejected, never truncated. New and current passwords must differ, and the confirmation must match. The same length, letter and digit rules apply to initial passwords set by an Administrator.
+Password policy: at least 8 characters, at most 72 **bytes** in UTF-8 (about 24 Thai characters), at least one letter and one digit; longer values are rejected, never truncated. New and current passwords must differ, and the confirmation must match. The same length, byte-limit, letter and digit rules apply to initial passwords set by an Administrator; "differs from current" and the confirmation do not. The client checks the same limits for instant feedback, but the server result is authoritative.
 
 ## 3. Reference data
 `GET /categories`, `GET /related-systems` — **200** as in Lab 2 for any authenticated user whose password change is not pending; **401** otherwise.
@@ -160,7 +160,7 @@ Request `{ "status": "RESOLVED", "resolutionSummary": "Replaced battery.", "conf
 - **400** `errors.resolutionSummary` or `errors.confirm`
 - **409** `INVALID_TRANSITION` (body includes `allowed`), `TICKET_UNASSIGNED`, `NO_CHANGE`
 
-Side effects: RESOLVED sets `resolvedAt` and clears the Requester indicator; CLOSED sets `closedAt`; CANCELLED sets no date; REOPENED clears `resolvedAt`, `closedAt` and the indicator. A request for the current status returns 409 `NO_CHANGE`. Any status change from CANCELLED returns 409 `INVALID_TRANSITION`; CLOSED may only go to REOPENED.
+Side effects: RESOLVED sets `resolvedAt` and clears the Requester indicator; CLOSED sets `closedAt`; CANCELLED leaves `closedAt` null; REOPENED clears `resolvedAt`, `closedAt` and the indicator. A request for the current status returns 409 `NO_CHANGE`. Any status change from CANCELLED returns 409 `INVALID_TRANSITION`; CLOSED may only go to REOPENED.
 
 ### GET /staff/tickets/:id/comments — roles `IT_STAFF`, `ADMIN` (read-only for Admin)
 **200** same list shape as the Requester endpoint.
@@ -202,7 +202,7 @@ Only `name`, `email`, `role` and `isActive` are accepted; `passwordHash`, `mustC
 ### POST /admin/users/:id/initial-password
 Request `{ "initialPassword": "Welcome#2027" }`
 - **204**; sets `mustChangePassword = true` and deletes the target's sessions
-- **400** `errors.initialPassword` (same length, letter and digit rules as BR-09) · **404** unknown id · **409** `SELF_PASSWORD_RESET`
+- **400** `errors.initialPassword` (length, byte-limit, letter and digit rules of BR-09; the differs-from-current and confirmation rules do not apply) · **404** unknown id · **409** `SELF_PASSWORD_RESET`
 
 There is no user deletion endpoint (`DELETE /admin/users/:id` → 404 or 405).
 
