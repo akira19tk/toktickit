@@ -46,6 +46,9 @@ export function createApp() {
   // All middleware chains are applied inline inside authRouter.
   app.use("/api/auth", authRouter);
 
+  // ── Removed routes (BR-61) — must return 404 for everyone, before auth ────
+  app.use("/api/dev-requesters", devRequestersRouter);
+
   // ── Global auth stack for everything below ─────────────────────────────
   // Check order: auth (401) → pw-gate (403) → CSRF on mutating methods (403)
   // Role checks are applied per-route in later stages.
@@ -55,7 +58,6 @@ export function createApp() {
 
   // ── Protected routes ──────────────────────────────────────────────────────
   app.use("/api/categories", categoriesRouter);
-  app.use("/api/dev-requesters", devRequestersRouter);
   app.use("/api/related-systems", relatedSystemsRouter);
   app.use("/api/tickets", ticketsRouter);
 
