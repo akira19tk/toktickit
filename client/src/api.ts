@@ -3,8 +3,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
 
 // ── 401 handler ────────────────────────────────────────────────────────────
-// Registered by AuthContext after the initial /auth/me probe so startup 401s
-// do not trigger it (BR-66).
+// Fired on any 401 EXCEPT those from the login form and the startup /auth/me
+// probe — both pass skipUnauthorized=true, so their own 401s can never surface
+// the "session ended" banner, even if a handler is already registered (BR-66).
 let _unauthorizedHandler: (() => void) | null = null;
 
 export function setUnauthorizedHandler(fn: (() => void) | null): void {
@@ -209,7 +210,11 @@ export class ApiValidationError extends Error {
 // ── Auth API ───────────────────────────────────────────────────────────────
 
 export async function fetchMe(): Promise<User> {
-  const res = await apiFetch(`${API_BASE_URL}/api/auth/me`);
+  // skipUnauthorized=true: a 401 here just means "not signed in", which is the
+  // normal signed-out/post-logout case and must never show the session-ended
+  // banner — not even under React StrictMode's double-mount, where a second
+  // probe could otherwise fire a handler the first probe registered (BR-66).
+  const res = await apiFetch(`${API_BASE_URL}/api/auth/me`, {}, true);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new ApiError(res.status, body.code ?? "UNAUTHENTICATED", body.error ?? "Not authenticated");

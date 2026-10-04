@@ -14,10 +14,13 @@ interface LocationState {
 }
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, sessionEnded: authSessionEnded } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const sessionEnded = (location.state as LocationState)?.sessionEnded ?? false;
+  // Show the banner if a 401 ended the session mid-use (context flag, reliable
+  // across guard redirects) or if we were navigated here with the state set.
+  const sessionEnded =
+    authSessionEnded || ((location.state as LocationState)?.sessionEnded ?? false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
