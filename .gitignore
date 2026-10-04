@@ -27,3 +27,5 @@ npm-debug.log*
 
 # Test / coverage output
 coverage/
+server/uploads/
+server/uploads/
