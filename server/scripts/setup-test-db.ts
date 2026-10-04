@@ -1,8 +1,7 @@
 /**
  * Drops and recreates toktickit_test, applies all Prisma migrations,
- * and seeds Categories, Related Systems and DevRequesters (needed by
- * existing Lab 2 tests; DevRequester seeding will be removed in Stage D
- * once those tests are converted to use authenticated Users).
+ * and seeds Categories and Related Systems.
+ * The test database intentionally contains no User rows (spec section 7).
  *
  * Refuses to run unless TEST_DATABASE_URL ends in "_test" and differs
  * from DATABASE_URL.
@@ -120,24 +119,6 @@ import("@prisma/client").then(async ({ PrismaClient }) => {
     });
   }
   console.log(`Seeded ${RELATED_SYSTEMS.length} related systems.`);
-
-  // DevRequesters: seeded temporarily so Lab 2 tests pass.
-  // Remove this block in Stage D when those tests use authenticated Users.
-  const DEV_REQUESTERS = [
-    { name: "Alice Johnson", email: "alice@example.com", isActive: true },
-    { name: "Bob Smith", email: "bob@example.com", isActive: true },
-    { name: "Carol Davis", email: "carol@example.com", isActive: true },
-    { name: "David Wilson", email: "david@example.com", isActive: true },
-    { name: "Eve Martinez", email: "eve@example.com", isActive: false },
-  ];
-  for (const r of DEV_REQUESTERS) {
-    await prisma.devRequester.upsert({
-      where: { email: r.email },
-      update: { name: r.name, isActive: r.isActive },
-      create: r,
-    });
-  }
-  console.log(`Seeded ${DEV_REQUESTERS.length} dev requesters.`);
 
   await prisma.$disconnect();
   console.log(`\nTest database "${dbName}" is ready.`);

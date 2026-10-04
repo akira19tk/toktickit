@@ -1,6 +1,8 @@
 // Prisma schema for TokTickIT
 // Lab 1: Category
-// Lab 2: DevRequester, RelatedSystem, Ticket, Attachment, TicketCounter
+// Lab 2: RelatedSystem, Ticket, Attachment, TicketCounter
+// Lab 3: Role, User (evolved from DevRequester), Session, extended TicketStatus,
+//         Ticket additions (itPriority, owner, comments, notes), PublicComment, InternalNote
 
 generator client {
   provider = "prisma-client-js"
@@ -19,6 +21,19 @@ enum Priority {
 
 enum TicketStatus {
   NEW
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_REQUESTER
+  RESOLVED
+  CLOSED
+  REOPENED
+  CANCELLED
+}
+
+enum Role {
+  REQUESTER
+  IT_STAFF
+  ADMIN
 }
 
 model Category {
@@ -29,19 +44,41 @@ model Category {
   tickets   Ticket[]
 }
 
-model DevRequester {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  isActive  Boolean  @default(true)
+model User {
+  id                 Int             @id @default(autoincrement())
+  name               String
+  email              String          @unique
+  passwordHash       String?
+  role               Role            @default(REQUESTER)
+  isActive           Boolean         @default(true)
+  mustChangePassword Boolean         @default(true)
+  passwordChangedAt  DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @default(now()) @updatedAt
+  requestedTickets   Ticket[]        @relation("TicketRequester")
+  ownedTickets       Ticket[]        @relation("TicketOwner")
+  sessions           Session[]
+  publicComments     PublicComment[]
+  internalNotes      InternalNote[]
+
+  @@index([role, isActive])
+}
+
+model Session {
+  tokenHash String   @id
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  tickets   Ticket[]
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model RelatedSystem {
-  id       Int     @id @default(autoincrement())
-  name     String  @unique
-  isActive Boolean @default(true)
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  isActive Boolean  @default(true)
   tickets  Ticket[]
 }
 
@@ -52,23 +89,35 @@ model TicketCounter {
 }
 
 model Ticket {
-  id                Int           @id @default(autoincrement())
-  ticketNumber      String        @unique
-  requesterId       Int
-  requester         DevRequester  @relation(fields: [requesterId], references: [id])
-  categoryId        Int
-  category          Category      @relation(fields: [categoryId], references: [id])
-  relatedSystemId   Int
-  relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
-  summary           String
-  description       String
-  requestedPriority Priority
-  currentStatus     TicketStatus  @default(NEW)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  attachments       Attachment[]
+  id                  Int             @id @default(autoincrement())
+  ticketNumber        String          @unique
+  requesterId         Int
+  requester           User            @relation("TicketRequester", fields: [requesterId], references: [id])
+  ownerId             Int?
+  owner               User?           @relation("TicketOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  categoryId          Int
+  category            Category        @relation(fields: [categoryId], references: [id])
+  relatedSystemId     Int
+  relatedSystem       RelatedSystem   @relation(fields: [relatedSystemId], references: [id])
+  summary             String
+  description         String
+  requestedPriority   Priority
+  itPriority          Priority
+  currentStatus       TicketStatus    @default(NEW)
+  requesterResolvedAt DateTime?
+  resolutionSummary   String?
+  resolvedAt          DateTime?
+  closedAt            DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  attachments         Attachment[]
+  publicComments      PublicComment[]
+  internalNotes       InternalNote[]
 
   @@index([requesterId])
+  @@index([ownerId])
+  @@index([currentStatus])
+  @@index([itPriority])
   @@index([createdAt])
 }
 
@@ -85,4 +134,28 @@ model Attachment {
   removalReason  String?
 
   @@index([ticketId])
+}
+
+model PublicComment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+model InternalNote {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
 }

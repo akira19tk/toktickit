@@ -16,10 +16,10 @@ function isUndefinedTable(err: unknown): boolean {
   );
 }
 
-// Clears transient test data. Uses raw SQL so the file compiles with both
-// the Lab 2 schema (no User/Session tables) and the Lab 3 schema (with them).
-// TODO (Stage B): remove the 42P01 skip once the Lab 3 migration creates
-//                 User, Session, PublicComment and InternalNote.
+// Clears transient test data. Uses raw SQL so the function works even if
+// the calling test file is compiled before a migration adds a table.
+// 42P01 (undefined_table) is suppressed to allow partial schema states;
+// all other errors are re-thrown.
 async function tryDelete(table: string) {
   try {
     await prisma.$executeRawUnsafe(`DELETE FROM "${table}" WHERE TRUE`);

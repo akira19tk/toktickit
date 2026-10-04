@@ -28,5 +28,7 @@ npm-debug.log*
 # Test / coverage output
 coverage/
 server/uploads/
-server/uploads/
-server/uploads/
+
+# Generated migration test artifacts
+server/.migration-snapshot.json
+server/.fixture-lab2.sql
