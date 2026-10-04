@@ -1,126 +1,117 @@
-// Application shell — Issue #2–5
-// Routing: selection → my-tickets | create-ticket | ticket-detail
-import { useState } from "react";
-import { RequesterProvider, useRequester } from "./context/RequesterContext";
-import RequesterSelect from "./components/RequesterSelect";
-import CreateTicket from "./components/CreateTicket";
-import MyTickets from "./components/MyTickets";
-import TicketDetail from "./components/TicketDetail";
-import type { DevRequester } from "./api";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { PublicOnlyRoute, RequireAuth, RequireRole } from "./components/RouteGuard";
+import AppShell from "./components/AppShell";
+import Login from "./pages/Login";
+import ChangePassword from "./pages/ChangePassword";
+import Forbidden from "./pages/Forbidden";
+import NotFound from "./pages/NotFound";
+import StaffQueuePlaceholder from "./pages/StaffQueuePlaceholder";
+import AdminUsersPlaceholder from "./pages/AdminUsersPlaceholder";
+import {
+  CreateTicketPage,
+  MyTicketsPage,
+  TicketDetailPage,
+} from "./pages/RequesterPages";
 
-type Screen = "home" | "create" | { detail: number };
-
-function AppContent() {
-  const { requester, setRequester } = useRequester();
-  const [screen, setScreen] = useState<Screen>("home");
-  const [showChangePicker, setShowChangePicker] = useState(false);
-
-  if (!requester) {
-    return <RequesterSelect onSelect={setRequester} canCancel={false} />;
-  }
-
-  function handleChange(r: DevRequester) {
-    setRequester(r);
-    setShowChangePicker(false);
-  }
-
-  function isHome() { return screen === "home"; }
-  function isCreate() { return screen === "create"; }
-
-  function navClass(s: "home" | "create") {
-    return `zen-nav-link${screen === s ? " zen-nav-link--active" : ""}`;
-  }
-
+export default function App() {
   return (
-    <>
-      <header className="zen-header">
-        <div className="zen-header-inner">
-          <button
-            className="zen-logo-btn"
-            onClick={() => setScreen("home")}
-            aria-label="TokTickIT home"
-          >
-            TokTickIT
-          </button>
-
-          <nav className="zen-nav" aria-label="Main navigation">
-            <button
-              className={navClass("home")}
-              onClick={() => setScreen("home")}
-              aria-current={isHome() ? "page" : undefined}
-            >
-              My Tickets
-            </button>
-            <button
-              className={navClass("create")}
-              onClick={() => setScreen("create")}
-              aria-current={isCreate() ? "page" : undefined}
-            >
-              Create Ticket
-            </button>
-          </nav>
-
-          <div className="zen-header-right">
-            <span className="zen-requester-name" aria-label="Current requester">
-              {requester.name}
-            </span>
-            <button
-              className="zen-btn zen-btn-tertiary"
-              onClick={() => setShowChangePicker(true)}
-            >
-              Change Requester
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main id="main-content">
-        {screen === "create" ? (
-          <CreateTicket
-            requesterId={requester.id}
-            onBack={() => setScreen("home")}
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Public: signed-in users are redirected to their home */}
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <Login />
+              </PublicOnlyRoute>
+            }
           />
-        ) : typeof screen === "object" ? (
-          <TicketDetail
-            ticketId={screen.detail}
-            requesterId={requester.id}
-            onBack={() => setScreen("home")}
-          />
-        ) : (
-          // key={requester.id} forces full remount on requester switch → page+filter reset
-          <MyTickets
-            key={requester.id}
-            requesterId={requester.id}
-            onCreateTicket={() => setScreen("create")}
-            onOpenTicket={(id) => setScreen({ detail: id })}
-          />
-        )}
-      </main>
 
-      {showChangePicker && (
-        <div
-          className="zen-modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Change Development Requester"
-        >
-          <RequesterSelect
-            onSelect={handleChange}
-            canCancel={true}
-            onCancel={() => setShowChangePicker(false)}
+          {/* Change password: any authenticated user (including mustChangePassword) */}
+          <Route
+            path="/change-password"
+            element={
+              <RequireAuth>
+                <AppShell>
+                  <ChangePassword />
+                </AppShell>
+              </RequireAuth>
+            }
           />
-        </div>
-      )}
-    </>
+
+          {/* Requester routes */}
+          <Route
+            path="/my-tickets"
+            element={
+              <RequireRole role="REQUESTER">
+                <AppShell>
+                  <MyTicketsPage />
+                </AppShell>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/tickets/new"
+            element={
+              <RequireRole role="REQUESTER">
+                <AppShell>
+                  <CreateTicketPage />
+                </AppShell>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/tickets/:id"
+            element={
+              <RequireRole role="REQUESTER">
+                <AppShell>
+                  <TicketDetailPage />
+                </AppShell>
+              </RequireRole>
+            }
+          />
+
+          {/* IT Staff routes — placeholder until Issue #26 */}
+          <Route
+            path="/staff/queue"
+            element={
+              <RequireRole role="IT_STAFF">
+                <AppShell>
+                  <StaffQueuePlaceholder />
+                </AppShell>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/staff/tickets/:id"
+            element={
+              <RequireRole role="IT_STAFF">
+                <AppShell>
+                  <StaffQueuePlaceholder />
+                </AppShell>
+              </RequireRole>
+            }
+          />
+
+          {/* Admin routes — placeholder until Issue #28 */}
+          <Route
+            path="/admin/users"
+            element={
+              <RequireRole role="ADMIN">
+                <AppShell>
+                  <AdminUsersPlaceholder />
+                </AppShell>
+              </RequireRole>
+            }
+          />
+
+          {/* Error pages */}
+          <Route path="/forbidden" element={<Forbidden />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
-
-function App() {
-  return (
-    <RequesterProvider>
-      <AppContent />
-    </RequesterProvider>
-  );
-}
-
-export default App;

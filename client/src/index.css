@@ -734,3 +734,232 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Lab 3 — Zen Green extensions (ui-spec.md §1–§3)
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  --color-internal-bg:     #FEF3C7;
+  --color-internal-border: #B45309;
+  --color-public-accent:   #0B7A46;
+  --color-role-admin:      #1F2A25;
+}
+
+/* ── Role badges ─────────────────────────────────────────────── */
+.zen-role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.zen-role-badge--requester {
+  background: var(--color-pale);
+  color: var(--color-secondary);
+}
+
+.zen-role-badge--staff {
+  background: var(--color-secondary);
+  color: #fff;
+}
+
+.zen-role-badge--admin {
+  background: var(--color-role-admin);
+  color: #fff;
+}
+
+/* ── Ticket status badges ─────────────────────────────────────── */
+.zen-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.zen-status-badge--new          { background: #E8EEF3; color: #374151; }
+.zen-status-badge--open         { background: var(--color-pale); color: var(--color-primary); }
+.zen-status-badge--in-progress  { background: var(--color-secondary); color: #fff; }
+.zen-status-badge--waiting      { background: var(--color-warning-bg); color: #92400E; }
+.zen-status-badge--resolved     { background: var(--color-primary); color: #fff; }
+.zen-status-badge--closed       { background: #6B7280; color: #fff; }
+.zen-status-badge--reopened     { background: transparent; color: var(--color-internal-border); border: 1px solid var(--color-internal-border); }
+.zen-status-badge--cancelled    { background: #F3F4F6; color: #9CA3AF; text-decoration: line-through; }
+
+/* ── Login page ──────────────────────────────────────────────── */
+.zen-login-page {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-bg);
+}
+
+.zen-login-card {
+  width: 100%;
+  max-width: 440px;
+}
+
+.zen-login-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0 0 24px;
+  text-align: center;
+}
+
+/* ── Change Password page ────────────────────────────────────── */
+.zen-change-password-page {
+  min-height: calc(100svh - 56px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px 24px;
+  background: var(--color-bg);
+}
+
+.zen-cp-card {
+  width: 100%;
+  max-width: 480px;
+}
+
+.zen-pw-rules {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 8px 0 20px 16px;
+  padding: 0;
+}
+
+.zen-pw-rules li { margin-bottom: 4px; }
+
+/* ── Error pages (Forbidden, Not Found) ─────────────────────── */
+.zen-error-page {
+  min-height: calc(100svh - 56px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-bg);
+}
+
+.zen-error-card {
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+}
+
+.zen-error-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+/* ── Banners ─────────────────────────────────────────────────── */
+.zen-banner {
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.zen-banner--info {
+  background: var(--color-pale);
+  border: 1px solid #b8dfc8;
+  color: var(--color-secondary);
+}
+
+.zen-banner--error {
+  background: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #991B1B;
+}
+
+.zen-banner--success {
+  background: var(--color-pale);
+  border: 1px solid #b8dfc8;
+  color: var(--color-primary);
+}
+
+/* ── Input wrapper (for show/hide toggle) ────────────────────── */
+.zen-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.zen-input-wrap .zen-input {
+  flex: 1;
+  padding-right: 60px;
+}
+
+.zen-show-hide-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  padding: 0 12px;
+  background: none;
+  border: none;
+  color: var(--color-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ── Full-width button ───────────────────────────────────────── */
+.zen-btn-full {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* ── Header — user area & mobile menu ───────────────────────── */
+.zen-user-name {
+  font-size: 14px;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.zen-user-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zen-mobile-menu-btn {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .zen-mobile-menu-btn {
+    display: inline-flex;
+  }
+
+  .zen-nav,
+  .zen-user-area {
+    display: none;
+  }
+
+  .zen-user-area--open {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: absolute;
+    top: 56px;
+    right: 0;
+    left: 0;
+    background: var(--color-primary);
+    padding: 12px 24px;
+    gap: 8px;
+    z-index: 100;
+  }
+}
+
