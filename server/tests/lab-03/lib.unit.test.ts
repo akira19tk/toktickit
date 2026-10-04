@@ -204,19 +204,22 @@ describe("UNIT-05: createThrottle", () => {
     expect(throttle.isLocked("ghost@nowhere.invalid")).toBe(true);
   });
 
-  it("UNIT-05: a 6th failure re-extends the lock by 15 minutes", () => {
+  it("UNIT-05: a failure during the lockout does not extend the lock (BR-08)", () => {
+    // BR-08: "15 minutes counted from that failure" — the 5th failure sets the
+    // expiry; subsequent attempts during the lockout must not push it forward.
     const clock = { now: 0 };
     const throttle = createThrottle(() => clock.now);
 
+    // 5 failures at t=0 → lock must expire at exactly t=15 min
     for (let i = 0; i < 5; i++) throttle.increment("u@e.com");
 
-    clock.now = 15 * 60 * 1000 + 1; // lock just expired
-    expect(throttle.isLocked("u@e.com")).toBe(false);
+    // An increment at t=5 min (during the lock) must NOT push expiry to t=20 min
+    clock.now = 5 * 60 * 1000;
+    throttle.increment("u@e.com");
 
-    throttle.increment("u@e.com"); // 6th failure
-    expect(throttle.isLocked("u@e.com")).toBe(true); // new lock applied
-    clock.now += 14 * 60 * 1000;
-    expect(throttle.isLocked("u@e.com")).toBe(true);
+    // At t=15 min + 1 ms the original lock must have expired (not extended)
+    clock.now = 15 * 60 * 1000 + 1;
+    expect(throttle.isLocked("u@e.com")).toBe(false);
   });
 });
 

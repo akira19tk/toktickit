@@ -102,7 +102,10 @@ export function createThrottle(clock: Clock = Date.now): Throttle {
     increment(key: string) {
       const entry = map.get(key) ?? { count: 0, lockedUntil: 0 };
       entry.count += 1;
-      if (entry.count >= LOCK_THRESHOLD) {
+      // Only set the lock when not currently active (BR-08: "15 minutes counted
+      // from that failure" — attempts during the lockout must not extend it).
+      const alreadyLocked = clock() < entry.lockedUntil;
+      if (entry.count >= LOCK_THRESHOLD && !alreadyLocked) {
         entry.lockedUntil = clock() + LOCK_DURATION_MS;
       }
       map.set(key, entry);

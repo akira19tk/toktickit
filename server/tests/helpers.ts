@@ -3,13 +3,30 @@ import bcryptjs from "bcryptjs";
 import type { Application } from "express";
 import request from "supertest";
 
+// Returns true only for PostgreSQL error 42P01 (undefined_table), which
+// Prisma surfaces as a P2010 raw-query error whose meta.code is "42P01".
+function isUndefinedTable(err: unknown): boolean {
+  const e = err as Record<string, unknown>;
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    e["code"] === "P2010" &&
+    typeof e["meta"] === "object" &&
+    (e["meta"] as Record<string, unknown>)["code"] === "42P01"
+  );
+}
+
 // Clears transient test data. Uses raw SQL so the file compiles with both
 // the Lab 2 schema (no User/Session tables) and the Lab 3 schema (with them).
-// Tables that don't exist yet are silently skipped.
+// TODO (Stage B): remove the 42P01 skip once the Lab 3 migration creates
+//                 User, Session, PublicComment and InternalNote.
 async function tryDelete(table: string) {
-  await prisma.$executeRawUnsafe(`DELETE FROM "${table}" WHERE TRUE`).catch(
-    () => {}
-  );
+  try {
+    await prisma.$executeRawUnsafe(`DELETE FROM "${table}" WHERE TRUE`);
+  } catch (err) {
+    if (isUndefinedTable(err)) return; // table not yet created — safe to skip
+    throw err;               // all other errors are real and must surface
+  }
 }
 
 export async function clearDatabase() {
