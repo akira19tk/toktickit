@@ -10,6 +10,28 @@ import ticketsRouter from "./routes/tickets";
 import authRouter from "./routes/auth";
 import { requireAuth, passwordChangeGate, csrfCheck } from "./middleware/auth";
 
+// All protected routes served by this app.
+// Update this list alongside every app.use() change so the route-coverage
+// test in authorization.api.test.ts can enforce bidirectional sync with
+// routes.table.ts. Paths use abstract Express notation (:param placeholders).
+export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: string }> = [
+  // Auth (any authenticated role)
+  { method: "GET",    path: "/api/auth/me" },
+  { method: "POST",   path: "/api/auth/change-password" },
+  // Reference data (any authenticated role)
+  { method: "GET",    path: "/api/categories" },
+  { method: "GET",    path: "/api/related-systems" },
+  // Requester ticket routes (REQUESTER only)
+  { method: "POST",   path: "/api/tickets" },
+  { method: "GET",    path: "/api/tickets" },
+  { method: "GET",    path: "/api/tickets/:id" },
+  { method: "POST",   path: "/api/tickets/:id/attachments" },
+  { method: "GET",    path: "/api/tickets/:id/attachments/:attachmentId/download" },
+  { method: "DELETE", path: "/api/tickets/:id/attachments/:attachmentId" },
+  // Staff routes — appended by Issues #26 and #27
+  // Admin routes — appended by Issue #28
+];
+
 export function createApp() {
   const app = express();
 
