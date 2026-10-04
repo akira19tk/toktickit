@@ -6,6 +6,9 @@
  *
  * Refuses to run unless TEST_DATABASE_URL ends in "_test" and differs
  * from DATABASE_URL.
+ *
+ * If any prisma command runs > 60 s stop and run manually:
+ *   CHECKPOINT_DISABLE=1 DATABASE_URL=<TEST_DATABASE_URL> npx prisma migrate deploy
  */
 
 import { execSync } from "child_process";
@@ -23,8 +26,10 @@ if (!testUrl) {
 }
 
 let dbName: string;
+let parsed: URL;
 try {
-  dbName = new URL(testUrl).pathname.slice(1);
+  parsed = new URL(testUrl);
+  dbName = parsed.pathname.slice(1).split("?")[0];
 } catch {
   console.error(`ERROR: TEST_DATABASE_URL is not a valid URL: ${testUrl}`);
   process.exit(1);
@@ -46,22 +51,47 @@ if (testUrl === devUrl) {
 
 console.log(`Setting up test database: ${dbName}`);
 
+// Build an admin connection URL (same host/user, database=postgres)
+const adminUrl = new URL(testUrl);
+adminUrl.pathname = "/postgres";
+adminUrl.search = "";
+const adminUrlStr = adminUrl.toString();
+
+// Drop and recreate via psql (no interactive prompts, no hang)
+console.log("Dropping database (if exists)...");
+execSync(
+  `psql "${adminUrlStr}" -c "DROP DATABASE IF EXISTS \\"${dbName}\\";"`,
+  { stdio: "inherit" }
+);
+
+console.log("Creating database...");
+execSync(
+  `psql "${adminUrlStr}" -c "CREATE DATABASE \\"${dbName}\\";"`,
+  { stdio: "inherit" }
+);
+
+// Build the deploy URL without the ?schema= query parameter
+// (prisma migrate deploy accepts ?schema= but we strip it for clean output)
+const deployUrl = new URL(testUrl);
+deployUrl.search = "";
+const deployUrlStr = deployUrl.toString();
+
 const schemaPath = path.join(__dirname, "..", "prisma", "schema.prisma");
+const serverDir = path.join(__dirname, "..");
 
-try {
-  execSync(`npx prisma migrate reset --force --skip-seed --schema="${schemaPath}"`, {
-    env: { ...process.env, DATABASE_URL: testUrl },
+console.log("Applying migrations...");
+execSync(
+  `CHECKPOINT_DISABLE=1 npx prisma migrate deploy --schema="${schemaPath}"`,
+  {
+    env: { ...process.env, DATABASE_URL: deployUrlStr },
     stdio: "inherit",
-    cwd: path.join(__dirname, ".."),
-  });
-} catch {
-  console.error("Migration reset failed");
-  process.exit(1);
-}
+    cwd: serverDir,
+  }
+);
 
-// Seed reference data
+// Seed reference data using the Prisma client
 import("@prisma/client").then(async ({ PrismaClient }) => {
-  const prisma = new PrismaClient({ datasources: { db: { url: testUrl } } });
+  const prisma = new PrismaClient({ datasources: { db: { url: deployUrlStr } } });
 
   const CATEGORIES = ["Account and Access", "Hardware", "Software", "Network"];
   for (const name of CATEGORIES) {
