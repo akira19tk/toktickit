@@ -520,4 +520,124 @@ router.delete(
   }
 );
 
+// ── Allowed statuses for Problem Appears Resolved (BR-40) ───────────────────
+
+const RESOLVED_INDICATION_ALLOWED = new Set<TicketStatus>([
+  "OPEN",
+  "IN_PROGRESS",
+  "WAITING_FOR_REQUESTER",
+  "REOPENED",
+]);
+
+// ── GET /api/tickets/:id/comments ────────────────────────────────────────────
+
+router.get("/:id/comments", async (req: Request, res: Response) => {
+  const requesterId = req.user!.id;
+  const ticketId = parseInt(String(req.params.id), 10);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+  // Ownership check — BR-46: Requester may read only their own Ticket's comments
+  const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+  const comments = await prisma.publicComment.findMany({
+    where: { ticketId },
+    include: { author: { select: { id: true, name: true, role: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  res.status(200).json(
+    comments.map((c) => ({
+      id: c.id,
+      body: c.body,
+      createdAt: c.createdAt,
+      author: { id: c.author.id, name: c.author.name, role: c.author.role },
+    }))
+  );
+});
+
+// ── POST /api/tickets/:id/comments ───────────────────────────────────────────
+
+router.post("/:id/comments", async (req: Request, res: Response) => {
+  const requesterId = req.user!.id;
+  const ticketId = parseInt(String(req.params.id), 10);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+  // Ownership check BEFORE validation (BR-24, BR-46)
+  const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+  // Input validation (BR-42): trim then check 1–2000 chars
+  const rawBody = String((req.body as Record<string, unknown>).body ?? "");
+  const trimmedBody = rawBody.trim();
+  if (!trimmedBody) {
+    res.status(400).json({ errors: { body: "Comment body is required" } });
+    return;
+  }
+  if (trimmedBody.length > 2000) {
+    res.status(400).json({ errors: { body: "Comment body must not exceed 2000 characters" } });
+    return;
+  }
+  // State conflict (BR-44): CLOSED or CANCELLED → 409 TICKET_CLOSED
+  if (ticket.currentStatus === "CLOSED" || ticket.currentStatus === "CANCELLED") {
+    res.status(409).json({
+      error: "Cannot add comments to a closed or cancelled ticket",
+      code: "TICKET_CLOSED",
+    });
+    return;
+  }
+  const comment = await prisma.publicComment.create({
+    data: { ticketId, authorId: requesterId, body: trimmedBody },
+    include: { author: { select: { id: true, name: true, role: true } } },
+  });
+  res.status(201).json({
+    id: comment.id,
+    body: comment.body,
+    createdAt: comment.createdAt,
+    author: { id: comment.author.id, name: comment.author.name, role: comment.author.role },
+  });
+});
+
+// ── POST /api/tickets/:id/resolved-indication ────────────────────────────────
+
+router.post("/:id/resolved-indication", async (req: Request, res: Response) => {
+  const requesterId = req.user!.id;
+  const ticketId = parseInt(String(req.params.id), 10);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+  // Ownership check BEFORE state check (BR-24)
+  const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+  // State conflict (BR-40): only allowed in specific statuses
+  if (!RESOLVED_INDICATION_ALLOWED.has(ticket.currentStatus)) {
+    res.status(409).json({
+      error: "Problem Appears Resolved is only allowed when the ticket is OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER or REOPENED",
+      code: "INVALID_STATE",
+    });
+    return;
+  }
+  // Idempotent: if already indicated, return existing timestamp (BR-40)
+  if (ticket.requesterResolvedAt !== null) {
+    res.status(200).json({ requesterResolvedAt: ticket.requesterResolvedAt });
+    return;
+  }
+  const updated = await prisma.ticket.update({
+    where: { id: ticketId },
+    data: { requesterResolvedAt: new Date() },
+  });
+  res.status(200).json({ requesterResolvedAt: updated.requesterResolvedAt });
+});
+
 export default router;

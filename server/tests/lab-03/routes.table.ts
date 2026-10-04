@@ -41,6 +41,11 @@ export const routes: RouteEntry[] = [
   { method: "GET",    path: "/api/tickets/:id/attachments/:attachmentId/download",   allowedRoles: ["REQUESTER"],   requesterOwnership: true  },
   { method: "DELETE", path: "/api/tickets/:id/attachments/:attachmentId",            allowedRoles: ["REQUESTER"],   requesterOwnership: true  },
 
+  // ── Requester comment and resolution routes (REQUESTER only) ─────────────
+  { method: "GET",  path: "/api/tickets/:id/comments",            allowedRoles: ["REQUESTER"], requesterOwnership: true },
+  { method: "POST", path: "/api/tickets/:id/comments",            allowedRoles: ["REQUESTER"], requesterOwnership: true },
+  { method: "POST", path: "/api/tickets/:id/resolved-indication", allowedRoles: ["REQUESTER"], requesterOwnership: true },
+
   // ── Staff routes (IT_STAFF only, some also ADMIN read-only) ───────────────
   // PARTIAL — Issues #26 (Staff Queue) and #27 (Staff ticket operations) append entries here.
   // Until then API-17 iterates zero rows.
