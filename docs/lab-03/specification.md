@@ -83,10 +83,10 @@ The IT department wants real accounts. A user signs in with email and password; 
 - **BR-05** A Requester may indicate that the problem appears resolved, but cannot formally set the Ticket to Resolved or Closed.
 - **BR-06** Email addresses are trimmed, lowercased, validated (max 254 characters) and unique case-insensitively.
 - **BR-07** Login failures are generic: an unknown email and a wrong password return the same 401 message. An inactive account is disclosed (403 `ACCOUNT_INACTIVE`) only when the correct password was supplied.
-- **BR-08** After 5 consecutive failed logins for the same normalized email within 15 minutes, further attempts return 429 until the window ends; a successful login resets the counter. The counter is in memory and resets on server restart (documented limitation).
-- **BR-09** A password is 8–72 characters, contains at least one letter and one digit, differs from the current password, and must match its confirmation.
+- **BR-08** Failed logins are counted per normalized email string, whether or not the account exists, so the throttle itself reveals nothing. After the 5th consecutive failure that email is locked for 15 minutes counted from that failure: attempts return 429 even with the correct password. A successful login before the 5th failure resets the counter. Wrong-current-password attempts on `POST /api/auth/change-password` are counted per user with the same limit. Counters are in memory and reset on server restart (documented limitation).
+- **BR-09** Every password, including an initial password set by an Administrator, has at least 8 characters, **at most 72 bytes in UTF-8** (the bcrypt limit; a Thai character takes 3 bytes, so the limit is about 24 Thai characters), and at least one letter (any script) and one digit. When users change their own password it must also differ from the current password and match its confirmation. Passwords are never silently truncated; over-long values are rejected with 400.
 - **BR-10** Passwords are hashed with bcrypt (cost 10 or higher). Plaintext passwords and hashes are never stored in plaintext, logged, or returned by any API.
-- **BR-11** A session token is 256 bits of random data; only its SHA-256 hash is stored. The cookie `tt_session` is HttpOnly, SameSite=Lax, Path=/, and Secure in production. Sessions expire after 8 hours.
+- **BR-11** A session token is 256 bits of random data; only its SHA-256 hash is stored. The cookie `tt_session` is HttpOnly, SameSite=Lax, Path=/, and Secure in production. Sessions have an absolute lifetime of 8 hours from login; activity does not extend it.
 - **BR-12** Logout deletes the session row and clears the cookie. It is idempotent and returns 204 even without a session.
 - **BR-13** Role and `isActive` are read from the database on every authenticated request, so changes apply immediately. Deactivating a user or setting an initial password deletes all of that user's sessions.
 - **BR-14** Every POST, PATCH, PUT and DELETE request (including login) must carry `X-Requested-With: TokTickIT`; otherwise 403 `CSRF_REJECTED`. This is defense in depth on top of SameSite=Lax.
@@ -99,15 +99,15 @@ The IT department wants real accounts. A user signs in with email and password; 
 - **BR-19** Each user has exactly one role: `REQUESTER`, `IT_STAFF` or `ADMIN`.
 - **BR-20** Only `GET /api/health`, `POST /api/auth/login` and `POST /api/auth/logout` are public. Everything else returns 401 without a valid session, including `GET /api/categories` and `GET /api/related-systems`.
 - **BR-21** Requester endpoints (`/api/tickets*`) are `REQUESTER`-only. A Requester may touch only Tickets where `requesterId` equals the session user; any other Ticket or Attachment returns 404. IT Staff and Administrators calling them receive 403.
-- **BR-22** Staff endpoints (`/api/staff/*`) are `IT_STAFF`-only, except that the read-only `GET /api/staff/tickets/:id/comments` and `GET /api/staff/tickets/:id/notes` also allow `ADMIN`. Requesters receive 403.
+- **BR-22** Staff endpoints (`/api/staff/*`) are `IT_STAFF`-only, except these read-only `GET` endpoints which also allow `ADMIN`: `/api/staff/tickets` (queue, so an Administrator can find a Ticket id), `/api/staff/tickets/:id`, `…/comments` and `…/notes`. For an Administrator `allowedTransitions` is always empty. Requesters receive 403 everywhere under `/api/staff/*`.
 - **BR-23** Administrator endpoints (`/api/admin/*`) are `ADMIN`-only.
-- **BR-24** Checks run in this order so nothing leaks: authentication (401) → password-change gate (403) → CSRF header (403) → role (403) → resource lookup and ownership (404) → input validation (400) → state conflicts (409). Errors never reveal whether another user's Ticket, Attachment or Note exists.
+- **BR-24** Checks run in this order so nothing leaks: authentication (401) → password-change gate (403) → CSRF header (403) → role (403) → resource lookup and ownership (404) → input validation (400) → state conflicts (409). Errors never reveal whether another user's Ticket, Attachment or Note exists. Within the 409 step the order is: for **status** changes `NO_CHANGE` → `INVALID_TRANSITION` → `TICKET_UNASSIGNED`; for **owner** and **IT Priority** `TICKET_CLOSED` → `NO_CHANGE`; for **claim** `TICKET_CLOSED` → `ALREADY_OWNED`; for **comments and notes** `TICKET_CLOSED`.
 
 ### 5.3 Ownership, priority and status
 - **BR-25** A new Ticket starts in status NEW, has no owner, and its IT Priority equals its Requested Priority (Lab 2 BR-02 is preserved).
 - **BR-26** A Ticket has zero or one primary Ticket Owner, who must be an active `IT_STAFF` user at the moment of assignment.
 - **BR-27** IT Staff may claim only an unassigned Ticket. Claiming sets the owner to the caller and, if the status is NEW, sets it to OPEN in the same transaction. Claiming an owned Ticket returns 409 `ALREADY_OWNED`.
-- **BR-28** Any IT Staff user may reassign a Ticket to any active IT Staff user, including themselves. Assigning to the current owner returns 409 `NO_CHANGE`.
+- **BR-28** Any IT Staff user may assign or reassign a Ticket to any active IT Staff user, including themselves; this also works on an unassigned Ticket and does not change its status (only claiming does, BR-27). Assigning to the current owner returns 409 `NO_CHANGE`.
 - **BR-29** Ownership is validated only when assigned. A Ticket whose owner is later deactivated or changes role keeps that owner, is shown with a "no longer active IT Staff" marker, and can be reassigned.
 - **BR-30** On CLOSED or CANCELLED Tickets, owner and IT Priority changes return 409 `TICKET_CLOSED`.
 - **BR-31** Requested Priority never changes after creation. Only IT Staff may change IT Priority (`LOW`, `MEDIUM`, `HIGH`); setting the same value returns 409 `NO_CHANGE`.
@@ -115,7 +115,7 @@ The IT department wants real accounts. A user signs in with email and password; 
 - **BR-33** Status changes are accepted only along the transition matrix below; anything else returns 409 `INVALID_TRANSITION` with the allowed targets.
 - **BR-34** Only IT Staff may change status.
 - **BR-35** Moving to RESOLVED requires `resolutionSummary` of 10–1000 characters (trimmed). It sets `resolvedAt`, stores the summary, and clears the Requester-resolved indicator.
-- **BR-36** Moving to CLOSED or CANCELLED requires `confirm: true`. CLOSED is reachable only from RESOLVED.
+- **BR-36** Moving to CLOSED or CANCELLED requires `confirm: true`. CLOSED is reachable only from RESOLVED and sets `closedAt`; CANCELLED sets no completion date.
 - **BR-37** REOPENED is reachable from RESOLVED and CLOSED. It clears `resolvedAt`, `closedAt` and the indicator; the previous resolution summary is kept until replaced.
 - **BR-38** A status change on an unassigned Ticket returns 409 `TICKET_UNASSIGNED`; the Ticket must be claimed first. IT Priority may be changed while unassigned.
 - **BR-39** There are no automatic status changes other than the claim rule in BR-27. The Lab 4 rule that blocks resolution while Actions Taken are incomplete is deferred.
@@ -154,12 +154,12 @@ The IT department wants real accounts. A user signs in with email and password; 
 - **BR-55** The user list returns all users (no pagination) sorted by name then id, supports case-insensitive substring search on name or email and an exact role filter, and never includes password data.
 
 ### 5.6 Queue
-- **BR-56** The staff queue searches Ticket Number, Summary and Requester name (case-insensitive substring), sorts by `createdAt`, `updatedAt`, `ticketNumber`, `itPriority` or `currentStatus`, defaults to IT Priority descending then `createdAt` ascending, page size default 10 (max 50), and falls back to defaults for invalid parameters.
+- **BR-56** The staff queue searches Ticket Number, Summary and Requester name (case-insensitive substring), sorts by `createdAt`, `updatedAt`, `ticketNumber`, `itPriority` or `currentStatus`, defaults to IT Priority descending then `createdAt` ascending, page size default 10 (max 50). A `page` or `pageSize` that is not a positive integer, a `pageSize` above 50, or an unsupported sort value falls back to the default (never an error), matching Lab 2.
 - **BR-57** By default the queue shows active Tickets (everything except CLOSED and CANCELLED); `status=ALL` shows everything. Filters are status, IT Priority, category and owner (`ANY`, `ME`, `UNASSIGNED` or a user id) and combine with AND. The response includes counts of unassigned, assigned-to-me and Requester-indicated-resolved active Tickets.
 
 ### 5.7 Migration, seed and client behavior
 - **BR-58** The migration keeps every Ticket, Attachment, Category and Related System row and every `requesterId` value; ids of migrated users equal the old Development Requester ids.
-- **BR-59** Migrated Requesters have no password until the seed (or an Administrator) assigns one. The seed assigns the documented initial password to every user whose hash is NULL and sets `mustChangePassword = true`. A user without a hash cannot log in.
+- **BR-59** Users migrated from Lab 2 have no password until the seed (or an Administrator) assigns one. The seed gives each such existing user (hash NULL) the documented initial password and sets `mustChangePassword = true`. Staff and Administrator accounts that the seed creates new are created with the documented password and `mustChangePassword = false`. A user without a hash cannot log in.
 - **BR-60** Existing Tickets are backfilled with `itPriority = requestedPriority` and no owner.
 - **BR-61** The Development Requester selector, Change Requester action, `GET /api/dev-requesters`, `x-requester-id` handling and the client's stored requester key are removed; the client deletes any leftover requester key at startup.
 - **BR-62** The seed is idempotent (upsert by email and by reserved Ticket Number). It never overwrites an existing password hash or `mustChangePassword`.
@@ -167,6 +167,9 @@ The IT department wants real accounts. A user signs in with email and password; 
 - **BR-64** Validation failures return 400 with an `errors` object keyed by field name and safe messages.
 - **BR-65** After login the client goes to `/change-password` if required, otherwise to the role's home (`/my-tickets`, `/staff/queue` or `/admin/users`). Unauthenticated access goes to `/login`; wrong-role access shows `/forbidden`. No return-URL parameter is used.
 - **BR-66** Any 401 received while the app is running clears client auth state and returns to Login with the message "Your session has ended. Please sign in again."
+
+- **BR-67** Claiming and the administrator safety rules are atomic. Two simultaneous claims on one Ticket produce exactly one success and `ALREADY_OWNED` for the other (a conditional update `WHERE ownerId IS NULL`). Simultaneous demotions or deactivations can never leave zero active Administrators (the check and the update run in one transaction with the Administrator rows locked).
+- **BR-68** Endpoints accept only the fields listed in `api-spec.md`. Unknown or privileged fields in a request body (for example `currentStatus`, `ownerId`, `itPriority`, `requesterId` on Ticket creation, or `passwordHash`, `mustChangePassword`, `id` on user edit) are ignored and never written.
 
 ### 5.8 Authorization matrix
 
@@ -180,7 +183,8 @@ Legend: ✓ allowed · 401 unauthenticated · 403 forbidden · 404 not found / n
 | Create / list own Tickets, own detail | 401 | ✓ (own, else 404) | 403 | 403 |
 | Add / download / remove own Attachment | 401 | ✓ (own, else 404) | 403 | 403 |
 | Requester Public Comments, Problem Appears Resolved | 401 | ✓ (own, else 404) | 403 | 403 |
-| Staff queue, staff Ticket Detail, assignees | 401 | 403 | ✓ | 403 |
+| Staff queue, staff Ticket Detail | 401 | 403 | ✓ | R |
+| Staff assignees list | 401 | 403 | ✓ | 403 |
 | Claim, reassign, IT Priority, status | 401 | 403 | ✓ | 403 |
 | Staff Public Comments (read) | 401 | 403 | ✓ | R |
 | Staff Public Comments (post) | 401 | 403 | ✓ | 403 |
@@ -188,6 +192,8 @@ Legend: ✓ allowed · 401 unauthenticated · 403 forbidden · 404 not found / n
 | Internal Notes (post) | 401 | 403 | ✓ | 403 |
 | Staff Attachment download | 401 | 403 | ✓ | 403 |
 | User list, create, edit, set initial password | 401 | 403 | 403 | ✓ |
+
+While a user's `mustChangePassword` is true, every row except login, logout, current user and change password returns 403 `PASSWORD_CHANGE_REQUIRED` for that user, whatever the role (BR-18). Wrong role (403) is checked before not-found (404).
 
 ## 6. UI Specification Summary
 
@@ -281,12 +287,14 @@ model InternalNote {               // identical shape, separate table
 - A single `role` enum column enforces one role per user.
 
 **Migration plan (no data loss)**
-1. Before migrating, run a snapshot script that writes row counts and the ticket-id → requesterId map to `server/tests/lab-03/fixtures/lab2-snapshot.json` (used by MIG-01).
+1. Before migrating the development database, run a snapshot script that records row counts and the ticket-id → requesterId map (kept for the manual before/after check in the report).
 2. Run `npx prisma migrate dev --create-only`, then **edit the generated SQL**: replace the generated drop/create of `DevRequester` with `ALTER TABLE "DevRequester" RENAME TO "User"`, rename its primary-key and unique-index names to match Prisma, and add the new columns. This preserves ids and the existing Ticket foreign key.
 3. Add `itPriority` as nullable, run `UPDATE "Ticket" SET "itPriority" = "requestedPriority"`, then set it NOT NULL.
 4. Extend the `TicketStatus` enum with `ALTER TYPE … ADD VALUE`. Do not use the new values in the same migration.
 5. Create `Session`, `PublicComment`, `InternalNote`. Run `prisma migrate dev` once more to confirm there is no drift.
 6. Run the seed to assign initial passwords to users with a NULL hash.
+
+**Test database.** Automated tests use a separate PostgreSQL database named `toktickit_test` (`TEST_DATABASE_URL`). `npm run test:db:setup` drops and recreates it, applies all migrations and loads only Categories and Related Systems. The setup refuses to run unless the database name ends in `_test` and differs from `DATABASE_URL`. Each API test file creates exactly the users it needs, so tests such as LAST_ADMIN control the number of Administrators. The migration tests (MIG-01–MIG-04) run through `npm run test:migration`, which builds `toktickit_migration_test`, applies the **Lab 2** migrations, loads a small Lab 2 fixture (requesters, Tickets, Attachments), records its snapshot, applies the Lab 3 migration, runs the seed and compares.
 
 **Seed (local development only)**
 
@@ -300,7 +308,7 @@ model InternalNote {               // identical shape, separate table
 
 - Initial password for every seeded account: `Welcome#2026` (override with `SEED_INITIAL_PASSWORD`). Staff and Administrator accounts are seeded with `mustChangePassword = false` for convenience; migrated Requesters use `true`.
 - About 24 realistic Tickets with reserved numbers `TKT-2026-900001`…`900024`, covering every status and priority, assigned and unassigned, several with a Requester-indicated-resolved marker, plus 6 Public Comments and 6 Internal Notes (no sensitive data). Comments and notes are created only for seeded Tickets that have none yet.
-- Tests create their own users (`test-…@example.com`) and clean them up; they never depend on seeded passwords that may have been changed.
+- Automated tests never touch the development database (see **Test database** below) and never depend on seeded passwords that users may have changed.
 
 ## 8. API Contract
 
@@ -320,21 +328,21 @@ Full request and response shapes, error codes and examples are in `api-spec.md`.
 
 | ID | Maps to | Criterion |
 |---|---|---|
-| AC-01 | FR-01, BR-01, BR-06, BR-10, BR-11 | Given an active user with valid credentials, when the user logs in, then the backend sets an HttpOnly session cookie and returns only id, name, email, role and mustChangePassword (never a password hash). |
+| AC-01 | FR-01, BR-01, BR-06, BR-10, BR-11 | Given an active user with valid credentials, when the user logs in, then the backend sets a session cookie that is HttpOnly, SameSite=Lax, Path=/ and valid for 8 hours (Secure in production), and returns only id, name, email, role and mustChangePassword (never a password hash). |
 | AC-02 | FR-04, BR-02, BR-18 | Given a user whose mustChangePassword is true, when login succeeds, then every protected endpoint except `GET /api/auth/me`, `POST /api/auth/logout` and `POST /api/auth/change-password` returns 403 `PASSWORD_CHANGE_REQUIRED`, and the UI shows only the Change Password screen until a valid new password is saved. |
 | AC-03 | FR-08, BR-03 | Given an authenticated Requester, when the client supplies another `requesterId` (body, query or `x-requester-id` header), then the backend ignores it and returns or writes only data owned by the authenticated user. |
 | AC-04 | FR-19, BR-43 | Given a Requester account, when any Internal Note endpoint is requested, then the response is 403 and contains no note content. |
 | AC-05 | FR-01, BR-07 | Given an unknown email or a wrong password, when the user logs in, then the response is 401 `INVALID_CREDENTIALS` with the same message for both cases and no session cookie is set. |
 | AC-06 | BR-01, BR-07 | Given an inactive account, when the correct password is submitted, then login returns 403 `ACCOUNT_INACTIVE` and creates no session; when a wrong password is submitted the response is still the generic 401. |
-| AC-07 | BR-08 | Given five consecutive failed logins for one email within 15 minutes, when a sixth attempt is made (even with the correct password), then the response is 429 `TOO_MANY_ATTEMPTS` and no session is created. |
+| AC-07 | BR-08 | Given five consecutive failed logins for one email (existing or not), when a sixth attempt is made within 15 minutes of the fifth failure, even with the correct password, then the response is 429 `TOO_MANY_ATTEMPTS` and no session is created; five wrong current passwords on change-password lock that user the same way. |
 | AC-08 | BR-06 | Given an email typed with different letter case or surrounding spaces, when the user logs in, then the email is normalized and login succeeds. |
-| AC-09 | BR-14 | Given a state-changing request (POST/PATCH/PUT/DELETE) without the `X-Requested-With: TokTickIT` header, when it is sent, then the response is 403 `CSRF_REJECTED` and nothing changes. |
-| AC-10 | FR-02, BR-12 | Given a logged-in user, when the user logs out, then the session is invalid on the server: a later `GET /api/auth/me` with the old cookie returns 401 and the cookie is cleared. |
+| AC-09 | BR-14 | Given a logged-in user, when a state-changing request (POST/PATCH/PUT/DELETE) is sent without the `X-Requested-With: TokTickIT` header, then the response is 403 `CSRF_REJECTED` and nothing changes; the same request with the header succeeds. |
+| AC-10 | FR-02, BR-12 | Given a logged-in user, when the user logs out, then the session no longer exists on the server, the response clears the cookie (expired), and a later `GET /api/auth/me` with the old cookie returns 401. |
 | AC-11 | FR-03 | Given a valid session, when `GET /api/auth/me` is called, then it returns the current identity and role; with no session it returns 401. |
 | AC-12 | BR-11 | Given a session older than its 8-hour expiry, when any protected request is made, then the response is 401. |
 | AC-13 | BR-10 | Given any API response, when it is inspected, then it never contains a password or password hash, and the stored hash in the database is a bcrypt hash, not plaintext. |
 | AC-14 | BR-15 | Given a request from the allowed client origin, when it is made with credentials, then CORS allows that exact origin with credentials; a request from any other origin receives no allow-origin header. |
-| AC-15 | FR-05, BR-09 | Given a new password that is shorter than 8 characters, lacks a letter or a digit, equals the current password, or does not match the confirmation, when the change is submitted, then 400 field errors are returned and the password is unchanged. |
+| AC-15 | FR-05, BR-09 | Given a new password that is shorter than 8 characters, longer than 72 bytes (for example 25 Thai characters), lacks a letter or a digit, equals the current password, or does not match the confirmation, when the change is submitted, then 400 field errors are returned and the password is unchanged. |
 | AC-16 | BR-16 | Given a wrong current password, when a password change is submitted, then 400 is returned with an error on `currentPassword` and the password is unchanged. |
 | AC-17 | FR-05, BR-17 | Given a valid password change, when it is saved, then mustChangePassword becomes false, the new password works and the old one fails, the user's other sessions are revoked, the current session stays valid, and the UI continues to the role's home screen. |
 | AC-18 | BR-20 | Given no session, when any protected endpoint is called, then the response is 401. |
@@ -352,7 +360,7 @@ Full request and response shapes, error codes and examples are in `api-spec.md`.
 | AC-30 | BR-42 | Given an empty, whitespace-only or over-2000-character comment or note, when it is submitted, then 400 is returned with a field error; input such as `<script>` is stored as plain text and rendered as text. |
 | AC-31 | BR-46 | Given a Ticket owned by another Requester, when comments are read or posted, then the response is 404. |
 | AC-32 | FR-10, BR-40 | Given an owned Ticket in OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER or REOPENED, when the Requester selects Problem Appears Resolved, then requesterResolvedAt is set and the status is unchanged; repeating the action is idempotent. |
-| AC-33 | BR-05, BR-34 | Given a Requester, when any request tries to change a Ticket status (including to RESOLVED or CLOSED), then it is rejected with 403 and the status is unchanged. |
+| AC-33 | BR-05, BR-34, BR-68 | Given a Requester, when the Requester calls the staff status endpoint, then the response is 403 and the status is unchanged; no Requester endpoint accepts or applies a status field (see AC-81). |
 | AC-34 | BR-40 | Given a Ticket in NEW, RESOLVED, CLOSED or CANCELLED, when the Requester selects Problem Appears Resolved, then the response is 409 `INVALID_STATE`. |
 | AC-35 | BR-44 | Given a Ticket in CLOSED or CANCELLED, when a Public Comment or Internal Note is posted, then the response is 409 `TICKET_CLOSED`. |
 | AC-36 | FR-12, BR-56, BR-57 | Given IT Staff opens the Ticket Queue, when no parameters are given, then active tickets are returned sorted by IT Priority (high first) then oldest first, with pagination metadata and queue counts. |
@@ -367,47 +375,53 @@ Full request and response shapes, error codes and examples are in `api-spec.md`.
 | AC-45 | FR-16, BR-31 | Given a Ticket, when IT Staff changes IT Priority, then it is saved and Requested Priority is unchanged; an invalid value returns 400 and a Requester attempt returns 403. |
 | AC-46 | FR-17, BR-32, BR-33, BR-34 | Given a Ticket and a target status, when IT Staff changes status, then transitions allowed by the matrix succeed and all others return 409 `INVALID_TRANSITION`. |
 | AC-47 | BR-35 | Given a transition to RESOLVED, when no 10–1000 character resolution summary is provided then 400 is returned; with a summary the Ticket is resolved, resolvedAt is set and the Requester can read the summary. |
-| AC-48 | BR-36 | Given a transition to CLOSED or CANCELLED, when `confirm: true` is missing then 400 is returned; CLOSED is accepted only from RESOLVED. |
+| AC-48 | BR-36 | Given a transition to CLOSED or CANCELLED, when `confirm: true` is missing then 400 is returned; CLOSED is accepted only from RESOLVED and sets closedAt. |
 | AC-49 | BR-37, BR-41 | Given a RESOLVED or CLOSED Ticket, when IT Staff reopens it, then the status becomes REOPENED and resolvedAt, closedAt and the Requester-resolved indicator are cleared. |
 | AC-50 | BR-38 | Given an unassigned Ticket, when IT Staff attempts a status change, then the response is 409 `TICKET_UNASSIGNED`. |
 | AC-51 | BR-30 | Given a CLOSED or CANCELLED Ticket, when owner or IT Priority changes are attempted, then 409 `TICKET_CLOSED` is returned; a CANCELLED Ticket accepts no status transitions. |
 | AC-52 | FR-18, FR-19, BR-42, BR-45 | Given a Ticket, when IT Staff posts a Public Comment and an Internal Note, then each is stored with author and backend timestamp and appears only in its own list. |
 | AC-53 | FR-11, BR-04, BR-43 | Given a Requester, when Ticket Detail or comments are fetched, then no Internal Note content or note count appears anywhere in the payload. |
-| AC-54 | BR-22, BR-43 | Given an Administrator, when comments and notes are read the response is 200 (read-only); when an Administrator tries to post a comment or note, claim, or change status, owner or priority the response is 403. |
+| AC-54 | BR-22, BR-43 | Given an Administrator, when the queue, Ticket Detail, comments and notes are requested, then the responses are 200 and read-only (allowedTransitions is empty); when an Administrator tries to post a comment or note, claim, or change status, owner or priority the response is 403. |
 | AC-55 | FR-13, FR-20, BR-47 | Given a Ticket with attachments, when IT Staff downloads an active Attachment the file is returned; a removed Attachment returns 410; IT Staff cannot upload or remove attachments. |
 | AC-56 | FR-18, FR-19, BR-04 | Given Staff Ticket Detail, when it is rendered, then Public Comments and Internal Notes are in separate, visibly different panels with different labels, helper text and button wording. |
 | AC-57 | FR-28 | Given Staff Ticket Detail actions, when saving, a conflict, not-found, forbidden or server failure occurs, then the matching message is shown, the control shows a busy state while saving, and typed input is kept. |
 | AC-58 | FR-21, BR-55 | Given an Administrator, when User Management is opened, then users are listed with Name, Email, Role, Status and an Edit action, can be searched by name or email and filtered by role, and no password data is returned. |
 | AC-59 | FR-22, BR-48 | Given valid input, when an Administrator creates a user, then the user is created with mustChangePassword true and, on first login, is forced to change the password. |
 | AC-60 | BR-49 | Given an email that already exists in any letter case, when a user is created or edited with it, then the response is 409 `EMAIL_TAKEN` with a field error. |
-| AC-61 | BR-19, BR-48, BR-50, BR-64 | Given an empty name, an invalid email, an invalid role or a weak initial password, when a user is created or edited, then 400 field errors are returned and nothing is saved. |
+| AC-61 | BR-09, BR-19, BR-48, BR-50, BR-64 | Given an empty name, an invalid email or an invalid role on create or edit, or a weak initial password (too short, over 72 bytes, no letter or no digit) on create or set-initial-password, then 400 field errors are returned and nothing is saved. |
 | AC-62 | FR-23 | Given an existing user, when an Administrator edits name, email, role and activation state, then the changes are saved and the list reflects them. |
 | AC-63 | FR-25, BR-51 | Given an Administrator, when the Administrator deactivates their own account, then the response is 409 `SELF_DEACTIVATION` and the account stays active. |
 | AC-64 | FR-25, BR-52 | Given the only active Administrator, when that account is deactivated or its role is changed, then the response is 409 `LAST_ADMIN`; the same action succeeds when another active Administrator exists. |
 | AC-65 | FR-24, BR-54 | Given another user, when an Administrator sets a new initial password, then the user's sessions are revoked, the old password fails, the new one works and forces a password change; doing it to oneself returns 409 `SELF_PASSWORD_RESET`. |
 | AC-66 | BR-53 | Given the Administrator API, when a user deletion is attempted, then no delete route exists (404 or 405). |
 | AC-67 | FR-28 | Given the User Management screen, when validation, success, forbidden or server-failure conditions occur, then clear feedback is shown; a non-Administrator sees the Forbidden page. |
-| AC-68 | FR-26, BR-58 | Given the Lab 2 database, when the Lab 3 migration has run, then every Lab 2 Ticket and Attachment still exists with the same requesterId and the row counts equal the pre-migration snapshot. |
+| AC-68 | FR-26, BR-58 | Given the Lab 2 database, when the Lab 3 migration has run, then every Lab 2 Ticket, Attachment, Category and Related System still exists, every Ticket keeps its requesterId, and the row counts equal the pre-migration snapshot. |
 | AC-69 | FR-26, BR-59 | Given migrated Lab 2 requesters, when the migration finishes they have no password and cannot log in; after the seed runs they have the documented initial password with mustChangePassword true. |
 | AC-70 | FR-26, BR-60 | Given existing Tickets, when the migration finishes, then each has itPriority equal to its requestedPriority and no owner. |
 | AC-71 | FR-27, BR-62, BR-63 | Given the seed, when it is run twice, then counts are unchanged, no email or Ticket Number is duplicated and changed passwords are not reset; the required accounts, tickets, comments and notes exist. |
-| AC-72 | FR-06, BR-65 | Given any user, when navigating, then login redirects to the role's home, only role-permitted navigation is shown, a wrong-role URL shows the Forbidden page, and an unauthenticated URL redirects to Login. |
+| AC-72 | FR-06, BR-65 | Given any user, when navigating, then login redirects to the role's home, only role-permitted navigation is shown, a wrong-role URL shows the Forbidden page, an unknown URL shows Not Found, and an unauthenticated URL redirects to Login. |
 | AC-73 | BR-66 | Given an expired or revoked session, when any API call returns 401 the app returns to Login with a session-ended message; after logout, the Back button or a direct URL exposes no protected data. |
 | AC-74 | FR-29 | Given desktop, tablet and mobile viewports, when every new screen is rendered, then there is no clipping, overlap or horizontal overflow, tables become cards on mobile, and badge styles are consistent. |
 | AC-75 | FR-29 | Given Login, Change Password, dialogs and forms, when used by keyboard, then every control is reachable with a visible focus ring, errors are announced through an aria-live region, and dialogs trap focus and close on Escape. |
 | AC-76 | FR-01, FR-28 | Given the Login screen, when it is used, then validation messages appear under their fields, the submit button shows a busy state, a safe failure message appears if the backend is unavailable, and the typed email is retained. |
 | AC-77 | FR-05, FR-28 | Given the Change Password screen, when it is used, then password rules are shown, a confirmation mismatch is flagged under the field, and a successful change continues to the role's home screen. |
 | AC-78 | BR-29 | Given a Ticket whose owner was later deactivated or changed to another role, when the queue and Ticket Detail are shown, then the owner is kept and marked as no longer active IT Staff, and the Ticket can be reassigned. |
+| AC-79 | BR-67 | Given an unassigned Ticket, when two IT Staff users claim it at the same moment, then exactly one claim succeeds and the other receives 409 `ALREADY_OWNED`. |
+| AC-80 | FR-25, BR-52, BR-67 | Given exactly two active Administrators, when each demotes or deactivates the other at the same moment, then at least one active Administrator always remains. |
+| AC-81 | BR-03, BR-25, BR-68 | Given a Ticket-creation or user-edit request whose body contains fields the endpoint does not allow (such as currentStatus, ownerId, itPriority, requesterId, passwordHash or mustChangePassword), when it is processed, then those fields are ignored and stored values come only from allowed fields and defaults. |
+| AC-82 | BR-28, BR-31, BR-33 | Given a status, owner or IT Priority change to the value it already has, then 409 `NO_CHANGE` is returned; an invalid status transition returns 409 `INVALID_TRANSITION` listing the allowed targets. |
+| AC-83 | BR-13, BR-19 | Given a user whose role is changed while logged in, when the user makes the next request, then the permissions of the new role apply immediately. |
+| AC-84 | BR-24 | Given a request that violates several state rules at once (for example a status change on an unassigned CANCELLED Ticket), when it is processed, then the first applicable error in the documented order is returned (`INVALID_TRANSITION` before `TICKET_UNASSIGNED`). |
 
 ## 10. Definition of Done
 
 **Product completion**
-- All FR-01–FR-29 are implemented and all AC-01–AC-78 are satisfied.
+- All FR-01–FR-29 are implemented and all AC-01–AC-84 are satisfied.
 - Every Acceptance Criterion maps to at least one automated test in `tests.md`, each test title starts with its Test ID, and every test file path in `tests.md` exists.
 - The full suite (unit, API, UI, security/authorization, migration/regression, responsive, E2E) passes from the documented commands on the final `main` branch; no test is skipped, disabled or commented out.
 - Every protected endpoint is covered by the authorization matrix test; no protected operation relies on hidden UI.
 - Lab 2 data is intact (MIG-01), Lab 2 Requester functions pass their regression tests (API-23–25), and the Development Requester selector and `x-requester-id` handling are gone.
-- No password, hash or token appears in any response, log, test output or committed file; `.env` is not committed and `.env.example` documents `CLIENT_ORIGIN`, `SESSION_TTL_HOURS`, `BCRYPT_COST` and `SEED_INITIAL_PASSWORD`.
+- No password, hash or token appears in any response, log, test output or committed file; `.env` is not committed and `.env.example` documents `CLIENT_ORIGIN`, `SESSION_TTL_HOURS`, `BCRYPT_COST`, `SEED_INITIAL_PASSWORD` and `TEST_DATABASE_URL`.
 - Screens match `ui-spec.md` at desktop, tablet and mobile, with the visual checklist completed and screenshots saved under `artifacts/lab-03/screenshots/`.
 - README setup, seed credentials (local only), migration steps and test commands are current.
 
@@ -420,11 +434,12 @@ Full request and response shapes, error codes and examples are in `api-spec.md`.
 
 - **Server-side sessions over JWT:** logout and deactivation must take effect immediately, which is simple with a session table and awkward with stateless tokens.
 - **`react-router-dom` is added** for URL routes and route guards. Lab 2 used in-memory screen state, which cannot demonstrate "direct access blocked after logout". It is a routing library, not a replacement for any mandated technology.
-- **Administrator is read-only for Tickets:** to satisfy BR-04 an Administrator may read Public Comments and Internal Notes through the API, but cannot write to any Ticket and has no Ticket screens (least privilege, minimal UI).
+- **Administrator is read-only for Tickets:** to satisfy BR-04 an Administrator may read the queue, Ticket Detail, Public Comments and Internal Notes through the API (so ticket ids are discoverable), but cannot write to any Ticket and has no Ticket screens (least privilege, minimal UI). This is verified through API tests only.
 - **Ticket Owner must be IT Staff:** stricter than the handout's "IT Staff or Administrator", consistent with the Administrator decision above.
 - **Not-owned resources return 404, wrong role returns 403:** keeps the Lab 2 rule that existence is never revealed.
 - **Staff cannot upload or remove Attachments:** the handout asks for "Attachment continuity" only.
 - **No automatic status transitions** besides claim → OPEN, to keep the workflow testable.
+- **Throttle keyed by email, not IP:** simple and independent of proxies; one lockout also blocks the real owner for 15 minutes, which is accepted for a local lab.
 - **In-memory login throttle** is acceptable for a local lab; a production system would persist it.
 - **Seeded requesters require a first-login password change** (matching section 5.2 of the handout); staff and admin seeds do not, for demo convenience.
 - **Role changes do not move existing data:** a user's old requested Tickets and owned Tickets stay attached to them; ownership validity is checked only at assignment time.

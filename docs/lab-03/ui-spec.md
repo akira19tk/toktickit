@@ -52,7 +52,7 @@ Existing tokens (`#006B3C`, `#0B7A46`, `#EAF6EF`, `#F5F7F6`, `#1F2A25`, error, w
 | `/forbidden` | Signed-in user on a wrong-role URL | Forbidden |
 | any other path | Anyone | Not Found |
 
-**Shell (all signed-in screens):** TokTickIT identity on the left; role navigation; on the right the user's name, role badge, a menu with Change Password and Logout. Navigation shows only destinations the role may use.
+**Shell (all signed-in screens):** TokTickIT identity on the left; role navigation; on the right the user's name, role badge, a menu with Change Password and Logout. Navigation shows only destinations the role may use. The Administrator has read-only API access to tickets but no ticket screens.
 
 | Role | Navigation |
 |---|---|
@@ -71,7 +71,7 @@ Home after login: Requester `/my-tickets`, IT Staff `/staff/queue`, Administrato
 - A session-ended message ("Your session has ended. Please sign in again.") appears as an info banner when redirected after a 401.
 
 ### 4.2 Change Password (`/change-password`)
-- Card with Current password, New password, Confirm new password; a visible rules list (8–72 characters, at least one letter and one digit, different from current).
+- Card with Current password, New password, Confirm new password; a visible rules list (at least 8 characters, at most 72 bytes — about 24 Thai characters —, at least one letter and one digit, different from the current password).
 - Heading text differs when the change is mandatory ("You must choose a new password before continuing"); the shell shows only Logout in that state.
 - Errors under the matching field; success confirmation, then redirect to the role's home.
 

@@ -2,13 +2,15 @@
 
 ## 1. Test Strategy
 
-This plan is written from `specification.md` **before** implementation (Test DD). Tests are then driven red → green per Issue (TDD). It covers unit, API/integration, UI component, UI style, responsive, security/authorization, migration/regression and end-to-end levels. Every Acceptance Criterion (AC-01–AC-78) maps to at least one test below; planned totals — 114 tests (Unit: 7, API: 63, Migration: 4, UI: 27, Responsive: 5, UI Style: 1, E2E: 7).
+This plan is written from `specification.md` **before** implementation (Test DD). Tests are then driven red → green per Issue (TDD). It covers unit, API/integration, UI component, UI style, responsive, security/authorization, migration/regression and end-to-end levels. Every Acceptance Criterion (AC-01–AC-84) maps to at least one test below; planned totals — 122 tests (Unit: 7, API: 70, UI: 28, Migration: 4, Responsive: 5, UI Style: 1, E2E: 7).
 
 **Naming rule (traceability).** Every automated test title starts with its Test ID, for example `it("API-08: GET /auth/me returns identity or 401", …)`. This lets the Status column be verified mechanically from test output.
 
 **Status rule.** The Status column stays `Planned` until the test has actually run green on `main`. It is changed to `Pass` only from real test output, never from an agent's claim. A test that is not implemented, skipped or failing must not be marked Pass.
 
-**Fixtures.** Tests create their own users with `test-…@example.com` addresses and remove them afterward; they do not depend on seeded passwords, which users may have changed. The migration test compares the database with `server/tests/lab-03/fixtures/lab2-snapshot.json`, captured before the migration is applied.
+**Test database.** Automated tests never use the development database. They run against `toktickit_test` (`TEST_DATABASE_URL`), recreated by `npm run test:db:setup`, which refuses to run unless the name ends in `_test` and differs from `DATABASE_URL`. Each API test file creates exactly the users it needs (for example the exact number of Administrators for LAST_ADMIN) and does not rely on seeded passwords. Migration tests (MIG-01–MIG-04) run through `npm run test:migration` on `toktickit_migration_test`: Lab 2 migrations and a small Lab 2 fixture are applied first, a snapshot is recorded, then the Lab 3 migration and seed run and the data is compared.
+
+**Concurrency.** API-64 and API-65 fire simultaneous requests (`Promise.all`) to prove the claim and last-Administrator rules are atomic.
 
 **Authorization coverage.** API-16–API-22 are table-driven across every protected route in the authorization matrix (`specification.md` §5.8), so a newly added endpoint without a guard fails the suite.
 
@@ -16,27 +18,27 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 
 | Test ID | Type | AC | What It Tests | Expected Result | Automated Test File | Status |
 |---|---|---|---|---|---|---|
-| UNIT-01 | Unit | AC-15 | Password policy validator: length, letter+digit, differs from current, confirmation | Valid/invalid sets classified correctly; 72-char boundary | server/tests/lab-03/lib.unit.test.ts | Planned |
+| UNIT-01 | Unit | AC-15 | Password policy validator: min length, 72-byte limit (ASCII and Thai), letter+digit, differs from current, confirmation | Valid/invalid sets classified correctly; 72 bytes accepted, 73 rejected; 25 Thai characters rejected | server/tests/lab-03/lib.unit.test.ts | Planned |
 | UNIT-02 | Unit | AC-08 | Email normalizer (trim, lowercase, format) | Normalized output; invalid formats rejected | server/tests/lab-03/lib.unit.test.ts | Planned |
 | UNIT-03 | Unit | AC-46, AC-48, AC-49, AC-51 | Status transition matrix function | Allowed and blocked pairs match the matrix, terminal states have no exits | server/tests/lab-03/lib.unit.test.ts | Planned |
 | UNIT-04 | Unit | AC-13 | Session token generator and SHA-256 hasher | Token is long and random; only the hash is persistable | server/tests/lab-03/lib.unit.test.ts | Planned |
-| UNIT-05 | Unit | AC-07 | Login throttle logic | Blocks after 5 failures, resets after window or success | server/tests/lab-03/lib.unit.test.ts | Planned |
-| UNIT-06 | Unit | AC-39 | Queue query-parameter parser | Invalid sort/page/pageSize fall back to defaults | server/tests/lab-03/lib.unit.test.ts | Planned |
+| UNIT-05 | Unit | AC-07 | Login throttle logic | Counts per normalized email (known or unknown); locks 15 min after the 5th failure; resets on success | server/tests/lab-03/lib.unit.test.ts | Planned |
+| UNIT-06 | Unit | AC-39 | Queue query-parameter parser | Non-integer, <1, pageSize>50 and unsupported sort values fall back to defaults | server/tests/lab-03/lib.unit.test.ts | Planned |
 | UNIT-07 | Unit | AC-13 | Password hash/verify wrapper | Hash differs from plaintext; verify true/false correctly | server/tests/lab-03/lib.unit.test.ts | Planned |
-| API-01 | API | AC-01 | Valid login | 200, user identity returned, HttpOnly cookie set, no hash | server/tests/lab-03/auth.api.test.ts | Planned |
+| API-01 | API | AC-01 | Valid login | 200, identity returned, no hash; cookie HttpOnly, SameSite=Lax, Path=/, ~8h expiry, Secure only in production config | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-02 | API | AC-08 | Login with mixed-case, padded email | 200, same user | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-03 | API | AC-05 | Unknown email vs wrong password | Both 401 with identical body, no cookie | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-04 | API | AC-06 | Inactive account login | 403 ACCOUNT_INACTIVE with right password, 401 with wrong password | server/tests/lab-03/auth.api.test.ts | Planned |
-| API-05 | API | AC-07 | Six failed logins in a row | 6th attempt 429 even with correct password | server/tests/lab-03/auth.api.test.ts | Planned |
-| API-06 | API | AC-09 | State-changing request without X-Requested-With | 403 CSRF_REJECTED, no data change | server/tests/lab-03/auth.api.test.ts | Planned |
-| API-07 | API | AC-10 | Logout then reuse old cookie | 204; later /auth/me returns 401 | server/tests/lab-03/auth.api.test.ts | Planned |
+| API-05 | API | AC-07 | Six failed logins in a row (existing and unknown email) | 6th attempt 429 even with correct password; lock lasts 15 minutes; unknown email behaves the same | server/tests/lab-03/auth.api.test.ts | Planned |
+| API-06 | API | AC-09 | With a valid session, state-changing request without X-Requested-With (and login without it) | 403 CSRF_REJECTED and data unchanged; same request with the header succeeds | server/tests/lab-03/auth.api.test.ts | Planned |
+| API-07 | API | AC-10 | Logout then reuse old cookie | 204; Set-Cookie expires the cookie; session row gone; later /auth/me returns 401 | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-08 | API | AC-11 | GET /auth/me with and without session | 200 identity / 401 | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-09 | API | AC-12 | Expired session | 401 | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-10 | API | AC-13 | Scan responses and DB for secrets | No password/hash in any response; stored hash is bcrypt | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-11 | API | AC-14 | CORS from allowed and foreign origin | Allowed origin echoed with credentials; foreign gets none | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-12 | API | AC-15 | Change password with invalid new password / mismatch | 400 field errors, unchanged | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-13 | API | AC-16 | Change password with wrong current password | 400 error on currentPassword | server/tests/lab-03/auth.api.test.ts | Planned |
-| API-14 | API | AC-17 | Successful password change | Flag cleared, other sessions revoked, current kept, old password fails | server/tests/lab-03/auth.api.test.ts | Planned |
+| API-14 | API | AC-17 | Successful password change | Flag cleared, other sessions revoked, current kept, old password fails, new password works | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-15 | API | AC-02 | mustChangePassword user calls protected endpoints | 403 PASSWORD_CHANGE_REQUIRED except me/logout/change-password | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-16 | API | AC-18 | Every protected endpoint without session (table-driven) | 401 for all | server/tests/lab-03/authorization.api.test.ts | Planned |
 | API-17 | API | AC-19 | Requester calls /api/staff/* and /api/admin/* | 403, no resource info | server/tests/lab-03/authorization.api.test.ts | Planned |
@@ -58,7 +60,7 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | API-33 | API | AC-04 | Requester calls Internal Note endpoints | 403, no note data | server/tests/lab-03/comments-notes.api.test.ts | Planned |
 | API-34 | API | AC-53 | Requester Ticket Detail and comments payloads | No note content or count anywhere | server/tests/lab-03/comments-notes.api.test.ts | Planned |
 | API-35 | API | AC-52 | IT Staff posts Public Comment and Internal Note | Each stored and listed only in its own list | server/tests/lab-03/comments-notes.api.test.ts | Planned |
-| API-36 | API | AC-54 | Administrator reads and attempts writes | Read 200; all writes 403 | server/tests/lab-03/comments-notes.api.test.ts | Planned |
+| API-36 | API | AC-54 | Administrator reads queue, detail, comments, notes; attempts writes | Reads 200 with empty allowedTransitions; claim, status, owner, priority, comment, note all 403 | server/tests/lab-03/comments-notes.api.test.ts | Planned |
 | API-37 | API | AC-30 | Internal Note validation | 400 on empty/whitespace/2001 chars | server/tests/lab-03/comments-notes.api.test.ts | Planned |
 | API-38 | API | AC-36 | Default queue | Active only; IT Priority desc then oldest; pagination + counts | server/tests/lab-03/staff-queue.api.test.ts | Planned |
 | API-39 | API | AC-37 | Queue search by number, summary, requester name | Matching rows only | server/tests/lab-03/staff-queue.api.test.ts | Planned |
@@ -71,22 +73,30 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | API-46 | API | AC-45 | Change IT Priority | Saved; Requested Priority unchanged; invalid 400; Requester 403 | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
 | API-47 | API | AC-46 | Allowed status transitions | 200 and new status | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
 | API-48 | API | AC-46 | Disallowed status transitions | 409 INVALID_TRANSITION | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
-| API-49 | API | AC-47 | Resolve with and without summary | 400 without; 200 with; Requester sees summary | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
-| API-50 | API | AC-48 | Close/cancel with and without confirm | 400 without confirm; CLOSED only from RESOLVED | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
+| API-49 | API | AC-47 | Resolve with and without summary | 400 without; 200 with; resolvedAt set; Requester indicator cleared; Requester sees summary | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
+| API-50 | API | AC-48 | Close/cancel with and without confirm | 400 without confirm; CLOSED only from RESOLVED and sets closedAt | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
 | API-51 | API | AC-49 | Reopen from RESOLVED and CLOSED | REOPENED; dates and indicator cleared | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
 | API-52 | API | AC-50 | Status change on unassigned Ticket | 409 TICKET_UNASSIGNED | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
-| API-53 | API | AC-51 | Owner/priority/status changes on CLOSED and CANCELLED | 409 TICKET_CLOSED; CANCELLED has no exits | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
-| API-54 | API | AC-55 | Staff downloads active and removed Attachment; upload attempt | File / 410 / upload rejected | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
+| API-53 | API | AC-51 | Owner and IT Priority changes on CLOSED/CANCELLED; status changes from CLOSED and CANCELLED | Owner/priority: 409 TICKET_CLOSED. CLOSED → REOPENED: 200. Any status change from CANCELLED: 409 INVALID_TRANSITION | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
+| API-54 | API | AC-55 | Staff downloads active and removed Attachment; tries to upload and to remove | File / 410 / upload and remove rejected | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
 | API-55 | API | AC-58 | Admin lists, searches and filters users | Correct rows; no password data | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-56 | API | AC-59 | Admin creates user; new user logs in | 201; mustChangePassword true; first login gated | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-57 | API | AC-60 | Duplicate email (different case) on create and edit | 409 EMAIL_TAKEN | server/tests/lab-03/users-admin.api.test.ts | Planned |
-| API-58 | API | AC-61 | Invalid name, email, role, weak password | 400 field errors | server/tests/lab-03/users-admin.api.test.ts | Planned |
+| API-58 | API | AC-61 | Invalid name, email, role; weak initial password on create and on set-initial-password | 400 field errors, nothing saved | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-59 | API | AC-62 | Edit name, email, role, activation | Saved and listed | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-60 | API | AC-63 | Admin deactivates self | 409 SELF_DEACTIVATION | server/tests/lab-03/users-admin.api.test.ts | Planned |
-| API-61 | API | AC-64 | Deactivate/demote last active Admin vs with a second Admin | 409 LAST_ADMIN / 200 | server/tests/lab-03/users-admin.api.test.ts | Planned |
-| API-62 | API | AC-65 | Set initial password for another user and for self | Sessions revoked, forced change; self 409 | server/tests/lab-03/users-admin.api.test.ts | Planned |
+| API-61 | API | AC-64 | Deactivate/demote the last active Admin vs with a second Admin (test creates exactly the Admins it needs) | 409 LAST_ADMIN / 200 | server/tests/lab-03/users-admin.api.test.ts | Planned |
+| API-62 | API | AC-65 | Set initial password for another user and for self | Sessions revoked, old password fails, new works then forces change; self 409 | server/tests/lab-03/users-admin.api.test.ts | Planned |
 | API-63 | API | AC-66 | DELETE /api/admin/users/:id | 404 or 405 | server/tests/lab-03/users-admin.api.test.ts | Planned |
-| MIG-01 | Migration | AC-68 | Compare post-migration data with pre-migration snapshot | Ticket/Attachment counts and requesterId map identical | server/tests/lab-03/migration-seed.test.ts | Planned |
+| API-64 | API | AC-79 | Two simultaneous claims on one unassigned Ticket (Promise.all) | Exactly one 200 and one 409 ALREADY_OWNED | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
+| API-65 | API | AC-80 | Two Admins demote/deactivate each other simultaneously | At least one active Admin remains | server/tests/lab-03/users-admin.api.test.ts | Planned |
+| API-66 | API | AC-81 | Ticket creation and user edit with extra privileged fields | Extra fields ignored; defaults and allowed fields only | server/tests/lab-03/authorization.api.test.ts | Planned |
+| API-67 | API | AC-82 | Same-value status, owner, priority; invalid transition body | 409 NO_CHANGE; INVALID_TRANSITION lists allowed targets | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
+| API-68 | API | AC-83 | Change a logged-in user's role | Next request uses the new role's permissions | server/tests/lab-03/authorization.api.test.ts | Planned |
+| API-69 | API | AC-84 | Status change on an unassigned CANCELLED Ticket | INVALID_TRANSITION, not TICKET_UNASSIGNED | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
+| API-70 | API | AC-07 | Five wrong current passwords on change-password | 6th attempt 429 TOO_MANY_ATTEMPTS | server/tests/lab-03/auth.api.test.ts | Planned |
+| UI-28 | UI | AC-72 | Unknown URL | Not Found page with a button to the user's home | client/tests/lab-03/RouteGuard.test.tsx | Planned |
+| MIG-01 | Migration | AC-68 | Compare post-migration data with the Lab 2 fixture snapshot | Ticket, Attachment, Category, Related System counts and requesterId map identical | server/tests/lab-03/migration-seed.test.ts | Planned |
 | MIG-02 | Migration | AC-69 | Migrated requester login before and after seed | Before: 401; after: login works, mustChangePassword true | server/tests/lab-03/migration-seed.test.ts | Planned |
 | MIG-03 | Migration | AC-70 | Backfill of itPriority and owner | itPriority = requestedPriority; owner null | server/tests/lab-03/migration-seed.test.ts | Planned |
 | MIG-04 | Migration | AC-71 | Run seed twice; inspect data | Counts stable, no duplicates, passwords not reset, required data present | server/tests/lab-03/migration-seed.test.ts | Planned |
@@ -100,15 +110,15 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | UI-08 | UI | AC-28, AC-72 | App shell | Name, role badge, Logout; only role-permitted nav | client/tests/lab-03/AppShell.test.tsx | Planned |
 | UI-09 | UI | AC-72 | Route guard | Unauthenticated to Login; wrong role to Forbidden | client/tests/lab-03/RouteGuard.test.tsx | Planned |
 | UI-10 | UI | AC-73 | 401 during use | Back to Login with session-ended message | client/tests/lab-03/RouteGuard.test.tsx | Planned |
-| UI-11 | UI | AC-28 | No Development Requester selector anywhere | Selector and Change Requester absent | client/tests/lab-03/AppShell.test.tsx | Planned |
+| UI-11 | UI | AC-28 | No Development Requester selector anywhere | Selector and Change Requester absent; legacy requester key removed from sessionStorage at startup | client/tests/lab-03/AppShell.test.tsx | Planned |
 | UI-12 | UI | AC-41, AC-78 | Staff queue rows | Owner/Unassigned/(inactive), badges, resolved marker, open action | client/tests/lab-03/StaffTicketQueue.test.tsx | Planned |
 | UI-13 | UI | AC-36, AC-37, AC-38, AC-39 | Queue search, filters, sort, pagination | Correct query parameters sent | client/tests/lab-03/StaffTicketQueue.test.tsx | Planned |
 | UI-14 | UI | AC-40 | Queue empty, no-results, failure, forbidden | Four distinct states | client/tests/lab-03/StaffTicketQueue.test.tsx | Planned |
-| UI-15 | UI | AC-42, AC-45, AC-46 | Staff detail controls | Claim, reassign, priority, status work with busy state | client/tests/lab-03/StaffTicketDetail.test.tsx | Planned |
+| UI-15 | UI | AC-42, AC-45, AC-46, AC-78 | Staff detail controls | Claim, reassign, priority, status work with busy state; inactive-owner marker shown | client/tests/lab-03/StaffTicketDetail.test.tsx | Planned |
 | UI-16 | UI | AC-47, AC-48 | Resolve and close/cancel flows | Summary required; confirmation dialog required | client/tests/lab-03/StaffTicketDetail.test.tsx | Planned |
-| UI-17 | UI | AC-56 | Public vs Internal separation | Separate panels, labels, helper text, button wording | client/tests/lab-03/StaffTicketDetail.test.tsx | Planned |
+| UI-17 | UI | AC-56, AC-30 | Public vs Internal separation | Separate panels, labels, helper text, button wording; <script> in a note renders as text | client/tests/lab-03/StaffTicketDetail.test.tsx | Planned |
 | UI-18 | UI | AC-57 | Staff detail error feedback | Not-found, forbidden, conflict, failure; input retained | client/tests/lab-03/StaffTicketDetail.test.tsx | Planned |
-| UI-19 | UI | AC-29, AC-32, AC-34 | Requester detail comments and resolved action | Composer works; button enabled only in allowed statuses | client/tests/lab-03/RequesterTicketDetail.test.tsx | Planned |
+| UI-19 | UI | AC-29, AC-32, AC-34, AC-30 | Requester detail comments and resolved action | Composer works; <script> renders as text; button enabled only in allowed statuses | client/tests/lab-03/RequesterTicketDetail.test.tsx | Planned |
 | UI-20 | UI | AC-53 | Requester detail has no notes | No note UI or text | client/tests/lab-03/RequesterTicketDetail.test.tsx | Planned |
 | UI-21 | UI | AC-58 | User list, search, role filter | Columns, results correct | client/tests/lab-03/UserManagement.test.tsx | Planned |
 | UI-22 | UI | AC-60, AC-61 | Create/Edit user validation and duplicate email | Field errors shown | client/tests/lab-03/UserManagement.test.tsx | Planned |
@@ -141,7 +151,7 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | AC-04 | API-33 |
 | AC-05 | API-03, E2E-02 |
 | AC-06 | API-04, UI-04 |
-| AC-07 | UNIT-05, API-05 |
+| AC-07 | UNIT-05, API-05, API-70 |
 | AC-08 | UNIT-02, API-02 |
 | AC-09 | API-06 |
 | AC-10 | API-07, E2E-02 |
@@ -164,7 +174,7 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | AC-27 | API-25 |
 | AC-28 | UI-08, UI-11 |
 | AC-29 | API-26, UI-19, E2E-03 |
-| AC-30 | API-27, API-37, UI-27 |
+| AC-30 | API-27, API-37, UI-17, UI-19, UI-27 |
 | AC-31 | API-28 |
 | AC-32 | API-29, UI-19, E2E-03 |
 | AC-33 | API-30 |
@@ -206,13 +216,19 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | AC-69 | MIG-02 |
 | AC-70 | MIG-03 |
 | AC-71 | MIG-04 |
-| AC-72 | UI-03, UI-08, UI-09, E2E-07 |
+| AC-72 | UI-28, UI-03, UI-08, UI-09, E2E-07 |
 | AC-73 | UI-10, E2E-02 |
 | AC-74 | RESP-01, RESP-02, RESP-03, RESP-04, RESP-05, STYLE-01 |
 | AC-75 | UI-26 |
 | AC-76 | UI-01, UI-02 |
 | AC-77 | UI-05, UI-06, E2E-01 |
-| AC-78 | API-45, UI-12 |
+| AC-78 | API-45, UI-12, UI-15 |
+| AC-79 | API-64 |
+| AC-80 | API-65 |
+| AC-81 | API-66 |
+| AC-82 | API-67 |
+| AC-83 | API-68 |
+| AC-84 | API-69 |
 
 ## 4. Responsive and Visual Checklist
 
@@ -243,6 +259,11 @@ npx playwright test e2e/lab-03
 # fails if a Test ID in this file has no matching test title in the listed file,
 # or a file path listed here does not exist
 node scripts/audit-tests.mjs docs/lab-03/tests.md
+
+# Test database and migration tests
+cd server
+npm run test:db:setup
+npm run test:migration
 ```
 
 ## 6. Final Results
