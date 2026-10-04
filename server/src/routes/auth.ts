@@ -43,11 +43,12 @@ let changePasswordThrottle = createThrottle();
 
 /**
  * Replace both throttle instances with freshly constructed ones.
- * Only available in NODE_ENV=test so the test suite can:
- *   1. Call vi.useFakeTimers({ toFake: ["Date"] }) first — this replaces Date.now.
- *   2. Call resetThrottles() — createThrottle() then captures the fake Date.now
- *      as its default clock, making the lock window controllable with vi.setSystemTime.
- *   3. Call vi.useRealTimers() + resetThrottles() in afterEach to restore real time.
+ * Only available in NODE_ENV=test so the test suite can reset failure counters
+ * between tests.  Because the default clock is `() => Date.now()` (a wrapper
+ * that reads Date.now at call time, not at construction time), fake timers and
+ * resetThrottles() may be called in any order — the throttle always picks up
+ * the current Date.now, real or fake.
+ * Typical pattern in afterEach: vi.useRealTimers() then resetThrottles().
  */
 export function resetThrottles(): void {
   if (process.env.NODE_ENV !== "test") return;

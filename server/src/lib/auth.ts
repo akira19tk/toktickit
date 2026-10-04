@@ -95,7 +95,7 @@ interface ThrottleEntry {
 const LOCK_THRESHOLD = 5;
 const LOCK_DURATION_MS = 15 * 60 * 1000;
 
-export function createThrottle(clock: Clock = Date.now): Throttle {
+export function createThrottle(clock: Clock = () => Date.now()): Throttle {
   const map = new Map<string, ThrottleEntry>();
 
   return {
