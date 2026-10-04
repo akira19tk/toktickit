@@ -1,7 +1,7 @@
 // My Tickets screen — ui-spec.md §10.4
 // States: loading → success (table/cards/empty/no-results) | error
 // Always shows FilterRow once data has loaded (avoids hiding the search input).
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   fetchTickets,
   fetchCategories,
@@ -11,7 +11,6 @@ import {
 } from "../api";
 
 interface Props {
-  requesterId: number;
   onCreateTicket: () => void;
   onOpenTicket?: (ticketId: number) => void;
 }
@@ -41,7 +40,7 @@ function pageWindow(current: number, total: number, max = 5) {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export default function MyTickets({ requesterId, onCreateTicket, onOpenTicket }: Props) {
+export default function MyTickets({ onCreateTicket, onOpenTicket }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [sortBy, setSortBy] = useState<"createdAt" | "ticketNumber">("createdAt");
@@ -50,16 +49,6 @@ export default function MyTickets({ requesterId, onCreateTicket, onOpenTicket }:
   const [tickets, setTickets] = useState<TicketListItem[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "success" | "error">("loading");
-
-  // Reset page + filters when requester changes (AC-31 / BR-05)
-  const prevRequesterRef = useRef(requesterId);
-  useEffect(() => {
-    if (prevRequesterRef.current !== requesterId) {
-      prevRequesterRef.current = requesterId;
-      setFilters(EMPTY_FILTERS);
-      setPage(1);
-    }
-  }, [requesterId]);
 
   // Load categories once for filter dropdown
   useEffect(() => {
@@ -73,7 +62,7 @@ export default function MyTickets({ requesterId, onCreateTicket, onOpenTicket }:
     let active = true;
     setLoadState("loading");
 
-    fetchTickets(requesterId, {
+    fetchTickets({
       search: filters.search || undefined,
       categoryId: filters.categoryId ? Number(filters.categoryId) : undefined,
       priority: filters.priority || undefined,
@@ -96,8 +85,7 @@ export default function MyTickets({ requesterId, onCreateTicket, onOpenTicket }:
     return () => {
       active = false;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requesterId, page, filters.search, filters.categoryId, filters.priority, filters.status, sortBy, sortDir]);
+  }, [page, filters.search, filters.categoryId, filters.priority, filters.status, sortBy, sortDir]);
 
   function clearFilters() {
     setFilters(EMPTY_FILTERS);

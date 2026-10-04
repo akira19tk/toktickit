@@ -152,6 +152,23 @@ export interface TicketDetail {
   createdAt: string;
   updatedAt: string;
   attachments: TicketAttachment[];
+  // Lab 3 additions (optional so Lab 2 mocks do not need updating)
+  itPriority?: string | null;
+  owner?: { name: string } | null;
+  resolutionSummary?: string | null;
+  resolvedAt?: string | null;
+  requesterResolvedAt?: string | null;
+}
+
+export interface TicketComment {
+  id: number;
+  body: string;
+  createdAt: string;
+  author: {
+    id: number;
+    name: string;
+    role: string;
+  };
 }
 
 // ── Error classes ──────────────────────────────────────────────────────────
@@ -278,11 +295,8 @@ export async function fetchRelatedSystems(): Promise<RelatedSystem[]> {
 }
 
 // ── Ticket endpoints ───────────────────────────────────────────────────────
-// requesterId parameter is kept for backward compatibility with Lab 2 component
-// tests; it is no longer sent to the server (the session identifies the user).
 
 export async function fetchTickets(
-  _requesterId: number,
   params: TicketListParams = {}
 ): Promise<TicketListResponse> {
   const query = new URLSearchParams();
@@ -297,19 +311,55 @@ export async function fetchTickets(
   return res.json();
 }
 
-export async function fetchTicketDetail(
-  ticketId: number,
-  _requesterId: number
-): Promise<TicketDetail> {
+export async function fetchTicketDetail(ticketId: number): Promise<TicketDetail> {
   const res = await apiFetch(`${API_BASE_URL}/api/tickets/${ticketId}`);
   if (!res.ok) throw new Error(`Ticket not found: ${res.status}`);
   return res.json();
 }
 
+export async function fetchTicketComments(ticketId: number): Promise<TicketComment[]> {
+  const res = await apiFetch(`${API_BASE_URL}/api/tickets/${ticketId}/comments`);
+  if (!res.ok) {
+    throw new ApiError(res.status, "INTERNAL_ERROR", "Failed to load comments");
+  }
+  return res.json();
+}
+
+export async function postTicketComment(
+  ticketId: number,
+  body: string
+): Promise<TicketComment> {
+  const res = await apiFetch(`${API_BASE_URL}/api/tickets/${ticketId}/comments`, {
+    method: "POST",
+    headers: {
+      "X-Requested-With": "TokTickIT",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ body }),
+  });
+  if (res.ok) return res.json();
+  const err = await res.json().catch(() => ({ error: "Server error", code: "INTERNAL_ERROR" }));
+  throw new ApiError(res.status, err.code ?? "INTERNAL_ERROR", err.error ?? "Server error", err.errors);
+}
+
+export async function markTicketResolved(
+  ticketId: number
+): Promise<{ requesterResolvedAt: string }> {
+  const res = await apiFetch(
+    `${API_BASE_URL}/api/tickets/${ticketId}/resolved-indication`,
+    {
+      method: "POST",
+      headers: { "X-Requested-With": "TokTickIT" },
+    }
+  );
+  if (res.ok) return res.json();
+  const err = await res.json().catch(() => ({ error: "Server error", code: "INTERNAL_ERROR" }));
+  throw new ApiError(res.status, err.code ?? "INTERNAL_ERROR", err.error ?? "Server error", err.errors);
+}
+
 export async function addAttachment(
   ticketId: number,
-  file: File,
-  _requesterId: number
+  file: File
 ): Promise<TicketAttachment> {
   const formData = new FormData();
   formData.append("file", file);
@@ -328,8 +378,7 @@ export async function addAttachment(
 export async function removeAttachment(
   ticketId: number,
   attachmentId: number,
-  reason: string,
-  _requesterId: number
+  reason: string
 ): Promise<{ id: number; removedAt: string; removalReason: string }> {
   const res = await apiFetch(
     `${API_BASE_URL}/api/tickets/${ticketId}/attachments/${attachmentId}`,
@@ -352,8 +401,7 @@ export async function removeAttachment(
 export async function downloadAttachment(
   ticketId: number,
   attachmentId: number,
-  fileName: string,
-  _requesterId: number
+  fileName: string
 ): Promise<void> {
   const url = `${API_BASE_URL}/api/tickets/${ticketId}/attachments/${attachmentId}/download`;
   const res = await apiFetch(url);
@@ -377,8 +425,7 @@ export async function downloadAttachment(
 }
 
 export async function createTicket(
-  payload: CreateTicketPayload,
-  _requesterId: number
+  payload: CreateTicketPayload
 ): Promise<CreatedTicket> {
   const formData = new FormData();
   formData.append("categoryId", String(payload.categoryId));

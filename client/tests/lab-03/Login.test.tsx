@@ -45,10 +45,12 @@ afterEach(() => {
 });
 
 describe("Login page", () => {
-  it("UI-01: renders email field, password field, and Sign in button", () => {
+  it("UI-01: renders TokTickIT heading, email field, password field, and Sign in button", () => {
     mockUseAuth.mockReturnValue(makeAuthValue());
     renderLogin();
 
+    // TokTickIT brand heading — preserved from deleted tests/lab-01/heading.test.tsx
+    expect(screen.getByRole("heading", { name: /toktickit/i })).toBeInTheDocument();
     // getByLabelText asserts both the label and the input exist and are associated
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^password/i)).toBeInTheDocument();

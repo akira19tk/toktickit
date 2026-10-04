@@ -1,8 +1,15 @@
 // UI-11: open owned Ticket Detail → header fields rendered read-only (AC-21)
 // UI-12: soft-remove without reason → confirm disabled until reason ≥3 chars (AC-26)
+//
+// Stage C changes:
+//   – requesterId prop removed from TicketDetail; renders now omit it.
+//   – TicketDetail now calls fetchTicketComments on mount; mocked as empty in every test.
+//   – Attachments now live in the "Attachments" tab (default is "Public Comments"),
+//     so both tests navigate to that tab before asserting on attachment content.
+//   – removeAttachment signature no longer includes requesterId; assertion updated.
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TicketDetail from "../../src/components/TicketDetail";
 import * as api from "../../src/api";
 
@@ -25,17 +32,23 @@ const MOCK_TICKET: api.TicketDetail = {
   ],
 };
 
+beforeEach(() => {
+  // fetchTicketComments is required by TicketDetail since the Lab 3 addition of the comments tab.
+  vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe("TicketDetail", () => {
   it("UI-11: header fields are rendered as read-only (AC-21)", async () => {
+    const user = userEvent.setup();
     vi.spyOn(api, "fetchTicketDetail").mockResolvedValue(MOCK_TICKET);
 
-    render(<TicketDetail ticketId={1} requesterId={1} onBack={vi.fn()} />);
+    render(<TicketDetail ticketId={1} onBack={vi.fn()} />);
 
-    // Wait for data to load
+    // Wait for data to load — the header must be visible
     await waitFor(() => {
       expect(screen.getByText("TKT-2026-000001")).toBeInTheDocument();
     });
@@ -48,10 +61,11 @@ describe("TicketDetail", () => {
     const tnNode = screen.getByText("TKT-2026-000001");
     expect(tnNode.tagName).not.toBe("INPUT");
 
-    // Status badge visible
+    // Status badge visible (displayed by the new Lab 3 read-only fields)
     expect(screen.getByText("NEW")).toBeInTheDocument();
 
-    // Attachment is listed
+    // Navigate to the Attachments tab to verify the attachment
+    await user.click(screen.getByRole("tab", { name: /attachments/i }));
     expect(screen.getByText("screenshot.png")).toBeInTheDocument();
   });
 
@@ -65,7 +79,13 @@ describe("TicketDetail", () => {
       removalReason: "Wrong file",
     });
 
-    render(<TicketDetail ticketId={1} requesterId={1} onBack={vi.fn()} />);
+    render(<TicketDetail ticketId={1} onBack={vi.fn()} />);
+
+    // Navigate to the Attachments tab before interacting with attachments
+    await waitFor(() =>
+      expect(screen.getByRole("tab", { name: /attachments/i })).toBeInTheDocument()
+    );
+    await user.click(screen.getByRole("tab", { name: /attachments/i }));
 
     await waitFor(() => {
       expect(screen.getByText("screenshot.png")).toBeInTheDocument();
@@ -91,8 +111,8 @@ describe("TicketDetail", () => {
     await user.type(reasonInput, "c");
     expect(confirmBtn).not.toBeDisabled();
 
-    // Clicking confirm calls removeAttachment
+    // Clicking confirm calls removeAttachment (requesterId no longer passed)
     await user.click(confirmBtn);
-    expect(api.removeAttachment).toHaveBeenCalledWith(1, 101, "abc", 1);
+    expect(api.removeAttachment).toHaveBeenCalledWith(1, 101, "abc");
   });
 });
