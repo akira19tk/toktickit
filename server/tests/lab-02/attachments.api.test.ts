@@ -4,17 +4,18 @@
 // API-16: GET download active          → 200, file returned            (AC-25)
 // API-17: DELETE with reason           → 200, removedAt + reason set  (AC-26)
 // API-18: GET download soft-removed   → 410 (or 404)                  (AC-27)
+// Converted for Lab 3: session cookie authentication instead of x-requester-id.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { createApp } from "../../src/app";
 import { prisma } from "../../src/prismaClient";
+import { createUser, loginAs, clearDatabase } from "../helpers";
 
 const app = createApp();
 
-let requesterId: number;
-let otherRequesterId: number;
+let sessionOwner: string;
+let sessionOther: string;
 let ticketId: number;
-const createdTicketIds: number[] = [];
 
 // 1-pixel white JPEG (valid, ~631 bytes)
 const TINY_JPEG = Buffer.from(
@@ -28,20 +29,21 @@ const TINY_JPEG = Buffer.from(
 );
 
 beforeAll(async () => {
-  const requesters = await prisma.devRequester.findMany({
-    where: { isActive: true },
-    orderBy: { id: "asc" },
-  });
-  requesterId = requesters[0].id;       // Alice
-  otherRequesterId = requesters[1].id;  // Bob
+  await clearDatabase();
+
+  await createUser({ email: "alice@attachments.test", password: "Test#1234", name: "Alice", role: "REQUESTER", mustChangePassword: false });
+  await createUser({ email: "bob@attachments.test", password: "Test#1234", name: "Bob", role: "REQUESTER", mustChangePassword: false });
+
+  sessionOwner = await loginAs(app, { email: "alice@attachments.test", password: "Test#1234" });
+  sessionOther = await loginAs(app, { email: "bob@attachments.test", password: "Test#1234" });
 
   const cat = await prisma.category.findFirst({ where: { isActive: true } });
   const sys = await prisma.relatedSystem.findFirst({ where: { isActive: true } });
 
-  // Create a ticket for Alice to attach files to
   const res = await request(app)
     .post("/api/tickets")
-    .set("x-requester-id", String(requesterId))
+    .set("Cookie", sessionOwner)
+    .set("X-Requested-With", "TokTickIT")
     .field("categoryId", String(cat!.id))
     .field("relatedSystemId", String(sys!.id))
     .field("summary", "Attachment test ticket")
@@ -49,14 +51,9 @@ beforeAll(async () => {
     .field("requestedPriority", "LOW");
 
   ticketId = res.body.id;
-  createdTicketIds.push(ticketId);
 });
 
 afterAll(async () => {
-  if (createdTicketIds.length) {
-    await prisma.attachment.deleteMany({ where: { ticketId: { in: createdTicketIds } } });
-    await prisma.ticket.deleteMany({ where: { id: { in: createdTicketIds } } });
-  }
   await prisma.$disconnect();
 });
 
@@ -64,7 +61,8 @@ describe("POST /api/tickets/:id/attachments", () => {
   it("API-13: valid JPG under 5MB → 201, attachment saved (AC-22)", async () => {
     const res = await request(app)
       .post(`/api/tickets/${ticketId}/attachments`)
-      .set("x-requester-id", String(requesterId))
+      .set("Cookie", sessionOwner)
+      .set("X-Requested-With", "TokTickIT")
       .attach("file", TINY_JPEG, { filename: "photo.jpg", contentType: "image/jpeg" });
 
     expect(res.status).toBe(201);
@@ -79,7 +77,8 @@ describe("POST /api/tickets/:id/attachments", () => {
 
     const res = await request(app)
       .post(`/api/tickets/${ticketId}/attachments`)
-      .set("x-requester-id", String(requesterId))
+      .set("Cookie", sessionOwner)
+      .set("X-Requested-With", "TokTickIT")
       .attach("file", bigFile, { filename: "huge.jpg", contentType: "image/jpeg" });
 
     expect(res.status).toBe(400);
@@ -93,7 +92,8 @@ describe("POST /api/tickets/:id/attachments", () => {
     // Create a fresh ticket, add exactly 5 attachments
     const tr = await request(app)
       .post("/api/tickets")
-      .set("x-requester-id", String(requesterId))
+      .set("Cookie", sessionOwner)
+      .set("X-Requested-With", "TokTickIT")
       .field("categoryId", String(cat!.id))
       .field("relatedSystemId", String(sys!.id))
       .field("summary", "Five-attachment limit test")
@@ -101,20 +101,20 @@ describe("POST /api/tickets/:id/attachments", () => {
       .field("requestedPriority", "LOW");
 
     const tid = tr.body.id;
-    createdTicketIds.push(tid);
 
     for (let i = 0; i < 5; i++) {
       const r = await request(app)
         .post(`/api/tickets/${tid}/attachments`)
-        .set("x-requester-id", String(requesterId))
+        .set("Cookie", sessionOwner)
+        .set("X-Requested-With", "TokTickIT")
         .attach("file", TINY_JPEG, { filename: `file${i}.jpg`, contentType: "image/jpeg" });
       expect(r.status).toBe(201);
     }
 
-    // 6th → must be rejected
     const res = await request(app)
       .post(`/api/tickets/${tid}/attachments`)
-      .set("x-requester-id", String(requesterId))
+      .set("Cookie", sessionOwner)
+      .set("X-Requested-With", "TokTickIT")
       .attach("file", TINY_JPEG, { filename: "sixth.jpg", contentType: "image/jpeg" });
 
     expect(res.status).toBe(400);
@@ -124,7 +124,8 @@ describe("POST /api/tickets/:id/attachments", () => {
   it("wrong owner → 404 (ownership BR-17)", async () => {
     const res = await request(app)
       .post(`/api/tickets/${ticketId}/attachments`)
-      .set("x-requester-id", String(otherRequesterId))
+      .set("Cookie", sessionOther)
+      .set("X-Requested-With", "TokTickIT")
       .attach("file", TINY_JPEG, { filename: "photo.jpg", contentType: "image/jpeg" });
 
     expect(res.status).toBe(404);
@@ -135,10 +136,10 @@ describe("GET /api/tickets/:id/attachments/:attachmentId/download and DELETE", (
   let attachmentId: number;
 
   beforeAll(async () => {
-    // Upload one attachment to test against
     const res = await request(app)
       .post(`/api/tickets/${ticketId}/attachments`)
-      .set("x-requester-id", String(requesterId))
+      .set("Cookie", sessionOwner)
+      .set("X-Requested-With", "TokTickIT")
       .attach("file", TINY_JPEG, { filename: "download-test.jpg", contentType: "image/jpeg" });
     expect(res.status).toBe(201);
     attachmentId = res.body.id;
@@ -147,18 +148,19 @@ describe("GET /api/tickets/:id/attachments/:attachmentId/download and DELETE", (
   it("API-16: download active attachment → 200 with file stream (AC-25)", async () => {
     const res = await request(app)
       .get(`/api/tickets/${ticketId}/attachments/${attachmentId}/download`)
-      .set("x-requester-id", String(requesterId));
+      .set("Cookie", sessionOwner);
 
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/image\/jpeg/i);
     expect(res.headers["content-disposition"]).toMatch(/attachment/i);
-    expect(res.body).toBeTruthy(); // file bytes returned
+    expect(res.body).toBeTruthy();
   });
 
   it("API-17: DELETE with reason → 200, removedAt + removalReason set (AC-26)", async () => {
     const res = await request(app)
       .delete(`/api/tickets/${ticketId}/attachments/${attachmentId}`)
-      .set("x-requester-id", String(requesterId))
+      .set("Cookie", sessionOwner)
+      .set("X-Requested-With", "TokTickIT")
       .send({ reason: "Uploaded wrong file" });
 
     expect(res.status).toBe(200);
@@ -168,10 +170,9 @@ describe("GET /api/tickets/:id/attachments/:attachmentId/download and DELETE", (
   });
 
   it("API-18: download soft-removed attachment → 410 Gone (AC-27)", async () => {
-    // attachmentId is now soft-removed (from API-17 above)
     const res = await request(app)
       .get(`/api/tickets/${ticketId}/attachments/${attachmentId}/download`)
-      .set("x-requester-id", String(requesterId));
+      .set("Cookie", sessionOwner);
 
     expect(res.status).toBe(410);
   });
@@ -179,23 +180,25 @@ describe("GET /api/tickets/:id/attachments/:attachmentId/download and DELETE", (
   it("DELETE already-removed → 409 Conflict", async () => {
     const res = await request(app)
       .delete(`/api/tickets/${ticketId}/attachments/${attachmentId}`)
-      .set("x-requester-id", String(requesterId))
+      .set("Cookie", sessionOwner)
+      .set("X-Requested-With", "TokTickIT")
       .send({ reason: "Trying again" });
 
     expect(res.status).toBe(409);
   });
 
   it("DELETE without reason → 400 (BR-18)", async () => {
-    // Upload fresh attachment to test missing reason
     const up = await request(app)
       .post(`/api/tickets/${ticketId}/attachments`)
-      .set("x-requester-id", String(requesterId))
+      .set("Cookie", sessionOwner)
+      .set("X-Requested-With", "TokTickIT")
       .attach("file", TINY_JPEG, { filename: "noreasontest.jpg", contentType: "image/jpeg" });
     expect(up.status).toBe(201);
 
     const res = await request(app)
       .delete(`/api/tickets/${ticketId}/attachments/${up.body.id}`)
-      .set("x-requester-id", String(requesterId))
+      .set("Cookie", sessionOwner)
+      .set("X-Requested-With", "TokTickIT")
       .send({ reason: "ab" }); // <3 chars
 
     expect(res.status).toBe(400);

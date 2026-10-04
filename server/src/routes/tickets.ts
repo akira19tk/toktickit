@@ -1,7 +1,12 @@
-// POST /api/tickets  — create Ticket + optional attachments (Issue #3)
-// GET  /api/tickets  — list own tickets with search/filter/sort/pagination (Issue #4)
-// GET  /api/tickets/:id — retrieve one owned Ticket (Issue #4 backend)
-import { Router, type Request, type Response } from "express";
+// Requester ticket routes (Lab 2 + Lab 3 additions)
+// All routes require role REQUESTER (BR-21). Ownership is by session user id (BR-03).
+// GET  /api/tickets          — list own tickets
+// GET  /api/tickets/:id      — own ticket detail
+// POST /api/tickets          — create ticket
+// POST /api/tickets/:id/attachments
+// GET  /api/tickets/:id/attachments/:attachmentId/download
+// DELETE /api/tickets/:id/attachments/:attachmentId
+import { Router, type Request, type Response, type RequestHandler } from "express";
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
@@ -9,6 +14,8 @@ import { mkdirSync } from "fs";
 import { v4 as uuidv4 } from "uuid";
 import { prisma } from "../prismaClient";
 import { generateTicketNumber } from "../lib/ticketNumber";
+import { requireRole } from "../middleware/auth";
+import type { TicketStatus } from "@prisma/client";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "lab-02");
 mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -20,25 +27,20 @@ const ALLOWED_MIMETYPES = new Set([
   "application/pdf",
 ]);
 const ALLOWED_EXTS = new Set([".jpg", ".jpeg", ".png", ".webp", ".pdf"]);
-const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_ATTACHMENTS = 5;
 
-// Accept all files in memory; per-file validation happens after multer.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 }, // generous multer limit; real limit enforced below
+  limits: { fileSize: 20 * 1024 * 1024 },
 });
 
 const router = Router();
 
+// All routes in this router are REQUESTER-only (BR-21)
+router.use(requireRole("REQUESTER") as RequestHandler);
+
 // ── helpers ────────────────────────────────────────────────────────────────
-
-function parseRequesterId(raw: unknown): number | null {
-  const n = Number(raw);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
-
-// ── GET /api/tickets helpers ────────────────────────────────────────────────
 
 function parsePage(raw: unknown, defaultVal: number, max?: number): number {
   const n = parseInt(String(raw ?? ""), 10);
@@ -46,6 +48,11 @@ function parsePage(raw: unknown, defaultVal: number, max?: number): number {
   if (max !== undefined && n > max) return defaultVal;
   return n;
 }
+
+const VALID_STATUSES: ReadonlySet<string> = new Set([
+  "NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER",
+  "RESOLVED", "CLOSED", "REOPENED", "CANCELLED",
+]);
 
 function parseListQuery(query: Record<string, unknown>) {
   const page = parsePage(query.page, 1);
@@ -68,7 +75,9 @@ function parseListQuery(query: Record<string, unknown>) {
     : undefined;
 
   const statusRaw = String(query.status ?? "").toUpperCase().trim();
-  const status = statusRaw === "NEW" ? ("NEW" as const) : undefined;
+  const status = VALID_STATUSES.has(statusRaw)
+    ? (statusRaw as TicketStatus)
+    : undefined;
 
   return { page, pageSize, sortBy, sortDir, search, categoryId, priority, status };
 }
@@ -80,31 +89,26 @@ interface FieldErrors {
 function validateCoreFields(body: Record<string, unknown>): FieldErrors {
   const errors: FieldErrors = {};
 
-  // requestedPriority
   const priority = String(body.requestedPriority ?? "").trim();
   if (!["LOW", "MEDIUM", "HIGH"].includes(priority)) {
     errors.requestedPriority = "Requested priority must be LOW, MEDIUM, or HIGH";
   }
 
-  // summary
   const summary = String(body.summary ?? "").trim();
   if (!summary || summary.length < 5 || summary.length > 120) {
     errors.summary = "Summary must be 5–120 characters";
   }
 
-  // description
   const description = String(body.description ?? "").trim();
   if (!description || description.length < 10 || description.length > 2000) {
     errors.description = "Description must be 10–2000 characters";
   }
 
-  // categoryId — coercible to positive integer (DB existence checked separately)
   const catId = Number(body.categoryId);
   if (!Number.isInteger(catId) || catId <= 0) {
     errors.categoryId = "Category not found or inactive";
   }
 
-  // relatedSystemId
   const sysId = Number(body.relatedSystemId);
   if (!Number.isInteger(sysId) || sysId <= 0) {
     errors.relatedSystemId = "Related system not found or inactive";
@@ -116,11 +120,7 @@ function validateCoreFields(body: Record<string, unknown>): FieldErrors {
 // ── GET /api/tickets ────────────────────────────────────────────────────────
 
 router.get("/", async (req: Request, res: Response) => {
-  const requesterId = parseRequesterId(req.headers["x-requester-id"]);
-  if (requesterId === null) {
-    res.status(400).json({ error: "x-requester-id header must be a positive integer" });
-    return;
-  }
+  const requesterId = req.user!.id;
 
   const { page, pageSize, sortBy, sortDir, search, categoryId, priority, status } =
     parseListQuery(req.query as Record<string, unknown>);
@@ -143,7 +143,10 @@ router.get("/", async (req: Request, res: Response) => {
   const [tickets, totalCount] = await Promise.all([
     prisma.ticket.findMany({
       where,
-      include: { category: { select: { name: true } } },
+      include: {
+        category: { select: { name: true } },
+        owner: { select: { name: true } },
+      },
       orderBy: { [sortBy]: sortDir },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -161,8 +164,10 @@ router.get("/", async (req: Request, res: Response) => {
       summary: t.summary,
       category: t.category.name,
       requestedPriority: t.requestedPriority,
+      itPriority: t.itPriority,
       currentStatus: t.currentStatus,
       updatedAt: t.updatedAt,
+      owner: t.owner ? { name: t.owner.name } : null,
     })),
     pagination: { page, pageSize, totalCount, totalPages },
   });
@@ -171,13 +176,9 @@ router.get("/", async (req: Request, res: Response) => {
 // ── GET /api/tickets/:id ─────────────────────────────────────────────────────
 
 router.get("/:id", async (req: Request, res: Response) => {
-  const requesterId = parseRequesterId(req.headers["x-requester-id"]);
-  if (requesterId === null) {
-    res.status(400).json({ error: "x-requester-id header must be a positive integer" });
-    return;
-  }
+  const requesterId = req.user!.id;
 
-  const ticketId = parseInt(req.params.id, 10);
+  const ticketId = parseInt(String(req.params.id), 10);
   if (!Number.isInteger(ticketId) || ticketId <= 0) {
     res.status(404).json({ error: "Ticket not found" });
     return;
@@ -189,6 +190,7 @@ router.get("/:id", async (req: Request, res: Response) => {
       category:      { select: { name: true } },
       relatedSystem: { select: { name: true } },
       attachments:   { where: { removedAt: null } },
+      owner:         { select: { name: true } },
     },
   });
 
@@ -208,7 +210,12 @@ router.get("/:id", async (req: Request, res: Response) => {
     summary: ticket.summary,
     description: ticket.description,
     requestedPriority: ticket.requestedPriority,
+    itPriority: ticket.itPriority,
     currentStatus: ticket.currentStatus,
+    owner: ticket.owner ? { name: ticket.owner.name } : null,
+    resolutionSummary: ticket.resolutionSummary,
+    resolvedAt: ticket.resolvedAt,
+    requesterResolvedAt: ticket.requesterResolvedAt,
     createdAt: ticket.createdAt,
     updatedAt: ticket.updatedAt,
     attachments: ticket.attachments.map((a) => ({
@@ -226,23 +233,8 @@ router.post(
   "/",
   upload.array("attachments", MAX_ATTACHMENTS),
   async (req: Request, res: Response) => {
-    // 1. Parse and validate x-requester-id
-    const requesterId = parseRequesterId(req.headers["x-requester-id"]);
-    if (requesterId === null) {
-      res.status(400).json({ error: "x-requester-id header must be a positive integer" });
-      return;
-    }
+    const requesterId = req.user!.id;
 
-    // 2. Verify requester exists and is active (BR-19)
-    const requester = await prisma.devRequester.findUnique({
-      where: { id: requesterId },
-    });
-    if (!requester || !requester.isActive) {
-      res.status(401).json({ error: "Requester not found or inactive" });
-      return;
-    }
-
-    // 3. Validate core fields
     const fieldErrors = validateCoreFields(req.body as Record<string, unknown>);
     if (Object.keys(fieldErrors).length > 0) {
       res.status(400).json({ errors: fieldErrors });
@@ -258,7 +250,6 @@ router.post(
       | "MEDIUM"
       | "HIGH";
 
-    // 4. Verify category and relatedSystem are active (BR-10)
     const [category, relatedSystem] = await Promise.all([
       prisma.category.findUnique({ where: { id: categoryId } }),
       prisma.relatedSystem.findUnique({ where: { id: relatedSystemId } }),
@@ -276,7 +267,6 @@ router.post(
       return;
     }
 
-    // 5. Create ticket (with ticket number generation) in a transaction
     const ticket = await prisma.$transaction(async (tx) => {
       const ticketNumber = await generateTicketNumber(tx as unknown as typeof prisma);
       return tx.ticket.create({
@@ -288,11 +278,11 @@ router.post(
           summary,
           description,
           requestedPriority,
+          itPriority: requestedPriority, // BR-25
         },
       });
     });
 
-    // 6. Process attachments (BR-14, BR-15) — invalid files are reported, not fatal
     const files = (req.files as Express.Multer.File[]) ?? [];
     const savedAttachments: Array<{
       id: number;
@@ -306,18 +296,12 @@ router.post(
       const ext = path.extname(file.originalname).toLowerCase();
 
       if (!ALLOWED_EXTS.has(ext) || !ALLOWED_MIMETYPES.has(file.mimetype)) {
-        attachmentErrors.push({
-          fileName: file.originalname,
-          reason: "Unsupported file type",
-        });
+        attachmentErrors.push({ fileName: file.originalname, reason: "Unsupported file type" });
         continue;
       }
 
       if (file.size > MAX_FILE_BYTES) {
-        attachmentErrors.push({
-          fileName: file.originalname,
-          reason: "File exceeds 5MB limit",
-        });
+        attachmentErrors.push({ fileName: file.originalname, reason: "File exceeds 5MB limit" });
         continue;
       }
 
@@ -352,6 +336,7 @@ router.post(
       summary: ticket.summary,
       description: ticket.description,
       requestedPriority: ticket.requestedPriority,
+      itPriority: ticket.itPriority,
       currentStatus: ticket.currentStatus,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
@@ -362,30 +347,24 @@ router.post(
 );
 
 // ── POST /api/tickets/:id/attachments ────────────────────────────────────────
-// Add a single attachment to an owned ticket (api-spec §7).
 
 const uploadSingle = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 }, // validated per-file below
+  limits: { fileSize: 20 * 1024 * 1024 },
 });
 
 router.post(
   "/:id/attachments",
   uploadSingle.single("file"),
   async (req: Request, res: Response) => {
-    const requesterId = parseRequesterId(req.headers["x-requester-id"]);
-    if (requesterId === null) {
-      res.status(400).json({ error: "x-requester-id header must be a positive integer" });
-      return;
-    }
+    const requesterId = req.user!.id;
 
-    const ticketId = parseInt(req.params.id, 10);
+    const ticketId = parseInt(String(req.params.id), 10);
     if (!Number.isInteger(ticketId) || ticketId <= 0) {
       res.status(404).json({ error: "Ticket not found" });
       return;
     }
 
-    // Ownership check (BR-17)
     const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
     if (!ticket) {
       res.status(404).json({ error: "Ticket not found" });
@@ -398,20 +377,17 @@ router.post(
       return;
     }
 
-    // Type check (BR-14)
     const ext = path.extname(file.originalname).toLowerCase();
     if (!ALLOWED_EXTS.has(ext) || !ALLOWED_MIMETYPES.has(file.mimetype)) {
       res.status(400).json({ error: "Unsupported file type" });
       return;
     }
 
-    // Size check (BR-14)
     if (file.size > MAX_FILE_BYTES) {
       res.status(400).json({ error: "File exceeds 5MB limit" });
       return;
     }
 
-    // Active attachment count check (BR-14)
     const activeCount = await prisma.attachment.count({
       where: { ticketId, removedAt: null },
     });
@@ -443,25 +419,19 @@ router.post(
 );
 
 // ── GET /api/tickets/:id/attachments/:attachmentId/download ──────────────────
-// Stream an active attachment file (api-spec §8).
 
 router.get(
   "/:id/attachments/:attachmentId/download",
   async (req: Request, res: Response) => {
-    const requesterId = parseRequesterId(req.headers["x-requester-id"]);
-    if (requesterId === null) {
-      res.status(400).json({ error: "x-requester-id header must be a positive integer" });
-      return;
-    }
+    const requesterId = req.user!.id;
 
-    const ticketId = parseInt(req.params.id, 10);
-    const attachmentId = parseInt(req.params.attachmentId, 10);
+    const ticketId = parseInt(String(req.params.id), 10);
+    const attachmentId = parseInt(String(req.params.attachmentId), 10);
     if (!Number.isInteger(ticketId) || !Number.isInteger(attachmentId)) {
       res.status(404).json({ error: "Not found" });
       return;
     }
 
-    // Ownership check via ticket
     const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
     if (!ticket) {
       res.status(404).json({ error: "Ticket not found" });
@@ -476,7 +446,6 @@ router.get(
       return;
     }
 
-    // Soft-removed → 410 Gone (api-spec §8)
     if (attachment.removedAt !== null) {
       res.status(410).json({ error: "Attachment has been removed" });
       return;
@@ -500,32 +469,25 @@ router.get(
 );
 
 // ── DELETE /api/tickets/:id/attachments/:attachmentId ────────────────────────
-// Soft-remove an attachment with a reason (api-spec §9, BR-16, BR-18).
 
 router.delete(
   "/:id/attachments/:attachmentId",
   async (req: Request, res: Response) => {
-    const requesterId = parseRequesterId(req.headers["x-requester-id"]);
-    if (requesterId === null) {
-      res.status(400).json({ error: "x-requester-id header must be a positive integer" });
-      return;
-    }
+    const requesterId = req.user!.id;
 
-    const ticketId = parseInt(req.params.id, 10);
-    const attachmentId = parseInt(req.params.attachmentId, 10);
+    const ticketId = parseInt(String(req.params.id), 10);
+    const attachmentId = parseInt(String(req.params.attachmentId), 10);
     if (!Number.isInteger(ticketId) || !Number.isInteger(attachmentId)) {
       res.status(404).json({ error: "Not found" });
       return;
     }
 
-    // Reason validation (BR-18)
     const reason = String((req.body as Record<string, unknown>).reason ?? "").trim();
     if (reason.length < 3) {
       res.status(400).json({ error: "Removal reason must be at least 3 characters" });
       return;
     }
 
-    // Ownership via ticket
     const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
     if (!ticket) {
       res.status(404).json({ error: "Ticket not found" });
@@ -540,7 +502,6 @@ router.delete(
       return;
     }
 
-    // Already removed → 409 Conflict
     if (attachment.removedAt !== null) {
       res.status(409).json({ error: "Attachment already removed" });
       return;

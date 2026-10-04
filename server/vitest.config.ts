@@ -4,5 +4,9 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    exclude: ["tests/lab-03/migration-seed.test.ts"],
+    fileParallelism: false,
+    globalSetup: "./tests/globalSetup.ts",
+    setupFiles: ["./tests/setup.ts"],
   },
 });

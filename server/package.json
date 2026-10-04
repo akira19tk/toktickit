@@ -11,9 +11,12 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run",
+    "test:db:setup": "tsx scripts/setup-test-db.ts",
+    "test:migration:setup": "tsx scripts/setup-migration-db.ts",
+    "test:migration": "vitest run --config vitest.migration.config.ts",
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -23,6 +26,7 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -30,6 +34,7 @@
     "uuid": "^14.0.2"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",

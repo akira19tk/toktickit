@@ -1,24 +1,26 @@
 // API-07: GET /api/tickets/:id owned by another requester returns 404 (AC-12)
+// Converted for Lab 3: session cookie authentication instead of x-requester-id.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { createApp } from "../../src/app";
 import { prisma } from "../../src/prismaClient";
+import { createUser, loginAs, clearDatabase } from "../helpers";
 
 const app = createApp();
 
-let requesterAId: number; // Alice
-let requesterBId: number; // Bob
+let sessionA: string; // Alice
+let sessionB: string; // Bob
 let validCategoryId: number;
 let validRelatedSystemId: number;
-const createdTicketIds: number[] = [];
 
 beforeAll(async () => {
-  const requesters = await prisma.devRequester.findMany({
-    where: { isActive: true },
-    orderBy: { id: "asc" },
-  });
-  requesterAId = requesters[0].id; // Alice
-  requesterBId = requesters[1].id; // Bob
+  await clearDatabase();
+
+  await createUser({ email: "alice@ticketdetail.test", password: "Test#1234", name: "Alice", role: "REQUESTER", mustChangePassword: false });
+  await createUser({ email: "bob@ticketdetail.test", password: "Test#1234", name: "Bob", role: "REQUESTER", mustChangePassword: false });
+
+  sessionA = await loginAs(app, { email: "alice@ticketdetail.test", password: "Test#1234" });
+  sessionB = await loginAs(app, { email: "bob@ticketdetail.test", password: "Test#1234" });
 
   const cat = await prisma.category.findFirst({ where: { isActive: true } });
   const sys = await prisma.relatedSystem.findFirst({ where: { isActive: true } });
@@ -27,19 +29,16 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (createdTicketIds.length) {
-    await prisma.attachment.deleteMany({ where: { ticketId: { in: createdTicketIds } } });
-    await prisma.ticket.deleteMany({ where: { id: { in: createdTicketIds } } });
-  }
   await prisma.$disconnect();
 });
 
 describe("GET /api/tickets/:id", () => {
   it("API-07: accessing another requester's ticket returns 404 with no data leaked (AC-12)", async () => {
-    // Create a ticket for requester A
+    // Create a ticket for Alice
     const createRes = await request(app)
       .post("/api/tickets")
-      .set("x-requester-id", String(requesterAId))
+      .set("Cookie", sessionA)
+      .set("X-Requested-With", "TokTickIT")
       .field("categoryId", String(validCategoryId))
       .field("relatedSystemId", String(validRelatedSystemId))
       .field("summary", "Alice private ownership test")
@@ -48,16 +47,14 @@ describe("GET /api/tickets/:id", () => {
 
     expect(createRes.status).toBe(201);
     const ticketId = createRes.body.id;
-    createdTicketIds.push(ticketId);
 
-    // Requester B tries to access it → 404 (not 403, per §11 ownership-failure decision)
+    // Bob tries to access it → 404 (not 403, per ownership-failure decision)
     const res = await request(app)
       .get(`/api/tickets/${ticketId}`)
-      .set("x-requester-id", String(requesterBId));
+      .set("Cookie", sessionB);
 
     expect(res.status).toBe(404);
     expect(res.body).toHaveProperty("error");
-    // Must not leak any ticket data
     expect(res.body).not.toHaveProperty("ticketNumber");
     expect(res.body).not.toHaveProperty("summary");
   });
@@ -65,7 +62,8 @@ describe("GET /api/tickets/:id", () => {
   it("owner can retrieve their own ticket with 200 and correct shape", async () => {
     const createRes = await request(app)
       .post("/api/tickets")
-      .set("x-requester-id", String(requesterAId))
+      .set("Cookie", sessionA)
+      .set("X-Requested-With", "TokTickIT")
       .field("categoryId", String(validCategoryId))
       .field("relatedSystemId", String(validRelatedSystemId))
       .field("summary", "Alice retrieve own ticket test")
@@ -73,11 +71,10 @@ describe("GET /api/tickets/:id", () => {
       .field("requestedPriority", "MEDIUM");
 
     const ticketId = createRes.body.id;
-    createdTicketIds.push(ticketId);
 
     const res = await request(app)
       .get(`/api/tickets/${ticketId}`)
-      .set("x-requester-id", String(requesterAId));
+      .set("Cookie", sessionA);
 
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(ticketId);
