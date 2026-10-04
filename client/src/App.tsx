@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { PublicOnlyRoute, RequireAuth, RequireRole } from "./components/RouteGuard";
+import { PublicOnlyRoute, RequireAuth, RequireRole, ShellWhenSignedIn } from "./components/RouteGuard";
 import AppShell from "./components/AppShell";
 import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
@@ -107,9 +107,28 @@ export default function App() {
             }
           />
 
-          {/* Error pages */}
-          <Route path="/forbidden" element={<Forbidden />} />
-          <Route path="*" element={<NotFound />} />
+          {/* Forbidden: only reached by signed-in users; RequireAuth ensures
+              unauthenticated direct visits redirect to /login instead. */}
+          <Route
+            path="/forbidden"
+            element={
+              <RequireAuth>
+                <AppShell>
+                  <Forbidden />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+
+          {/* Not Found: shell for signed-in users, standalone when signed out. */}
+          <Route
+            path="*"
+            element={
+              <ShellWhenSignedIn>
+                <NotFound />
+              </ShellWhenSignedIn>
+            }
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

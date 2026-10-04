@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import AppShell from "./AppShell";
 
 function roleHome(role: string): string {
   if (role === "IT_STAFF") return "/staff/queue";
@@ -24,6 +25,17 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+// Wraps children in AppShell when the user is signed in without a pending
+// password change; renders standalone otherwise (used for Not Found).
+export function ShellWhenSignedIn({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user && !user.mustChangePassword) {
+    return <AppShell>{children}</AppShell>;
+  }
   return <>{children}</>;
 }
 
