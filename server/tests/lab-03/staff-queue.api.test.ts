@@ -225,6 +225,37 @@ describe("API-40: Queue filters", () => {
     expect(res.status).toBe(200);
     expect(ids(res)).toEqual([h1]);
   });
+
+  it("API-40: requesterResolved=true returns only active Requester-indicated-resolved tickets (AC-38)", async () => {
+    const res = await request(app).get("/api/staff/tickets?requesterResolved=true").set("Cookie", staff1Session);
+    expect(res.status).toBe(200);
+    // l1 is active + requester-resolved; closed1 is requester-resolved but CLOSED
+    // (not active under the default ACTIVE status), so it is excluded.
+    expect(ids(res)).toEqual([l1]);
+  });
+
+  it("API-40: requesterResolved=true ANDs with another filter (AC-38)", async () => {
+    // l1 is owned by staff2 → matches; combined AND yields l1
+    const match = await request(app)
+      .get(`/api/staff/tickets?requesterResolved=true&owner=${staff2.id}`)
+      .set("Cookie", staff1Session);
+    expect(match.status).toBe(200);
+    expect(ids(match)).toEqual([l1]);
+
+    // l1 is LOW priority → priority=HIGH AND requesterResolved yields nothing
+    const none = await request(app)
+      .get("/api/staff/tickets?requesterResolved=true&priority=HIGH")
+      .set("Cookie", staff1Session);
+    expect(none.status).toBe(200);
+    expect(ids(none)).toEqual([]);
+  });
+
+  it("API-40: an invalid requesterResolved value is ignored (AC-38)", async () => {
+    // requesterResolved=yes must be ignored → same as the default queue
+    const res = await request(app).get("/api/staff/tickets?requesterResolved=yes").set("Cookie", staff1Session);
+    expect(res.status).toBe(200);
+    expect(ids(res)).toEqual(defaultActiveOrder);
+  });
 });
 
 // ── API-41 ───────────────────────────────────────────────────────────────────

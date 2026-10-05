@@ -59,6 +59,10 @@ router.get(
         ownerWhere,
         p.priority ? { itPriority: p.priority } : {},
         p.categoryId !== undefined ? { categoryId: p.categoryId } : {},
+        // requesterResolved=true: restrict to Tickets the Requester flagged
+        // (BR-57). "Active only" follows from the status filter (default
+        // ACTIVE), which this ANDs with like every other filter.
+        p.requesterResolved ? { requesterResolvedAt: { not: null } } : {},
         p.search
           ? {
               OR: [

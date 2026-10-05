@@ -366,4 +366,13 @@ describe("UNIT-06: parseStaffQueueQuery", () => {
     expect(parseStaffQueueQuery({ search: "  printer  " }).search).toBe("printer");
     expect(parseStaffQueueQuery({ search: "   " }).search).toBeUndefined();
   });
+
+  it("UNIT-06: requesterResolved=true is parsed; any other value is ignored", () => {
+    expect(parseStaffQueueQuery({}).requesterResolved).toBe(false);
+    expect(parseStaffQueueQuery({ requesterResolved: "true" }).requesterResolved).toBe(true);
+    expect(parseStaffQueueQuery({ requesterResolved: "TRUE" }).requesterResolved).toBe(true);
+    expect(parseStaffQueueQuery({ requesterResolved: "false" }).requesterResolved).toBe(false);
+    expect(parseStaffQueueQuery({ requesterResolved: "1" }).requesterResolved).toBe(false);
+    expect(parseStaffQueueQuery({ requesterResolved: "yes" }).requesterResolved).toBe(false);
+  });
 });

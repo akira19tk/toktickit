@@ -30,6 +30,7 @@ export interface StaffQueueParams {
   priority?: Priority;
   categoryId?: number;
   owner: OwnerFilter;
+  requesterResolved: boolean;
   sortBy: SortBy;
   sortDir: SortDir;
   page: number;
@@ -130,12 +131,18 @@ export function parseStaffQueueQuery(
 
   const categoryId = parsePositiveInt(query.categoryId, 0);
 
+  // Only the exact string "true" enables the filter; any other value is
+  // ignored (fallback rule). BR-57 / api-spec §5.
+  const requesterResolved =
+    String(query.requesterResolved ?? "").trim().toLowerCase() === "true";
+
   return {
     search,
     status: parseStatus(query.status),
     priority,
     categoryId: categoryId > 0 ? categoryId : undefined,
     owner: parseOwner(query.owner),
+    requesterResolved,
     sortBy,
     sortDir,
     page,
