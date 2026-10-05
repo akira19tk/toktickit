@@ -1063,13 +1063,30 @@ body {
   outline-offset: 2px;
 }
 
-/* Requester-says-resolved marker (text always accompanies the icon) */
+/* Queue summary cell: the text truncates, but the resolved marker drops to its
+   own line below so it is never clipped by the summary's ellipsis. Narrower
+   truncation also lets all columns fit without horizontal scroll at >= 1280px. */
+.sq-summary {
+  max-width: 300px;
+}
+
+.sq-summary-text {
+  display: block;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Requester-says-resolved marker (text always accompanies the icon).
+   display:block so it sits on its own line, outside the truncated summary. */
 .sq-resolved-marker {
-  display: inline-block;
+  display: block;
   margin-top: 4px;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-primary);
+  white-space: nowrap;
 }
 
 /* Owner no-longer-active-staff marker */

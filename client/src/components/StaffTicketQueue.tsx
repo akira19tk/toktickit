@@ -332,8 +332,8 @@ export default function StaffTicketQueue({ onOpenTicket }: Props) {
                         {t.ticketNumber}
                       </button>
                     </td>
-                    <td className="mt-summary" data-testid={`summary-${t.id}`}>
-                      {t.summary}
+                    <td className="sq-summary" data-testid={`summary-${t.id}`}>
+                      <span className="sq-summary-text">{t.summary}</span>
                       {t.requesterResolvedAt && (
                         <span className="sq-resolved-marker" data-testid={`resolved-marker-${t.id}`}>
                           ✓ Requester says resolved
