@@ -50,6 +50,35 @@ export default function TicketDetail({ ticketId, onBack }: Props) {
   const [uploading, setUploading] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<TicketAttachment | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  // Tabs are keyboard operable with the arrow keys (ui-spec §5).
+  const TAB_ORDER = ["comments", "attachments"] as const;
+  function handleTabKey(e: React.KeyboardEvent<HTMLButtonElement>) {
+    const idx = TAB_ORDER.indexOf(activeTab);
+    let next = idx;
+    switch (e.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        next = (idx + 1) % TAB_ORDER.length;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        next = (idx - 1 + TAB_ORDER.length) % TAB_ORDER.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = TAB_ORDER.length - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    setActiveTab(TAB_ORDER[next]);
+    tabRefs.current[next]?.focus();
+  }
 
   useEffect(() => {
     let active = true;
@@ -220,20 +249,26 @@ export default function TicketDetail({ ticketId, onBack }: Props) {
 
       {/* ── Tabs ─────────────────────────────────────────────────────────── */}
       <div className="zen-card">
-        <div role="tablist" className="zen-tablist">
+        <div role="tablist" className="zen-tablist" aria-label="Ticket detail sections">
           <button
             role="tab"
+            ref={(el) => { tabRefs.current[0] = el; }}
             aria-selected={activeTab === "comments"}
+            tabIndex={activeTab === "comments" ? 0 : -1}
             className={`zen-tab${activeTab === "comments" ? " zen-tab--active" : ""}`}
             onClick={() => setActiveTab("comments")}
+            onKeyDown={handleTabKey}
           >
             Public Comments ({comments.length})
           </button>
           <button
             role="tab"
+            ref={(el) => { tabRefs.current[1] = el; }}
             aria-selected={activeTab === "attachments"}
+            tabIndex={activeTab === "attachments" ? 0 : -1}
             className={`zen-tab${activeTab === "attachments" ? " zen-tab--active" : ""}`}
             onClick={() => setActiveTab("attachments")}
+            onKeyDown={handleTabKey}
           >
             Attachments ({attachments.length})
           </button>

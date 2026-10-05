@@ -513,6 +513,167 @@ export async function downloadAttachment(
   setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 }
 
+// ── Staff ticket detail & operations (Issue #27) ─────────────────────────────
+
+export interface StaffOwner {
+  id: number;
+  name: string;
+  isActiveStaff: boolean;
+}
+
+export interface StaffTicketDetail {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  description: string;
+  category: string;
+  relatedSystem: string;
+  requester: { id: number; name: string; email: string };
+  owner: StaffOwner | null;
+  requestedPriority: string;
+  itPriority: string;
+  currentStatus: string;
+  resolutionSummary: string | null;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  requesterResolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  attachments: TicketAttachment[];
+  allowedTransitions: string[];
+  counts: { publicComments: number; internalNotes: number };
+}
+
+export interface StatusChangePayload {
+  status: string;
+  resolutionSummary?: string;
+  confirm?: boolean;
+}
+
+export interface StatusChangeResult {
+  currentStatus: string;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  requesterResolvedAt: string | null;
+  resolutionSummary: string | null;
+  allowedTransitions: string[];
+}
+
+// Parse a JSON success body, or throw a structured ApiError carrying the status,
+// machine code and field errors so the detail screen can show inline messages.
+async function jsonOrApiError<T>(res: Response, fallback: string): Promise<T> {
+  if (res.ok) return res.json() as Promise<T>;
+  const body = await res.json().catch(() => ({}));
+  throw new ApiError(res.status, body.code ?? "INTERNAL_ERROR", body.error ?? fallback, body.errors);
+}
+
+const CSRF_JSON = {
+  "X-Requested-With": "TokTickIT",
+  "Content-Type": "application/json",
+} as const;
+
+export async function fetchStaffTicketDetail(ticketId: number): Promise<StaffTicketDetail> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}`);
+  return jsonOrApiError<StaffTicketDetail>(res, "Failed to load the ticket");
+}
+
+export async function claimStaffTicket(
+  ticketId: number
+): Promise<{ owner: StaffOwner; currentStatus: string }> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/claim`, {
+    method: "POST",
+    headers: { "X-Requested-With": "TokTickIT" },
+  });
+  return jsonOrApiError(res, "Failed to claim the ticket");
+}
+
+export async function reassignStaffTicket(
+  ticketId: number,
+  ownerId: number
+): Promise<{ owner: StaffOwner }> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/owner`, {
+    method: "PATCH",
+    headers: CSRF_JSON,
+    body: JSON.stringify({ ownerId }),
+  });
+  return jsonOrApiError(res, "Failed to reassign the ticket");
+}
+
+export async function setStaffItPriority(
+  ticketId: number,
+  itPriority: string
+): Promise<{ itPriority: string }> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/it-priority`, {
+    method: "PATCH",
+    headers: CSRF_JSON,
+    body: JSON.stringify({ itPriority }),
+  });
+  return jsonOrApiError(res, "Failed to change IT Priority");
+}
+
+export async function changeStaffStatus(
+  ticketId: number,
+  payload: StatusChangePayload
+): Promise<StatusChangeResult> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/status`, {
+    method: "PATCH",
+    headers: CSRF_JSON,
+    body: JSON.stringify(payload),
+  });
+  return jsonOrApiError(res, "Failed to change status");
+}
+
+export async function fetchStaffComments(ticketId: number): Promise<TicketComment[]> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/comments`);
+  return jsonOrApiError<TicketComment[]>(res, "Failed to load comments");
+}
+
+export async function postStaffComment(ticketId: number, body: string): Promise<TicketComment> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/comments`, {
+    method: "POST",
+    headers: CSRF_JSON,
+    body: JSON.stringify({ body }),
+  });
+  return jsonOrApiError<TicketComment>(res, "Failed to post comment");
+}
+
+export async function fetchStaffNotes(ticketId: number): Promise<TicketComment[]> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/notes`);
+  return jsonOrApiError<TicketComment[]>(res, "Failed to load notes");
+}
+
+export async function postStaffNote(ticketId: number, body: string): Promise<TicketComment> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/notes`, {
+    method: "POST",
+    headers: CSRF_JSON,
+    body: JSON.stringify({ body }),
+  });
+  return jsonOrApiError<TicketComment>(res, "Failed to post note");
+}
+
+export async function downloadStaffAttachment(
+  ticketId: number,
+  attachmentId: number,
+  fileName: string
+): Promise<void> {
+  const url = `${API_BASE_URL}/api/staff/tickets/${ticketId}/attachments/${attachmentId}/download`;
+  const res = await apiFetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(body.error ?? "Download failed"), { status: res.status, body });
+  }
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = fileName;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
+
 export async function createTicket(
   payload: CreateTicketPayload
 ): Promise<CreatedTicket> {
