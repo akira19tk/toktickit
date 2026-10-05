@@ -129,6 +129,59 @@ export interface TicketListParams {
   pageSize?: number;
 }
 
+// ── Staff queue types (Issue #26) ────────────────────────────────────────────
+
+export interface StaffQueueOwner {
+  id: number;
+  name: string;
+  isActiveStaff: boolean;
+}
+
+export interface StaffQueueTicket {
+  id: number;
+  ticketNumber: string;
+  createdAt: string;
+  updatedAt: string;
+  summary: string;
+  category: string;
+  requester: { id: number; name: string };
+  requestedPriority: string;
+  itPriority: string;
+  currentStatus: string;
+  owner: StaffQueueOwner | null;
+  requesterResolvedAt: string | null;
+}
+
+export interface StaffQueueCounts {
+  unassigned: number;
+  assignedToMe: number;
+  requesterResolved: number;
+}
+
+export interface StaffQueueResponse {
+  data: StaffQueueTicket[];
+  pagination: Pagination;
+  counts: StaffQueueCounts;
+}
+
+export interface StaffQueueParams {
+  search?: string;
+  status?: string;
+  priority?: string;
+  categoryId?: number;
+  owner?: string; // ANY | ME | UNASSIGNED | <userId>
+  requesterResolved?: boolean; // true → only Requester-indicated-resolved tickets
+  sortBy?: string;
+  sortDir?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface Assignee {
+  id: number;
+  name: string;
+}
+
 export interface TicketAttachment {
   id: number;
   fileName: string;
@@ -313,6 +366,37 @@ export async function fetchTickets(
   const url = `${API_BASE_URL}/api/tickets${query.toString() ? "?" + query : ""}`;
   const res = await apiFetch(url);
   if (!res.ok) throw new Error(`Failed to load tickets: ${res.status}`);
+  return res.json();
+}
+
+// ── Staff queue endpoints (Issue #26) ────────────────────────────────────────
+
+export async function fetchStaffTickets(
+  params: StaffQueueParams = {}
+): Promise<StaffQueueResponse> {
+  const query = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== "" && v !== null) {
+      query.set(k, String(v));
+    }
+  }
+  const url = `${API_BASE_URL}/api/staff/tickets${query.toString() ? "?" + query : ""}`;
+  const res = await apiFetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(
+      res.status,
+      body.code ?? "INTERNAL_ERROR",
+      body.error ?? "Failed to load the queue"
+    );
+  }
+  return res.json();
+}
+
+// Active IT Staff for the Owner filter / reassign dropdown. IT_STAFF only.
+export async function fetchAssignees(): Promise<Assignee[]> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/assignees`);
+  if (!res.ok) throw new Error(`Failed to load assignees: ${res.status}`);
   return res.json();
 }
 
