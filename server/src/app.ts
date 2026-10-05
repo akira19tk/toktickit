@@ -7,6 +7,7 @@ import categoriesRouter from "./routes/categories";
 import devRequestersRouter from "./routes/dev-requesters";
 import relatedSystemsRouter from "./routes/related-systems";
 import ticketsRouter from "./routes/tickets";
+import staffRouter from "./routes/staff";
 import authRouter from "./routes/auth";
 import { requireAuth, passwordChangeGate, csrfCheck } from "./middleware/auth";
 
@@ -31,7 +32,9 @@ export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: 
   { method: "GET",    path: "/api/tickets/:id/comments" },
   { method: "POST",   path: "/api/tickets/:id/comments" },
   { method: "POST",   path: "/api/tickets/:id/resolved-indication" },
-  // Staff routes — appended by Issues #26 and #27
+  // Staff routes — Issue #26 (Ticket Queue); detail/operations appended by Issue #27
+  { method: "GET",    path: "/api/staff/tickets" },
+  { method: "GET",    path: "/api/staff/assignees" },
   // Admin routes — appended by Issue #28
 ];
 
@@ -85,6 +88,7 @@ export function createApp() {
   app.use("/api/categories", categoriesRouter);
   app.use("/api/related-systems", relatedSystemsRouter);
   app.use("/api/tickets", ticketsRouter);
+  app.use("/api/staff", staffRouter);
 
   // ── 404 for unknown routes ────────────────────────────────────────────────
   app.use((_req: Request, res: Response) => {

@@ -10,6 +10,7 @@ import {
   hashPassword,
   verifyPassword,
 } from "../../src/lib/auth";
+import { parseStaffQueueQuery } from "../../src/lib/staffQueue";
 
 // Load shared password vectors from repo root
 const vectorsPath = path.join(
@@ -251,5 +252,118 @@ describe("UNIT-07: hashPassword and verifyPassword", () => {
     const h1 = await hashPassword("Secret1!");
     const h2 = await hashPassword("Secret1!");
     expect(h1).not.toBe(h2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// UNIT-06 — Staff queue query-parameter parser (BR-56, AC-39)
+// Non-integer, <1, pageSize>50 and unsupported sort/filter values fall back to
+// defaults; valid values are normalized.
+// ---------------------------------------------------------------------------
+describe("UNIT-06: parseStaffQueueQuery", () => {
+  it("UNIT-06: empty query yields all defaults", () => {
+    const p = parseStaffQueueQuery({});
+    expect(p.page).toBe(1);
+    expect(p.pageSize).toBe(10);
+    expect(p.sortBy).toBe("itPriority");
+    expect(p.sortDir).toBe("desc");
+    expect(p.status).toBe("ACTIVE");
+    expect(p.owner).toEqual({ kind: "ANY" });
+    expect(p.priority).toBeUndefined();
+    expect(p.categoryId).toBeUndefined();
+    expect(p.search).toBeUndefined();
+  });
+
+  it("UNIT-06: non-integer page falls back to 1", () => {
+    expect(parseStaffQueueQuery({ page: "abc" }).page).toBe(1);
+    expect(parseStaffQueueQuery({ page: "2.5" }).page).toBe(1);
+  });
+
+  it("UNIT-06: page below 1 falls back to 1", () => {
+    expect(parseStaffQueueQuery({ page: "0" }).page).toBe(1);
+    expect(parseStaffQueueQuery({ page: "-3" }).page).toBe(1);
+  });
+
+  it("UNIT-06: a valid page is kept", () => {
+    expect(parseStaffQueueQuery({ page: "4" }).page).toBe(4);
+  });
+
+  it("UNIT-06: non-integer pageSize falls back to 10", () => {
+    expect(parseStaffQueueQuery({ pageSize: "xyz" }).pageSize).toBe(10);
+  });
+
+  it("UNIT-06: pageSize above 50 falls back to 10 (not clamped)", () => {
+    expect(parseStaffQueueQuery({ pageSize: "51" }).pageSize).toBe(10);
+    expect(parseStaffQueueQuery({ pageSize: "999" }).pageSize).toBe(10);
+  });
+
+  it("UNIT-06: pageSize of exactly 50 is accepted (at the limit)", () => {
+    expect(parseStaffQueueQuery({ pageSize: "50" }).pageSize).toBe(50);
+  });
+
+  it("UNIT-06: a valid pageSize below the limit is kept", () => {
+    expect(parseStaffQueueQuery({ pageSize: "25" }).pageSize).toBe(25);
+  });
+
+  it("UNIT-06: unsupported sortBy falls back to itPriority", () => {
+    expect(parseStaffQueueQuery({ sortBy: "bogus" }).sortBy).toBe("itPriority");
+  });
+
+  it("UNIT-06: each supported sortBy is accepted", () => {
+    for (const field of [
+      "itPriority",
+      "createdAt",
+      "updatedAt",
+      "ticketNumber",
+      "currentStatus",
+    ] as const) {
+      expect(parseStaffQueueQuery({ sortBy: field }).sortBy).toBe(field);
+    }
+  });
+
+  it("UNIT-06: unsupported sortDir falls back to desc", () => {
+    expect(parseStaffQueueQuery({ sortDir: "sideways" }).sortDir).toBe("desc");
+  });
+
+  it("UNIT-06: sortDir asc and desc are accepted", () => {
+    expect(parseStaffQueueQuery({ sortDir: "asc" }).sortDir).toBe("asc");
+    expect(parseStaffQueueQuery({ sortDir: "desc" }).sortDir).toBe("desc");
+  });
+
+  it("UNIT-06: status ALL and a specific status are accepted; invalid falls back to ACTIVE", () => {
+    expect(parseStaffQueueQuery({ status: "ALL" }).status).toBe("ALL");
+    expect(parseStaffQueueQuery({ status: "all" }).status).toBe("ALL");
+    expect(parseStaffQueueQuery({ status: "IN_PROGRESS" }).status).toBe("IN_PROGRESS");
+    expect(parseStaffQueueQuery({ status: "NONSENSE" }).status).toBe("ACTIVE");
+  });
+
+  it("UNIT-06: priority is validated; invalid falls back to undefined (any)", () => {
+    expect(parseStaffQueueQuery({ priority: "high" }).priority).toBe("HIGH");
+    expect(parseStaffQueueQuery({ priority: "URGENT" }).priority).toBeUndefined();
+  });
+
+  it("UNIT-06: categoryId is a positive integer or undefined", () => {
+    expect(parseStaffQueueQuery({ categoryId: "7" }).categoryId).toBe(7);
+    expect(parseStaffQueueQuery({ categoryId: "0" }).categoryId).toBeUndefined();
+    expect(parseStaffQueueQuery({ categoryId: "abc" }).categoryId).toBeUndefined();
+  });
+
+  it("UNIT-06: owner ANY/ME/UNASSIGNED and a numeric id are parsed; invalid falls back to ANY", () => {
+    expect(parseStaffQueueQuery({ owner: "ANY" }).owner).toEqual({ kind: "ANY" });
+    expect(parseStaffQueueQuery({ owner: "me" }).owner).toEqual({ kind: "ME" });
+    expect(parseStaffQueueQuery({ owner: "UNASSIGNED" }).owner).toEqual({
+      kind: "UNASSIGNED",
+    });
+    expect(parseStaffQueueQuery({ owner: "12" }).owner).toEqual({
+      kind: "USER",
+      id: 12,
+    });
+    expect(parseStaffQueueQuery({ owner: "-1" }).owner).toEqual({ kind: "ANY" });
+    expect(parseStaffQueueQuery({ owner: "nobody" }).owner).toEqual({ kind: "ANY" });
+  });
+
+  it("UNIT-06: search is trimmed; blank becomes undefined", () => {
+    expect(parseStaffQueueQuery({ search: "  printer  " }).search).toBe("printer");
+    expect(parseStaffQueueQuery({ search: "   " }).search).toBeUndefined();
   });
 });
