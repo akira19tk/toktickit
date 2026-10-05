@@ -155,7 +155,7 @@ The IT department wants real accounts. A user signs in with email and password; 
 
 ### 5.6 Queue
 - **BR-56** The staff queue searches Ticket Number, Summary and Requester name (case-insensitive substring), sorts by `createdAt`, `updatedAt`, `ticketNumber`, `itPriority` or `currentStatus`, defaults to IT Priority descending then `createdAt` ascending, page size default 10 (max 50). A `page` or `pageSize` that is not a positive integer, a `pageSize` above 50, or an unsupported sort value falls back to the default (never an error), matching Lab 2.
-- **BR-57** By default the queue shows active Tickets (everything except CLOSED and CANCELLED); `status=ALL` shows everything. Filters are status, IT Priority, category and owner (`ANY`, `ME`, `UNASSIGNED` or a user id) and combine with AND. The response includes counts of unassigned, assigned-to-me and Requester-indicated-resolved active Tickets.
+- **BR-57** By default the queue shows active Tickets (everything except CLOSED and CANCELLED); `status=ALL` shows everything. Filters are status, IT Priority, category, owner (`ANY`, `ME`, `UNASSIGNED` or a user id) and `requesterResolved` (`true` restricts to Tickets the Requester has indicated resolved; any other value is ignored), and combine with AND. The response includes counts of unassigned, assigned-to-me and Requester-indicated-resolved active Tickets.
 
 ### 5.7 Migration, seed and client behavior
 - **BR-58** The migration keeps every Ticket, Attachment, Category and Related System row and every `requesterId` value; ids of migrated users equal the old Development Requester ids.
