@@ -3,11 +3,16 @@
 // API-28: Requester comments on non-owned Ticket (AC-31)
 // API-29: Problem Appears Resolved on allowed statuses (AC-32)
 // API-31: Problem Appears Resolved on NEW/RESOLVED/CLOSED/CANCELLED (AC-34)
-// API-32: Public comment on CLOSED and CANCELLED → 409 TICKET_CLOSED (AC-35)
-//         Note half is an it.todo — completed by Issue #27
+// API-32: Public comment (and Internal Note) on CLOSED and CANCELLED → 409 TICKET_CLOSED (AC-35)
 // API-34: Requester Ticket Detail and comments payloads contain no note content (AC-53)
 //
-// API-30, 33, 35, 36, 37 belong to Issue #27 and are not included here.
+// Issue #27 Stage 2 additions (staff comments/notes + Admin read-only):
+// API-30: Requester cannot change status via the staff endpoint (AC-33)
+// API-32 note half: Internal Note on CLOSED/CANCELLED → 409 TICKET_CLOSED (AC-35)
+// API-33: Requester cannot access Internal Note endpoints (AC-04)
+// API-35: IT Staff posts Public Comment and Internal Note (AC-52)
+// API-36: Administrator reads but cannot write ticket operations (AC-54)
+// API-37: Internal Note validation (AC-30)
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
@@ -24,8 +29,12 @@ const app = createApp();
 
 let requester: { id: number; name: string };
 let otherRequester: { id: number };
+let staff: { id: number; name: string };
+let admin: { id: number };
 let requesterSession: string;
 let otherSession: string;
+let staffSession: string;
+let adminSession: string;
 let validCategoryId: number;
 let validRelatedSystemId: number;
 
@@ -47,8 +56,25 @@ beforeAll(async () => {
     mustChangePassword: false,
   });
 
+  const s = await createUser({
+    email: "staff@comments.test",
+    password: "Test#1234",
+    name: "Comment Staff",
+    role: "IT_STAFF",
+    mustChangePassword: false,
+  });
+  const a = await createUser({
+    email: "admin@comments.test",
+    password: "Test#1234",
+    name: "Comment Admin",
+    role: "ADMIN",
+    mustChangePassword: false,
+  });
+
   requester = r;
   otherRequester = o;
+  staff = s;
+  admin = a;
 
   requesterSession = await loginAs(app, {
     email: "requester@comments.test",
@@ -56,6 +82,14 @@ beforeAll(async () => {
   });
   otherSession = await loginAs(app, {
     email: "other@comments.test",
+    password: "Test#1234",
+  });
+  staffSession = await loginAs(app, {
+    email: "staff@comments.test",
+    password: "Test#1234",
+  });
+  adminSession = await loginAs(app, {
+    email: "admin@comments.test",
     password: "Test#1234",
   });
 
@@ -445,9 +479,31 @@ describe("API-32: public comment on CLOSED and CANCELLED returns 409 TICKET_CLOS
     expect(res.body.code).toBe("TICKET_CLOSED");
   });
 
-  it.todo(
-    "API-32: Internal Note on CLOSED and CANCELLED returns 409 TICKET_CLOSED (note half — completed by Issue #27)"
-  );
+  it("API-32: POST internal note on CLOSED ticket → 409 TICKET_CLOSED", async () => {
+    const ticketId = await createTicket("CLOSED");
+
+    const res = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", staffSession)
+      .set("X-Requested-With", "TokTickIT")
+      .send({ body: "Trying to note on a closed ticket" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("TICKET_CLOSED");
+  });
+
+  it("API-32: POST internal note on CANCELLED ticket → 409 TICKET_CLOSED", async () => {
+    const ticketId = await createTicket("CANCELLED");
+
+    const res = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", staffSession)
+      .set("X-Requested-With", "TokTickIT")
+      .send({ body: "Trying to note on a cancelled ticket" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("TICKET_CLOSED");
+  });
 });
 
 // ===========================================================================
@@ -513,5 +569,241 @@ describe("API-34: Requester Ticket Detail and comments payloads contain no note 
       expect(item).toHaveProperty("createdAt");
       expect(item.author).toBeTruthy();
     }
+  });
+});
+
+// ===========================================================================
+// API-30: Requester cannot change status via the staff endpoint (AC-33)
+// ===========================================================================
+
+describe("API-30: Requester cannot change status via the staff endpoint (AC-33)", () => {
+  it("API-30: PATCH /api/staff/tickets/:id/status as a Requester → 403, status unchanged", async () => {
+    const ticketId = await createTicket("OPEN");
+
+    const res = await request(app)
+      .patch(`/api/staff/tickets/${ticketId}/status`)
+      .set("Cookie", requesterSession)
+      .set("X-Requested-With", "TokTickIT")
+      .send({ status: "IN_PROGRESS" });
+
+    expect(res.status).toBe(403);
+
+    const t = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    expect(t!.currentStatus).toBe("OPEN");
+  });
+});
+
+// ===========================================================================
+// API-33: Requester cannot access Internal Note endpoints (AC-04)
+// A Requester response must never contain note content.
+// ===========================================================================
+
+describe("API-33: Requester cannot access Internal Note endpoints (AC-04)", () => {
+  it("API-33: GET /api/staff/tickets/:id/notes as a Requester → 403 with no note content", async () => {
+    const ticketId = await createTicket("OPEN");
+    await prisma.internalNote.create({
+      data: { ticketId, authorId: staff.id, body: "TOP-SECRET internal note body" },
+    });
+
+    const res = await request(app)
+      .get(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", requesterSession);
+
+    expect(res.status).toBe(403);
+    expect(JSON.stringify(res.body)).not.toContain("TOP-SECRET");
+  });
+
+  it("API-33: POST /api/staff/tickets/:id/notes as a Requester → 403, no note created", async () => {
+    const ticketId = await createTicket("OPEN");
+    const before = await prisma.internalNote.count({ where: { ticketId } });
+
+    const res = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", requesterSession)
+      .set("X-Requested-With", "TokTickIT")
+      .send({ body: "Requester trying to add an internal note" });
+
+    expect(res.status).toBe(403);
+    const after = await prisma.internalNote.count({ where: { ticketId } });
+    expect(after).toBe(before);
+  });
+});
+
+// ===========================================================================
+// API-35: IT Staff posts Public Comment and Internal Note (AC-52)
+// Each is stored with author + backend timestamp and appears only in its list.
+// ===========================================================================
+
+describe("API-35: IT Staff posts Public Comment and Internal Note (AC-52)", () => {
+  it("API-35: comment and note are each stored with author/timestamp and listed only in their own list", async () => {
+    const ticketId = await createTicket("OPEN");
+    const COMMENT = "Public: we are investigating your issue.";
+    const NOTE = "Internal: suspected faulty RAM, not visible to the requester.";
+
+    const commentRes = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/comments`)
+      .set("Cookie", staffSession)
+      .set("X-Requested-With", "TokTickIT")
+      .send({ body: COMMENT });
+    expect(commentRes.status).toBe(201);
+    expect(commentRes.body.author.id).toBe(staff.id);
+    expect(commentRes.body.author.role).toBe("IT_STAFF");
+    expect(new Date(commentRes.body.createdAt).getTime()).toBeGreaterThan(0);
+
+    const noteRes = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", staffSession)
+      .set("X-Requested-With", "TokTickIT")
+      .send({ body: NOTE });
+    expect(noteRes.status).toBe(201);
+    expect(noteRes.body.author.id).toBe(staff.id);
+    expect(noteRes.body.author.role).toBe("IT_STAFF");
+    expect(new Date(noteRes.body.createdAt).getTime()).toBeGreaterThan(0);
+
+    const comments = await request(app)
+      .get(`/api/staff/tickets/${ticketId}/comments`)
+      .set("Cookie", staffSession);
+    const notes = await request(app)
+      .get(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", staffSession);
+
+    const commentBodies = (comments.body as Array<{ body: string }>).map((c) => c.body);
+    const noteBodies = (notes.body as Array<{ body: string }>).map((n) => n.body);
+
+    expect(commentBodies).toContain(COMMENT);
+    expect(commentBodies).not.toContain(NOTE);
+    expect(noteBodies).toContain(NOTE);
+    expect(noteBodies).not.toContain(COMMENT);
+  });
+});
+
+// ===========================================================================
+// API-36: Administrator reads but cannot write ticket operations (AC-54)
+// Reads 200 (allowedTransitions empty); claim/status/owner/priority/comment/
+// note writes 403.
+// ===========================================================================
+
+describe("API-36: Administrator reads but cannot write ticket operations (AC-54)", () => {
+  let ticketId: number;
+  let unassignedId: number;
+
+  beforeAll(async () => {
+    ticketId = await createTicket("OPEN");
+    await prisma.ticket.update({ where: { id: ticketId }, data: { ownerId: staff.id } });
+    await prisma.publicComment.create({ data: { ticketId, authorId: staff.id, body: "A readable comment" } });
+    await prisma.internalNote.create({ data: { ticketId, authorId: staff.id, body: "A readable internal note" } });
+    unassignedId = await createTicket("NEW");
+  });
+
+  it("API-36: Admin reads the queue → 200", async () => {
+    const res = await request(app).get(`/api/staff/tickets`).set("Cookie", adminSession);
+    expect(res.status).toBe(200);
+  });
+
+  it("API-36: Admin reads Ticket Detail → 200 with allowedTransitions empty", async () => {
+    const res = await request(app).get(`/api/staff/tickets/${ticketId}`).set("Cookie", adminSession);
+    expect(res.status).toBe(200);
+    expect(res.body.allowedTransitions).toEqual([]);
+  });
+
+  it("API-36: Admin reads Public Comments → 200", async () => {
+    const res = await request(app).get(`/api/staff/tickets/${ticketId}/comments`).set("Cookie", adminSession);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("API-36: Admin reads Internal Notes → 200", async () => {
+    const res = await request(app).get(`/api/staff/tickets/${ticketId}/notes`).set("Cookie", adminSession);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it("API-36: Admin cannot claim → 403", async () => {
+    const res = await request(app)
+      .post(`/api/staff/tickets/${unassignedId}/claim`)
+      .set("Cookie", adminSession).set("X-Requested-With", "TokTickIT").send({});
+    expect(res.status).toBe(403);
+    const t = await prisma.ticket.findUnique({ where: { id: unassignedId } });
+    expect(t!.ownerId).toBeNull();
+  });
+
+  it("API-36: Admin cannot change status → 403", async () => {
+    const res = await request(app)
+      .patch(`/api/staff/tickets/${ticketId}/status`)
+      .set("Cookie", adminSession).set("X-Requested-With", "TokTickIT").send({ status: "IN_PROGRESS" });
+    expect(res.status).toBe(403);
+  });
+
+  it("API-36: Admin cannot change owner → 403", async () => {
+    const res = await request(app)
+      .patch(`/api/staff/tickets/${ticketId}/owner`)
+      .set("Cookie", adminSession).set("X-Requested-With", "TokTickIT").send({ ownerId: staff.id });
+    expect(res.status).toBe(403);
+  });
+
+  it("API-36: Admin cannot change IT Priority → 403", async () => {
+    const res = await request(app)
+      .patch(`/api/staff/tickets/${ticketId}/it-priority`)
+      .set("Cookie", adminSession).set("X-Requested-With", "TokTickIT").send({ itPriority: "HIGH" });
+    expect(res.status).toBe(403);
+  });
+
+  it("API-36: Admin cannot post a Public Comment → 403", async () => {
+    const res = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/comments`)
+      .set("Cookie", adminSession).set("X-Requested-With", "TokTickIT").send({ body: "admin comment" });
+    expect(res.status).toBe(403);
+  });
+
+  it("API-36: Admin cannot post an Internal Note → 403", async () => {
+    const res = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", adminSession).set("X-Requested-With", "TokTickIT").send({ body: "admin note" });
+    expect(res.status).toBe(403);
+  });
+});
+
+// ===========================================================================
+// API-37: Internal Note validation (AC-30)
+// ===========================================================================
+
+describe("API-37: Internal Note validation (AC-30)", () => {
+  it("API-37: empty body → 400 errors.body", async () => {
+    const ticketId = await createTicket("OPEN");
+    const res = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", staffSession).set("X-Requested-With", "TokTickIT").send({ body: "" });
+    expect(res.status).toBe(400);
+    expect(res.body.errors?.body).toBeDefined();
+  });
+
+  it("API-37: whitespace-only body → 400 errors.body", async () => {
+    const ticketId = await createTicket("OPEN");
+    const res = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", staffSession).set("X-Requested-With", "TokTickIT").send({ body: "     " });
+    expect(res.status).toBe(400);
+    expect(res.body.errors?.body).toBeDefined();
+  });
+
+  it("API-37: 2001-character body → 400 errors.body", async () => {
+    const ticketId = await createTicket("OPEN");
+    const res = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", staffSession).set("X-Requested-With", "TokTickIT").send({ body: "x".repeat(2001) });
+    expect(res.status).toBe(400);
+    expect(res.body.errors?.body).toBeDefined();
+  });
+
+  it("API-37: a <script> note body is stored verbatim as plain text (AC-30)", async () => {
+    const ticketId = await createTicket("OPEN");
+    const payload = "<script>alert('xss')</script>";
+    const res = await request(app)
+      .post(`/api/staff/tickets/${ticketId}/notes`)
+      .set("Cookie", staffSession).set("X-Requested-With", "TokTickIT").send({ body: payload });
+    expect(res.status).toBe(201);
+    expect(res.body.body).toBe(payload);
+    const note = await prisma.internalNote.findFirst({ where: { ticketId }, orderBy: { id: "desc" } });
+    expect(note!.body).toBe(payload);
   });
 });

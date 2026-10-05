@@ -41,6 +41,10 @@ export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: 
   { method: "PATCH",  path: "/api/staff/tickets/:id/it-priority" },
   { method: "PATCH",  path: "/api/staff/tickets/:id/status" },
   { method: "GET",    path: "/api/staff/tickets/:id/attachments/:attachmentId/download" },
+  { method: "GET",    path: "/api/staff/tickets/:id/comments" },
+  { method: "POST",   path: "/api/staff/tickets/:id/comments" },
+  { method: "GET",    path: "/api/staff/tickets/:id/notes" },
+  { method: "POST",   path: "/api/staff/tickets/:id/notes" },
   // Admin routes — appended by Issue #28
 ];
 

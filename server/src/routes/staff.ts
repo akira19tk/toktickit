@@ -561,4 +561,138 @@ router.get(
   }
 );
 
+// ── Public Comments and Internal Notes (Issue #27, Stage 2) ──────────────────
+// GET  /tickets/:id/comments   roles IT_STAFF, ADMIN (read-only for Admin)
+// POST /tickets/:id/comments   role  IT_STAFF
+// GET  /tickets/:id/notes      roles IT_STAFF, ADMIN (read-only for Admin)
+// POST /tickets/:id/notes      role  IT_STAFF
+//
+// Public Comments and Internal Notes are separate tables, so a note can never
+// be returned from a comment query (BR-04, BR-43). Requesters are refused at the
+// role gate on every note route and never see note content or a note count.
+
+const AUTHOR_SELECT = { select: { id: true, name: true, role: true } } as const;
+
+// Trim + 1–2000 char check shared by comments and notes (BR-42).
+function parseEntryBody(raw: unknown): { body: string } | { error: string } {
+  const trimmed = String(raw ?? "").trim();
+  if (!trimmed) return { error: "Body is required." };
+  if (trimmed.length > 2000) return { error: "Body must not exceed 2000 characters." };
+  return { body: trimmed };
+}
+
+function entryView(e: {
+  id: number;
+  body: string;
+  createdAt: Date;
+  author: { id: number; name: string; role: string };
+}) {
+  return {
+    id: e.id,
+    body: e.body,
+    createdAt: e.createdAt,
+    author: { id: e.author.id, name: e.author.name, role: e.author.role },
+  };
+}
+
+// ── GET /api/staff/tickets/:id/comments ──────────────────────────────────────
+
+router.get(
+  "/tickets/:id/comments",
+  requireRole("IT_STAFF", "ADMIN") as RequestHandler,
+  async (req: Request, res: Response) => {
+    const id = parseId(req.params.id);
+    if (id === null) return void notFound(res);
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) return void notFound(res);
+
+    const comments = await prisma.publicComment.findMany({
+      where: { ticketId: id },
+      include: { author: AUTHOR_SELECT },
+      orderBy: { createdAt: "asc" },
+    });
+    res.status(200).json(comments.map(entryView));
+  }
+);
+
+// ── POST /api/staff/tickets/:id/comments ─────────────────────────────────────
+
+router.post(
+  "/tickets/:id/comments",
+  requireRole("IT_STAFF") as RequestHandler,
+  async (req: Request, res: Response) => {
+    const id = parseId(req.params.id);
+    if (id === null) return void notFound(res);
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) return void notFound(res);
+
+    const parsed = parseEntryBody((req.body as Record<string, unknown>).body);
+    if ("error" in parsed) {
+      return void res.status(400).json({ error: parsed.error, errors: { body: parsed.error } });
+    }
+    if (FROZEN.includes(ticket.currentStatus)) {
+      return void res.status(409).json({
+        error: "Cannot comment on a closed or cancelled ticket.",
+        code: "TICKET_CLOSED",
+      });
+    }
+
+    const comment = await prisma.publicComment.create({
+      data: { ticketId: id, authorId: req.user!.id, body: parsed.body },
+      include: { author: AUTHOR_SELECT },
+    });
+    res.status(201).json(entryView(comment));
+  }
+);
+
+// ── GET /api/staff/tickets/:id/notes ─────────────────────────────────────────
+
+router.get(
+  "/tickets/:id/notes",
+  requireRole("IT_STAFF", "ADMIN") as RequestHandler,
+  async (req: Request, res: Response) => {
+    const id = parseId(req.params.id);
+    if (id === null) return void notFound(res);
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) return void notFound(res);
+
+    const notes = await prisma.internalNote.findMany({
+      where: { ticketId: id },
+      include: { author: AUTHOR_SELECT },
+      orderBy: { createdAt: "asc" },
+    });
+    res.status(200).json(notes.map(entryView));
+  }
+);
+
+// ── POST /api/staff/tickets/:id/notes ────────────────────────────────────────
+
+router.post(
+  "/tickets/:id/notes",
+  requireRole("IT_STAFF") as RequestHandler,
+  async (req: Request, res: Response) => {
+    const id = parseId(req.params.id);
+    if (id === null) return void notFound(res);
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) return void notFound(res);
+
+    const parsed = parseEntryBody((req.body as Record<string, unknown>).body);
+    if ("error" in parsed) {
+      return void res.status(400).json({ error: parsed.error, errors: { body: parsed.error } });
+    }
+    if (FROZEN.includes(ticket.currentStatus)) {
+      return void res.status(409).json({
+        error: "Cannot add a note to a closed or cancelled ticket.",
+        code: "TICKET_CLOSED",
+      });
+    }
+
+    const note = await prisma.internalNote.create({
+      data: { ticketId: id, authorId: req.user!.id, body: parsed.body },
+      include: { author: AUTHOR_SELECT },
+    });
+    res.status(201).json(entryView(note));
+  }
+);
+
 export default router;

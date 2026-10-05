@@ -58,6 +58,12 @@ export const routes: RouteEntry[] = [
   { method: "PATCH", path: "/api/staff/tickets/:id/it-priority",                         allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
   { method: "PATCH", path: "/api/staff/tickets/:id/status",                              allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
   { method: "GET",   path: "/api/staff/tickets/:id/attachments/:attachmentId/download",  allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  // Issue #27 Stage 2 — staff Public Comments and Internal Notes. GET allows
+  // ADMIN read-only; POST is IT_STAFF only (a Requester is refused at the gate).
+  { method: "GET",   path: "/api/staff/tickets/:id/comments",                            allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
+  { method: "POST",  path: "/api/staff/tickets/:id/comments",                            allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  { method: "GET",   path: "/api/staff/tickets/:id/notes",                               allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
+  { method: "POST",  path: "/api/staff/tickets/:id/notes",                               allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
 
   // ── Admin routes (ADMIN only) ─────────────────────────────────────────────
   // PARTIAL — Issue #28 (Administrator User Management) appends entries here.
