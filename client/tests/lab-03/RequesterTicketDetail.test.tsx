@@ -49,6 +49,30 @@ afterEach(() => {
 });
 
 describe("RequesterTicketDetail", () => {
+  describe("UI-19: detail fields use shared badges (ui-spec §2, §4.3)", () => {
+    it("UI-19: Current Status and IT Priority render human-label badges, not raw enums", async () => {
+      render(<TicketDetail ticketId={1} onBack={vi.fn()} />);
+
+      // currentStatus OPEN → "Open"; itPriority HIGH → "High" (ui-spec §2).
+      await waitFor(() => expect(screen.getByText("Open")).toBeInTheDocument());
+      expect(screen.getByText("High")).toBeInTheDocument();
+      // Raw enums must not leak into the UI.
+      expect(screen.queryByText("OPEN")).not.toBeInTheDocument();
+      expect(screen.queryByText("HIGH")).not.toBeInTheDocument();
+    });
+
+    it("UI-19: Requester detail shows IT Priority and Ticket Owner fields (ui-spec §4.3)", async () => {
+      render(<TicketDetail ticketId={1} onBack={vi.fn()} />);
+
+      // §4.3 explicitly lists "IT Priority badge, Ticket Owner name" as Requester
+      // Ticket Detail additions, so both are kept.
+      await waitFor(() => expect(screen.getByText("IT Priority")).toBeInTheDocument());
+      expect(screen.getByText("Ticket Owner")).toBeInTheDocument();
+      // owner.name "Michael Brown" is shown for the Ticket Owner field.
+      expect(screen.getByText("Michael Brown")).toBeInTheDocument();
+    });
+  });
+
   describe("UI-19: comments and resolved action", () => {
     it("UI-19: existing comments are displayed in chronological order", async () => {
       vi.spyOn(api, "fetchTicketComments").mockResolvedValue([MOCK_COMMENT]);

@@ -9,6 +9,8 @@ import {
   type TicketListItem,
   type Pagination,
 } from "../api";
+import StatusBadge from "./StatusBadge";
+import PriorityBadge from "./PriorityBadge";
 
 interface Props {
   onCreateTicket: () => void;
@@ -436,33 +438,3 @@ function FilterRow({ filters, categories, onFilterChange, onClear }: FilterRowPr
   );
 }
 
-const PRIORITY_COLORS: Record<string, string> = {
-  HIGH:   "#B3261E",
-  MEDIUM: "#B45309",
-  LOW:    "#0B7A46",
-};
-
-function PriorityBadge({ priority }: { priority: string }) {
-  const label = priority.charAt(0) + priority.slice(1).toLowerCase();
-  return (
-    <span
-      className="mt-badge"
-      style={{ background: PRIORITY_COLORS[priority] ?? "#5a6b62" }}
-      aria-label={`Priority: ${label}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  return (
-    <span
-      className="mt-badge"
-      style={{ background: "var(--color-secondary)" }}
-      aria-label={`Status: ${status}`}
-    >
-      {status}
-    </span>
-  );
-}

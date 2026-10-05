@@ -13,6 +13,8 @@ import {
   type TicketAttachment,
   type TicketComment,
 } from "../api";
+import StatusBadge from "./StatusBadge";
+import PriorityBadge from "./PriorityBadge";
 
 interface Props {
   ticketId: number;
@@ -169,10 +171,19 @@ export default function TicketDetail({ ticketId, onBack }: Props) {
           <ReadField label="Ticket Date" value={new Date(ticket.createdAt).toLocaleString()} />
           <ReadField label="Category" value={ticket.category} />
           <ReadField label="Related System" value={ticket.relatedSystem} />
-          <ReadField label="Requested Priority" value={ticket.requestedPriority} />
-          <ReadField label="Current Status" value={ticket.currentStatus} />
+          <ReadField
+            label="Requested Priority"
+            value={<PriorityBadge priority={ticket.requestedPriority} />}
+          />
+          <ReadField
+            label="Current Status"
+            value={<StatusBadge status={ticket.currentStatus} />}
+          />
           {ticket.itPriority && (
-            <ReadField label="IT Priority" value={ticket.itPriority} />
+            <ReadField
+              label="IT Priority"
+              value={<PriorityBadge priority={ticket.itPriority} />}
+            />
           )}
           <ReadField label="Ticket Owner" value={ticket.owner?.name ?? "Unassigned"} />
         </div>
@@ -341,7 +352,7 @@ export default function TicketDetail({ ticketId, onBack }: Props) {
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function ReadField({ label, value }: { label: string; value: string }) {
+function ReadField({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="td-read-field">
       <span className="zen-label td-field-label">{label}</span>

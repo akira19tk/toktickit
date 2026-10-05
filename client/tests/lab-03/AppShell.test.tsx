@@ -68,6 +68,34 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: /logout/i })).toBeInTheDocument();
   });
 
+  it("UI-08: in the mandatory password-change state the shell shows only Logout (no nav, no Change Password link) — ui-spec §4.2", () => {
+    mockUseAuth.mockReturnValue({
+      user: makeUser({ mustChangePassword: true }),
+      loading: false,
+      sessionEnded: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+      changePassword: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/change-password"]}>
+        <AppShell>
+          <div>Content</div>
+        </AppShell>
+      </MemoryRouter>
+    );
+
+    // §4.2 "the shell shows only Logout in that state" — a user who signed into
+    // the wrong account must be able to leave.
+    expect(screen.getByRole("button", { name: /logout/i })).toBeInTheDocument();
+
+    // No role navigation and no Change Password link while the change is forced.
+    expect(screen.queryByRole("link", { name: /my tickets/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /create ticket/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /change password/i })).not.toBeInTheDocument();
+  });
+
   it("UI-11: AuthContext removes legacy 'toktickit_requester' key from sessionStorage at startup (BR-61)", async () => {
     sessionStorage.setItem(
       "toktickit_requester",

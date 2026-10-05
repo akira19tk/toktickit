@@ -61,8 +61,10 @@ describe("TicketDetail", () => {
     const tnNode = screen.getByText("TKT-2026-000001");
     expect(tnNode.tagName).not.toBe("INPUT");
 
-    // Status badge visible (displayed by the new Lab 3 read-only fields)
-    expect(screen.getByText("NEW")).toBeInTheDocument();
+    // Status badge visible with the ui-spec §2 human label ("New", not the raw
+    // "NEW" enum), displayed by the Lab 3 read-only status field.
+    expect(screen.getByText("New")).toBeInTheDocument();
+    expect(screen.queryByText("NEW")).not.toBeInTheDocument();
 
     // Navigate to the Attachments tab to verify the attachment
     await user.click(screen.getByRole("tab", { name: /attachments/i }));

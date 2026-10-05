@@ -13,7 +13,9 @@ export default function NotFound() {
   const dest = user ? roleHome(user.role) : "/login";
 
   return (
-    <main className="zen-error-page">
+    // Signed in → rendered inside the shell, so align to the top of the content
+    // area; signed out → standalone, keep the centred look.
+    <main className={`zen-error-page${user ? " zen-error-page--in-shell" : ""}`}>
       <div className="zen-card zen-error-card">
         <span className="zen-error-icon" aria-hidden="true">🔍</span>
         <h1 className="zen-section-title">Page not found</h1>

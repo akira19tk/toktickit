@@ -13,7 +13,7 @@ export default function Forbidden() {
   const dest = user ? roleHome(user.role) : "/login";
 
   return (
-    <main className="zen-error-page">
+    <main className="zen-error-page zen-error-page--in-shell">
       <div className="zen-card zen-error-card">
         <span className="zen-error-icon" aria-hidden="true">🚫</span>
         <h1 className="zen-section-title">You don't have access to this page</h1>

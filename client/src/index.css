@@ -793,6 +793,28 @@ body {
 .zen-status-badge--reopened     { background: transparent; color: var(--color-internal-border); border: 1px solid var(--color-internal-border); }
 .zen-status-badge--cancelled    { background: #F3F4F6; color: #9CA3AF; text-decoration: line-through; }
 
+/* Resolved carries a check icon (decorative; the visible label stays "Resolved") */
+.zen-status-badge--resolved::before {
+  content: "✓";
+  font-weight: 700;
+}
+
+/* ── Priority badges (ui-spec §2): Low green, Medium amber-brown, High red ── */
+.zen-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.zen-priority-badge--low    { background: #0B7A46; }
+.zen-priority-badge--medium { background: #B45309; }
+.zen-priority-badge--high   { background: #B3261E; }
+
 /* ── Login page ──────────────────────────────────────────────── */
 .zen-login-page {
   min-height: 100svh;
@@ -848,6 +870,15 @@ body {
   justify-content: center;
   padding: 24px;
   background: var(--color-bg);
+}
+
+/* Inside the app shell the card aligns to the top of the content area (like the
+   placeholder screens), not the vertical centre of the viewport. Standalone
+   (signed-out) Not Found keeps the centred look above. */
+.zen-error-page--in-shell {
+  min-height: auto;
+  align-items: flex-start;
+  padding: 0;
 }
 
 .zen-error-card {
