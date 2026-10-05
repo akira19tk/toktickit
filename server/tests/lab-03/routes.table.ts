@@ -66,8 +66,11 @@ export const routes: RouteEntry[] = [
   { method: "POST",  path: "/api/staff/tickets/:id/notes",                               allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
 
   // ── Admin routes (ADMIN only) ─────────────────────────────────────────────
-  // PARTIAL — Issue #28 (Administrator User Management) appends entries here.
-  // Until then API-19 iterates zero rows.
-  // Example future entries:
-  //   { method: "GET",  path: "/api/admin/users",           allowedRoles: ["ADMIN"],             requesterOwnership: false },
+  // Issue #28 (Administrator User Management). ADMIN only; every other
+  // authenticated role gets 403 (BR-23). These rows activate API-19's real
+  // it() blocks and extend API-16/API-17 coverage automatically.
+  { method: "GET",   path: "/api/admin/users",                        allowedRoles: ["ADMIN"], requesterOwnership: false },
+  { method: "POST",  path: "/api/admin/users",                        allowedRoles: ["ADMIN"], requesterOwnership: false },
+  { method: "PATCH", path: "/api/admin/users/:id",                    allowedRoles: ["ADMIN"], requesterOwnership: false },
+  { method: "POST",  path: "/api/admin/users/:id/initial-password",   allowedRoles: ["ADMIN"], requesterOwnership: false },
 ];

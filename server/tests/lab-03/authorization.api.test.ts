@@ -149,7 +149,7 @@ describe("Route table coverage", () => {
       "related-systems.ts": "/api/related-systems",
       "tickets.ts":         "/api/tickets",
       "staff.ts":           "/api/staff",   // Issue #26 (queue); detail added by Issue #27
-      // "admin.ts":        "/api/admin",   // added by Issue #28
+      "admin.ts":           "/api/admin",   // Issue #28 (Administrator User Management)
     };
 
     // Routes that are intentionally public (not required in routes.table.ts)
@@ -196,29 +196,21 @@ describe("API-16: Every protected route without a session returns 401 (AC-18)", 
 
 // ---------------------------------------------------------------------------
 // API-17: Requester on /api/staff/* and /api/admin/* → 403
-// PARTIAL — no IT_STAFF-only or ADMIN-only routes exist yet.
-//   Gains real it() blocks when Issue #26/#27 add staff routes
-//   (allowedRoles: ["IT_STAFF"] or ["IT_STAFF","ADMIN"]) and Issue #28 adds
-//   admin routes (allowedRoles: ["ADMIN"]) to routes.table.ts.
+// Table-driven over every staff-only and admin-only route. Now that Issues
+// #26/#27 (staff) and #28 (admin) have added their rows to routes.table.ts,
+// this is fully populated — the earlier it.todo placeholder is removed.
 // ---------------------------------------------------------------------------
 
-describe("API-17: Requester on staff/admin endpoints → 403 (AC-19) [PARTIAL — Issues #26/#27/#28]", () => {
+describe("API-17: Requester on staff/admin endpoints → 403 (AC-19)", () => {
   const staffOrAdminOnlyRoutes = routes.filter(
     r => r.allowedRoles.length > 0 && !r.allowedRoles.includes("REQUESTER")
   );
 
-  if (staffOrAdminOnlyRoutes.length === 0) {
-    // No staff or admin routes registered yet. The todo below keeps Vitest happy
-    // (non-empty suite) without faking a pass. When Issues #26/#27/#28 add rows
-    // to routes.table.ts the else branch creates real it() tests instead.
-    it.todo("API-17: Requester → staff/admin routes → 403 (no routes registered yet; completes in Issues #26/#27/#28)");
-  } else {
-    for (const route of staffOrAdminOnlyRoutes) {
-      it(`API-17: REQUESTER → ${route.method} ${route.path} → 403`, async () => {
-        const res = await sendAsRole(route.method, route.path, requesterSession);
-        expect(res.status).toBe(403);
-      });
-    }
+  for (const route of staffOrAdminOnlyRoutes) {
+    it(`API-17: REQUESTER → ${route.method} ${route.path} → 403`, async () => {
+      const res = await sendAsRole(route.method, route.path, requesterSession);
+      expect(res.status).toBe(403);
+    });
   }
 });
 

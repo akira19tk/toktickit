@@ -8,6 +8,7 @@ import devRequestersRouter from "./routes/dev-requesters";
 import relatedSystemsRouter from "./routes/related-systems";
 import ticketsRouter from "./routes/tickets";
 import staffRouter from "./routes/staff";
+import adminRouter from "./routes/admin";
 import authRouter from "./routes/auth";
 import { requireAuth, passwordChangeGate, csrfCheck } from "./middleware/auth";
 
@@ -45,7 +46,11 @@ export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: 
   { method: "POST",   path: "/api/staff/tickets/:id/comments" },
   { method: "GET",    path: "/api/staff/tickets/:id/notes" },
   { method: "POST",   path: "/api/staff/tickets/:id/notes" },
-  // Admin routes — appended by Issue #28
+  // Admin routes — Issue #28 (Administrator User Management), ADMIN only
+  { method: "GET",    path: "/api/admin/users" },
+  { method: "POST",   path: "/api/admin/users" },
+  { method: "PATCH",  path: "/api/admin/users/:id" },
+  { method: "POST",   path: "/api/admin/users/:id/initial-password" },
 ];
 
 export function createApp() {
@@ -99,6 +104,7 @@ export function createApp() {
   app.use("/api/related-systems", relatedSystemsRouter);
   app.use("/api/tickets", ticketsRouter);
   app.use("/api/staff", staffRouter);
+  app.use("/api/admin", adminRouter);
 
   // ── 404 for unknown routes ────────────────────────────────────────────────
   app.use((_req: Request, res: Response) => {
