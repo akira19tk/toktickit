@@ -116,4 +116,12 @@ reviewing the agent's proposal before accepting it.
 
 ## 4. My Reflection
 
-_To be written by the author._
+AI made this lab possible at a scale I could not have reached alone in the time I had. It wrote large numbers of tests quickly, set up things I had never built before (a Playwright E2E harness with its own database, and a server build that actually starts), and broke the work into Issues and stages small enough to review one at a time. It was also good at reading logs and errors and narrowing down a cause, for example tracing why API-64 hung or why RESP-04 landed on the Login page.
+
+The moment that changed how I worked with it was the advisory lock. API-65 failed once, and the agent "fixed" it by changing a working $executeRaw call to $queryRaw. Three tests that had been passing broke. The original code was never the problem. After that I stopped treating a confident fix as a correct one. I asked for the root cause and the evidence first, and only then let it change code. The same habit caught other shortcuts later, such as a retry loop that would have hidden the real reason a test failed.
+
+Tests were not enough on their own. Several bugs passed every automated test and only showed up when I used the app in a browser: the "session has ended" banner appearing after a normal logout, the queue table pushing a marker off screen, and a button that was white on a white dialog. If I did this lab again, the biggest change would be to try every Issue in the browser as soon as it worked, instead of near the end. Those bugs would have been cheaper to fix while the code was fresh.
+
+My main lesson is that the AI is fast at producing work, and my job is to decide what to trust: ask for evidence, test it myself, and keep the documents honest about what really happened.
+
+_Drafted with Claude from my answers about what helped, what needed checking, and what I would change; edited and approved by me._

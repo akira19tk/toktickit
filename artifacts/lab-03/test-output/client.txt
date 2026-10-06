@@ -1,0 +1,60 @@
+
+> client@0.0.0 build
+> tsc -b && vite build
+
+vite v8.2.1 building client environment for production...
+[2Ktransforming...✓ 47 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.45 kB │ gzip:  0.29 kB
+dist/assets/index-B2hWsZEO.css  244.95 kB │ gzip: 34.18 kB
+dist/assets/index-BeovxhI3.js   332.13 kB │ gzip: 93.63 kB
+
+✓ built in 147ms
+
+> client@0.0.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/thanyagorn/Desktop/Year3/CPE334/Lab1/toktickit/client[39m
+
+ [32m✓[39m tests/lab-03/Login.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 284[2mms[22m[39m
+ [32m✓[39m tests/lab-02/TicketDetail.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 328[2mms[22m[39m
+ [32m✓[39m tests/lab-03/ChangePassword.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 350[2mms[22m[39m
+     [33m[2m✓[22m[39m UI-06: confirmation mismatch is flagged under the Confirm field [33m 345[2mms[22m[39m
+ [32m✓[39m tests/lab-03/SessionLifecycle.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 406[2mms[22m[39m
+ [32m✓[39m tests/lab-03/A11y.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 497[2mms[22m[39m
+ [32m✓[39m tests/lab-02/CreateTicket.a11y.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 230[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RouteGuard.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 63[2mms[22m[39m
+ [32m✓[39m tests/lab-02/MyTickets.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 119[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 643[2mms[22m[39m
+       [33m[2m✓[22m[39m UI-19: posting a comment adds it to the list (AC-29) [33m 361[2mms[22m[39m
+ [32m✓[39m tests/lab-03/AppShell.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketQueue.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 743[2mms[22m[39m
+     [33m[2m✓[22m[39m UI-12: owner name, Unassigned, (inactive) marker, badges, resolved marker and open action (AC-41, AC-78) [33m 302[2mms[22m[39m
+     [33m[2m✓[22m[39m UI-13: sends the correct query parameters (AC-36, AC-37, AC-38, AC-39) [33m 383[2mms[22m[39m
+[90mstderr[2m | tests/lab-02/CreateTicket.test.tsx[2m > [22m[2mCreateTicket[2m > [22m[2mUI-03: second click on Submit while request is in flight is ignored; createTicket called once
+[22m[39mAn update to CreateTicket inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1109[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 1238[2mms[22m[39m
+     [33m[2m✓[22m[39m UI-16: Resolve requires a summary before Apply is enabled, then sends it (AC-47) [33m 307[2mms[22m[39m
+ [32m✓[39m tests/lab-02/CreateTicket.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1334[2mms[22m[39m
+     [33m[2m✓[22m[39m UI-02: submitting with empty summary shows field error and does not call createTicket [33m 482[2mms[22m[39m
+     [33m[2m✓[22m[39m UI-03: second click on Submit while request is in flight is ignored; createTicket called once [33m 381[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m15 passed[39m[22m[90m (15)[39m
+[2m      Tests [22m [1m[32m90 passed[39m[22m[90m (90)[39m
+[2m   Start at [22m 21:34:33
+[2m   Duration [22m 2.58s[2m (transform 1.19s, setup 1.90s, import 2.65s, tests 7.43s, environment 7.12s)[22m
+

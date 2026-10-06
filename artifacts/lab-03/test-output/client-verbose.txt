@@ -1,0 +1,111 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/thanyagorn/Desktop/Year3/CPE334/Lab1/toktickit/client[39m
+
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx[2m > [22mRequesterTicketDetail[2m > [22mUI-19: detail fields use shared badges (ui-spec §2, §4.3)[2m > [22mUI-19: Current Status and IT Priority render human-label badges, not raw enums[32m 58[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx[2m > [22mRequesterTicketDetail[2m > [22mUI-19: detail fields use shared badges (ui-spec §2, §4.3)[2m > [22mUI-19: Requester detail shows IT Priority and Ticket Owner fields (ui-spec §4.3)[32m 21[2mms[22m[39m
+ [32m✓[39m tests/lab-03/ChangePassword.test.tsx[2m > [22mChangePassword[2m > [22mUI-05: client password validator accepts/rejects all shared vectors (BR-09)[32m 3[2mms[22m[39m
+ [32m✓[39m tests/lab-03/A11y.test.tsx[2m > [22mAccessibility[2m > [22mLogin page[2m > [22mUI-26: every input has an associated label[32m 43[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx[2m > [22mRequesterTicketDetail[2m > [22mUI-19: comments and resolved action[2m > [22mUI-19: existing comments are displayed in chronological order[32m 41[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Login.test.tsx[2m > [22mLogin page[2m > [22mUI-01: renders TokTickIT heading, email field, password field, and Sign in button[32m 152[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Login.test.tsx[2m > [22mLogin page[2m > [22mUI-02: shows validation errors under fields when submitted with empty values[32m 89[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-21: User list, search and role filter (AC-58)[2m > [22mUI-21: renders Name, Email, Role and Status columns with matching role badges[32m 157[2mms[22m[39m
+ [32m✓[39m tests/lab-03/SessionLifecycle.test.tsx[2m > [22mSession lifecycle (BR-66 / AC-73)[2m > [22mUI-10: probe 401 on a signed-out load of /abc shows Not Found, no shell, no banner[32m 159[2mms[22m[39m
+ [32m✓[39m tests/lab-03/SessionLifecycle.test.tsx[2m > [22mSession lifecycle (BR-66 / AC-73)[2m > [22mUI-10: signed in, clicking Logout goes to /login with no banner[32m 43[2mms[22m[39m
+ [32m✓[39m tests/lab-02/TicketDetail.test.tsx[2m > [22mTicketDetail[2m > [22mUI-11: header fields are rendered as read-only (AC-21)[32m 195[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketQueue.test.tsx[2m > [22mUI-12: Staff queue rows[2m > [22mUI-12: owner name, Unassigned, (inactive) marker, badges, resolved marker and open action (AC-41, AC-78)[32m 198[2mms[22m[39m
+ [32m✓[39m tests/lab-03/A11y.test.tsx[2m > [22mAccessibility[2m > [22mLogin page[2m > [22mUI-26: field errors are announced via role=alert (aria-live region)[32m 149[2mms[22m[39m
+ [32m✓[39m tests/lab-03/A11y.test.tsx[2m > [22mAccessibility[2m > [22mChange Password page[2m > [22mUI-26: every input has an associated label[32m 10[2mms[22m[39m
+ [32m✓[39m tests/lab-02/TicketDetail.test.tsx[2m > [22mTicketDetail[2m > [22mUI-12: remove confirm button stays disabled until reason has ≥3 chars (AC-26)[32m 120[2mms[22m[39m
+ [32m✓[39m tests/lab-03/ChangePassword.test.tsx[2m > [22mChangePassword[2m > [22mUI-06: confirmation mismatch is flagged under the Confirm field[33m 335[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-15: Staff detail controls[2m > [22mUI-15: Claim sets owner and status with a busy state (AC-42)[32m 277[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-21: User list, search and role filter (AC-58)[2m > [22mUI-21: typing a search term and choosing a role send the matching query parameters[32m 160[2mms[22m[39m
+ [32m✓[39m tests/lab-03/SessionLifecycle.test.tsx[2m > [22mSession lifecycle (BR-66 / AC-73)[2m > [22mUI-10: probe 401, sign in via the form, then a later 401 shows /login WITH the banner[32m 206[2mms[22m[39m
+ [32m✓[39m tests/lab-03/SessionLifecycle.test.tsx[2m > [22mSession lifecycle (BR-66 / AC-73)[2m > [22mUI-10: probe 200, then a later 401 shows /login WITH the banner[32m 15[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-15: Staff detail controls[2m > [22mUI-15: Reassign sends the chosen active staff id (AC-44)[32m 98[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-15: Staff detail controls[2m > [22mUI-15: Change IT Priority sends the new value; Apply is disabled until changed (AC-45)[32m 70[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx[2m > [22mRequesterTicketDetail[2m > [22mUI-19: comments and resolved action[2m > [22mUI-19: posting a comment adds it to the list (AC-29)[32m 269[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx[2m > [22mRequesterTicketDetail[2m > [22mUI-19: comments and resolved action[2m > [22mUI-19: <script> tag in comment body renders as text, not as HTML (AC-30)[32m 7[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx[2m > [22mRequesterTicketDetail[2m > [22mUI-19: comments and resolved action[2m > [22mUI-19: Problem Appears Resolved button enabled in OPEN status (AC-32)[32m 21[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx[2m > [22mRequesterTicketDetail[2m > [22mUI-19: comments and resolved action[2m > [22mUI-19: clicking Problem Appears Resolved calls the API and button becomes disabled (AC-32)[32m 37[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx[2m > [22mRequesterTicketDetail[2m > [22mUI-19: comments and resolved action[2m > [22mUI-19: Problem Appears Resolved button disabled when status is NEW (AC-34)[32m 17[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-22: Create/Edit validation and duplicate email (AC-60, AC-61)[2m > [22mUI-22: Create dialog shows field errors for empty name, bad email and weak password without calling the API[32m 69[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx[2m > [22mRequesterTicketDetail[2m > [22mUI-19: comments and resolved action[2m > [22mUI-19: Problem Appears Resolved button disabled when already marked (AC-32 idempotent)[32m 24[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RequesterTicketDetail.test.tsx[2m > [22mRequesterTicketDetail[2m > [22mUI-20: no internal notes in Requester view[2m > [22mUI-20: no Internal Notes tab, section, or button is present (AC-53)[32m 15[2mms[22m[39m
+ [32m✓[39m tests/lab-03/A11y.test.tsx[2m > [22mAccessibility[2m > [22mChange Password page[2m > [22mUI-26: confirmation-mismatch error is announced via role=alert[32m 210[2mms[22m[39m
+ [32m✓[39m tests/lab-03/A11y.test.tsx[2m > [22mAccessibility[2m > [22mUser Management dialogs[2m > [22mUI-26: the dialog traps focus with Tab and Shift+Tab[32m 80[2mms[22m[39m
+ [32m✓[39m tests/lab-03/A11y.test.tsx[2m > [22mAccessibility[2m > [22mUser Management dialogs[2m > [22mUI-26: Escape closes the dialog and returns focus to the trigger[32m 29[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Login.test.tsx[2m > [22mLogin page[2m > [22mUI-03: shows 'Invalid email or password' banner when API returns 401[33m 311[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Login.test.tsx[2m > [22mLogin page[2m > [22mUI-04: shows session-ended info banner when location state.sessionEnded is true[32m 11[2mms[22m[39m
+ [32m✓[39m tests/lab-02/CreateTicket.test.tsx[2m > [22mCreateTicket[2m > [22mUI-02: submitting with empty summary shows field error and does not call createTicket[33m 486[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-15: Staff detail controls[2m > [22mUI-15: Change Status sends an allowed transition with a busy state (AC-46)[32m 127[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketQueue.test.tsx[2m > [22mUI-13: Queue search, filters, sort, pagination[2m > [22mUI-13: sends the correct query parameters (AC-36, AC-37, AC-38, AC-39)[33m 334[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketQueue.test.tsx[2m > [22mUI-14: Queue states[2m > [22mUI-14: empty state when there are no tickets and no filters (AC-40)[32m 21[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketQueue.test.tsx[2m > [22mUI-14: Queue states[2m > [22mUI-14: no-results state with Clear Filters when a filter matches nothing (AC-40)[32m 39[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketQueue.test.tsx[2m > [22mUI-14: Queue states[2m > [22mUI-14: safe failure state with Try Again when the request fails (AC-40)[32m 9[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketQueue.test.tsx[2m > [22mUI-14: Queue states[2m > [22mUI-14: forbidden state on a 403 response (AC-40)[32m 8[2mms[22m[39m
+ [32m✓[39m tests/lab-02/CreateTicket.a11y.test.tsx[2m > [22mCreateTicket — keyboard accessibility (UI-13)[2m > [22mevery form control is reachable via Tab; none use outline:none[32m 153[2mms[22m[39m
+ [32m✓[39m tests/lab-02/MyTickets.test.tsx[2m > [22mMyTickets[2m > [22mUI-08: zero tickets with no active filter → Empty state with Create Ticket CTA (AC-19)[32m 50[2mms[22m[39m
+ [32m✓[39m tests/lab-02/MyTickets.test.tsx[2m > [22mMyTickets[2m > [22mUI-09: filter active + no results → No-Results state with Clear Filters (AC-20)[32m 37[2mms[22m[39m
+ [32m✓[39m tests/lab-03/AppShell.test.tsx[2m > [22mAppShell[2m > [22mUI-08: shell shows user name, role badge, role navigation, Change Password and Logout[32m 49[2mms[22m[39m
+ [32m✓[39m tests/lab-03/AppShell.test.tsx[2m > [22mAppShell[2m > [22mUI-08: in the mandatory password-change state the shell shows only Logout (no nav, no Change Password link) — ui-spec §4.2[32m 6[2mms[22m[39m
+ [32m✓[39m tests/lab-03/AppShell.test.tsx[2m > [22mAppShell[2m > [22mUI-11: AuthContext removes legacy 'toktickit_requester' key from sessionStorage at startup (BR-61)[32m 3[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mStatusBadge (ui-spec §2)[2m > [22mUI-12: status NEW renders label 'New' with a distinct style[32m 14[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mStatusBadge (ui-spec §2)[2m > [22mUI-12: status OPEN renders label 'Open' with a distinct style[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mStatusBadge (ui-spec §2)[2m > [22mUI-12: status IN_PROGRESS renders label 'In Progress' with a distinct style[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mStatusBadge (ui-spec §2)[2m > [22mUI-12: status WAITING_FOR_REQUESTER renders label 'Waiting for Requester' with a distinct style[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mStatusBadge (ui-spec §2)[2m > [22mUI-12: status RESOLVED renders label 'Resolved' with a distinct style[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mStatusBadge (ui-spec §2)[2m > [22mUI-12: status CLOSED renders label 'Closed' with a distinct style[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mStatusBadge (ui-spec §2)[2m > [22mUI-12: status REOPENED renders label 'Reopened' with a distinct style[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mStatusBadge (ui-spec §2)[2m > [22mUI-12: status CANCELLED renders label 'Cancelled' with a distinct style[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mPriorityBadge (ui-spec §2)[2m > [22mUI-12: priority LOW renders label 'Low' with a distinct style[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mPriorityBadge (ui-spec §2)[2m > [22mUI-12: priority MEDIUM renders label 'Medium' with a distinct style[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/Badges.test.tsx[2m > [22mPriorityBadge (ui-spec §2)[2m > [22mUI-12: priority HIGH renders label 'High' with a distinct style[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-15: Staff detail controls[2m > [22mUI-15: an owner no longer active IT Staff is marked (AC-78)[32m 14[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RouteGuard.test.tsx[2m > [22mRouteGuard[2m > [22mUI-07: unauthenticated user navigating to a protected route is redirected to /login[32m 14[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RouteGuard.test.tsx[2m > [22mRouteGuard[2m > [22mUI-09: authenticated user with wrong role is redirected to /forbidden[32m 2[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RouteGuard.test.tsx[2m > [22mRouteGuard[2m > [22mUI-10: signed-in user navigating to /login is redirected to their role's home[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RouteGuard.test.tsx[2m > [22mRouteGuard[2m > [22mUI-28: user with mustChangePassword=true navigating to a role route is redirected to /change-password[32m 2[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RouteGuard.test.tsx[2m > [22mRouteGuard[2m > [22mUI-09: signed-in Admin on wrong-role URL sees Forbidden heading AND shell (name, role badge, Logout)[32m 16[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RouteGuard.test.tsx[2m > [22mRouteGuard[2m > [22mUI-28: signed-in user on unknown path sees Not Found inside the shell[32m 9[2mms[22m[39m
+ [32m✓[39m tests/lab-03/RouteGuard.test.tsx[2m > [22mRouteGuard[2m > [22mUI-28: signed-out user on unknown path sees Not Found without the shell[32m 4[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-22: Create/Edit validation and duplicate email (AC-60, AC-61)[2m > [22mUI-22: Create dialog surfaces a duplicate-email conflict under the email field[32m 266[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-22: Create/Edit validation and duplicate email (AC-60, AC-61)[2m > [22mUI-22: Edit dialog flags an empty name and does not call the API[32m 48[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-23: Self-deactivation and last-admin conflict messages (AC-63, AC-64)[2m > [22mUI-23: editing your own account disables the Active toggle with an explanation (self-deactivation guard)[32m 30[2mms[22m[39m
+[90mstderr[2m | tests/lab-02/CreateTicket.test.tsx[2m > [22m[2mCreateTicket[2m > [22m[2mUI-03: second click on Submit while request is in flight is ignored; createTicket called once
+[22m[39mAn update to CreateTicket inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-23: Self-deactivation and last-admin conflict messages (AC-63, AC-64)[2m > [22mUI-23: a last-admin conflict is shown as a clear banner at the top of the Edit dialog[32m 44[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-24: Set initial password dialog (AC-65)[2m > [22mUI-24: opening Set-new-initial-password, submitting a valid password, shows the forced-change explanation and a success toast[32m 79[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-16: Resolve and close/cancel flows[2m > [22mUI-16: Resolve requires a summary before Apply is enabled, then sends it (AC-47)[32m 233[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-16: Resolve and close/cancel flows[2m > [22mUI-16: Close opens a confirmation dialog and only confirms with confirm:true (AC-48)[32m 47[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-16: Resolve and close/cancel flows[2m > [22mUI-16: Cancel opens a confirmation dialog and sends confirm:true (AC-48)[32m 44[2mms[22m[39m
+ [32m✓[39m tests/lab-02/CreateTicket.test.tsx[2m > [22mCreateTicket[2m > [22mUI-03: second click on Submit while request is in flight is ignored; createTicket called once[33m 373[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-24: Set initial password dialog (AC-65)[2m > [22mUI-24: a weak password is rejected under the field and the API is not called[32m 67[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-17: Public vs Internal separation[2m > [22mUI-17: the two tabs are separate panels with distinct labels and button wording (AC-56)[32m 29[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-17: Public vs Internal separation[2m > [22mUI-17: a <script> note body is rendered as text, not executed (AC-30)[32m 17[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-18: Staff detail error feedback[2m > [22mUI-18: a 404 shows the Not Found state (AC-57)[32m 3[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-18: Staff detail error feedback[2m > [22mUI-18: a 403 shows the Forbidden state (AC-57)[32m 3[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-18: Staff detail error feedback[2m > [22mUI-18: a network failure shows the safe Failure state with Try Again (AC-57)[32m 4[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-25: User Management feedback states (AC-67)[2m > [22mUI-25: a successful create shows a success toast[32m 169[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-25: User Management feedback states (AC-67)[2m > [22mUI-25: a 403 shows the Forbidden state[32m 4[2mms[22m[39m
+ [32m✓[39m tests/lab-03/UserManagement.test.tsx[2m > [22mUI-25: User Management feedback states (AC-67)[2m > [22mUI-25: a server failure shows a safe failure state with Try Again[32m 5[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-18: Staff detail error feedback[2m > [22mUI-18: a 409 conflict is shown inline and the typed input is retained (AC-57)[32m 194[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-27: Comment and note composer validation[2m > [22mUI-27: the public composer blocks empty/whitespace and shows a live counter (AC-30)[32m 61[2mms[22m[39m
+ [32m✓[39m tests/lab-03/StaffTicketDetail.test.tsx[2m > [22mUI-27: Comment and note composer validation[2m > [22mUI-27: the internal-note composer blocks empty/whitespace and shows a live counter (AC-30)[32m 58[2mms[22m[39m
+ [32m✓[39m tests/lab-02/CreateTicket.test.tsx[2m > [22mCreateTicket[2m > [22mUI-04: after server 400 response, previously entered form values remain[32m 280[2mms[22m[39m
+ [32m✓[39m tests/lab-02/CreateTicket.test.tsx[2m > [22mCreateTicket[2m > [22mUI-05: successful creation shows ticket number in success panel (AC-01)[32m 223[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m15 passed[39m[22m[90m (15)[39m
+[2m      Tests [22m [1m[32m90 passed[39m[22m[90m (90)[39m
+[2m   Start at [22m 21:50:03
+[2m   Duration [22m 2.58s[2m (transform 1.03s, setup 1.84s, import 2.45s, tests 7.42s, environment 7.14s)[22m
+

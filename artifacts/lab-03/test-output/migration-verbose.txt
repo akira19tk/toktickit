@@ -1,0 +1,33 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.migration.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/thanyagorn/Desktop/Year3/CPE334/Lab1/toktickit/server[39m
+
+◇ injected env (4) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-01: Lab 2 data preserved after migration and seed[2m > [22mMIG-01: every Lab 2 ticket still exists (count at least the Lab 2 fixture count)[32m 14[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-01: Lab 2 data preserved after migration and seed[2m > [22mMIG-01: attachment count equals the Lab 2 fixture snapshot[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-01: Lab 2 data preserved after migration and seed[2m > [22mMIG-01: category count equals the Lab 2 fixture snapshot[32m 2[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-01: Lab 2 data preserved after migration and seed[2m > [22mMIG-01: related-system count equals the Lab 2 fixture snapshot[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-01: Lab 2 data preserved after migration and seed[2m > [22mMIG-01: every Lab 2 ticket keeps its original requesterId[32m 4[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-02: migrated requester login before and after seed[2m > [22mMIG-02: snapshot confirms migrated users had null passwordHash after migration (before seed)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-02: migrated requester login before and after seed[2m > [22mMIG-02: after seed, migrated requester has a non-null passwordHash[32m 2[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-02: migrated requester login before and after seed[2m > [22mMIG-02: after seed, passwordHash is a bcrypt hash (starts with $2b$ or $2a$)[32m 0[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-02: migrated requester login before and after seed[2m > [22mMIG-02: after seed, initial password verifies against the stored hash[32m 65[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-02: migrated requester login before and after seed[2m > [22mMIG-02: after seed, migrated requester has mustChangePassword=true[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-03: itPriority backfilled from requestedPriority; ownerId null[2m > [22mMIG-03: every Lab 2 ticket has itPriority equal to requestedPriority[32m 3[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-03: itPriority backfilled from requestedPriority; ownerId null[2m > [22mMIG-03: every Lab 2 ticket has ownerId=null after migration (no owner assigned)[32m 2[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-03: itPriority backfilled from requestedPriority; ownerId null[2m > [22mMIG-03: itPriority values match the fixture priorities (LOW/MEDIUM/HIGH distribution)[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-04: seed is idempotent[2m > [22mMIG-04: user count is unchanged after running seed twice[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-04: seed is idempotent[2m > [22mMIG-04: ticket count is unchanged after running seed twice[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-04: seed is idempotent[2m > [22mMIG-04: comment and note counts are unchanged after running seed twice[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-04: seed is idempotent[2m > [22mMIG-04: no duplicate emails after running seed twice[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-04: seed is idempotent[2m > [22mMIG-04: no duplicate ticket numbers after running seed twice[32m 1[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-04: seed is idempotent[2m > [22mMIG-04: migrated requester passwordHash is not reset by second seed run[32m 60[2mms[22m[39m
+ [32m✓[39m tests/lab-03/migration-seed.test.ts[2m > [22mMIG-04: seed is idempotent[2m > [22mMIG-04: required seed accounts exist after double seed run[32m 4[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m20 passed[39m[22m[90m (20)[39m
+[2m   Start at [22m 22:05:31
+[2m   Duration [22m 715ms[2m (transform 12ms, setup 6ms, import 31ms, tests 590ms, environment 0ms)[22m
+

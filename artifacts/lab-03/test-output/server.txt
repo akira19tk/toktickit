@@ -1,0 +1,50 @@
+
+> server@1.0.0 build
+> tsc
+
+
+> server@1.0.0 test
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/Users/thanyagorn/Desktop/Year3/CPE334/Lab1/toktickit/server[39m
+
+◇ injected env (4) from .env // tip: ⌘ suppress logs { quiet: true }
+ [32m✓[39m tests/lab-03/auth.api.test.ts [2m([22m[2m52 tests[22m[2m)[22m[33m 9843[2mms[22m[39m
+     [33m[2m✓[22m[39m API-05: 6th login attempt returns 429 even with correct password (known email) [33m 353[2mms[22m[39m
+     [33m[2m✓[22m[39m API-05: a successful login before the 5th failure resets the counter [33m 531[2mms[22m[39m
+       [33m[2m✓[22m[39m API-05: lock holds at 14 minutes 59 seconds after the 5th failure [33m 355[2mms[22m[39m
+       [33m[2m✓[22m[39m API-05: lock expires and correct login succeeds at 15 minutes 1 second after the 5th failure [33m 414[2mms[22m[39m
+       [33m[2m✓[22m[39m API-05: attempts during the lockout do not extend the 15-minute window [33m 415[2mms[22m[39m
+     [33m[2m✓[22m[39m API-14: mustChangePassword cleared, new password works, old fails [33m 421[2mms[22m[39m
+     [33m[2m✓[22m[39m API-14: current session stays valid; other sessions are revoked [33m 362[2mms[22m[39m
+     [33m[2m✓[22m[39m API-70: 6th wrong-current-password attempt returns 429 TOO_MANY_ATTEMPTS [33m 424[2mms[22m[39m
+       [33m[2m✓[22m[39m API-70: lock holds at 14 minutes 59 seconds after 5 wrong current-password attempts [33m 418[2mms[22m[39m
+       [33m[2m✓[22m[39m API-70: lock expires and password change succeeds at 15 minutes 1 second after the 5th attempt [33m 596[2mms[22m[39m
+       [33m[2m✓[22m[39m API-70: attempts during the lockout do not extend the 15-minute window [33m 614[2mms[22m[39m
+ [32m✓[39m tests/lab-03/users-admin.api.test.ts [2m([22m[2m27 tests[22m[2m)[22m[33m 4977[2mms[22m[39m
+     [33m[2m✓[22m[39m API-55: lists all users sorted by name, with role filter and search, and no password data [33m 345[2mms[22m[39m
+     [33m[2m✓[22m[39m API-62: setting another user's initial password revokes sessions, invalidates the old password and forces a change [33m 423[2mms[22m[39m
+ [32m✓[39m tests/lab-03/authorization.api.test.ts [2m([22m[2m84 tests[22m[2m)[22m[33m 977[2mms[22m[39m
+ [32m✓[39m tests/lab-03/staff-ticket-detail.api.test.ts [2m([22m[2m47 tests[22m[2m)[22m[33m 935[2mms[22m[39m
+ [32m✓[39m tests/lab-03/comments-notes.api.test.ts [2m([22m[2m40 tests[22m[2m)[22m[33m 730[2mms[22m[39m
+ [32m✓[39m tests/lab-03/staff-queue.api.test.ts [2m([22m[2m24 tests[22m[2m)[22m[33m 555[2mms[22m[39m
+ [32m✓[39m tests/lab-03/lib.unit.test.ts [2m([22m[2m65 tests[22m[2m)[22m[33m 483[2mms[22m[39m
+ [32m✓[39m tests/lab-03/requester-regression.api.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 397[2mms[22m[39m
+ [32m✓[39m tests/lab-02/attachments.api.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 356[2mms[22m[39m
+ [32m✓[39m tests/lab-02/my-tickets.api.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 347[2mms[22m[39m
+ [32m✓[39m tests/lab-02/ticket-detail.api.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 303[2mms[22m[39m
+ [32m✓[39m tests/lab-02/create-ticket.api.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 183[2mms[22m[39m
+ [32m✓[39m tests/lab-01/categories.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 161[2mms[22m[39m
+ [32m✓[39m tests/lab-02/dev-requesters.api.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m tests/lab-01/health.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/lab-02/ticketNumber.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m16 passed[39m[22m[90m (16)[39m
+[2m      Tests [22m [1m[32m382 passed[39m[22m[90m (382)[39m
+[2m   Start at [22m 21:34:08
+[2m   Duration [22m 22.43s[2m (transform 147ms, setup 32ms, import 1.17s, tests 20.26s, environment 1ms)[22m
+
