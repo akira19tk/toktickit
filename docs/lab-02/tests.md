@@ -1,5 +1,9 @@
 # Lab 2 Test Plan and Results — TokTickIT Requester Ticketing MVP
 
+> **Corrected on 2026-10-07, after tag `lab2-final`,** in [PR #46](https://github.com/akira19tk/toktickit/pull/46). The version at the tag still shows Pending with placeholder paths; see the correction note in §6.
+>
+> **Totals:** 38 Test IDs: 32 Pass, 4 Not implemented, 2 Manual (screenshots).
+
 ## 1. Test Strategy
 
 Tests are planned from `specification.md` before implementation (Test-DD), then driven
