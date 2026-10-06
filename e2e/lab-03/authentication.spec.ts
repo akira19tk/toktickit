@@ -27,8 +27,10 @@ const FAILURE_EMAIL = "requester2.e2e@example.com"; // dedicated to wrong-passwo
 
 async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
+  // Match the field by its accessible name (what AT exposes), not the <label>
+  // text, which includes the visual "*" required marker.
+  await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
+  await page.getByRole("textbox", { name: "Password", exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
@@ -78,15 +80,15 @@ test("E2E-01: first login with an initial password forces a password change befo
 
   // Rules are shown; a confirmation mismatch is flagged and blocks submission (AC-77).
   await expect(page.getByRole("list", { name: "Password requirements" })).toBeVisible();
-  await page.getByLabel("Current password").fill(initialPassword);
-  await page.getByLabel("New password", { exact: true }).fill(newPassword);
-  await page.getByLabel("Confirm new password").fill("Mismatch#9");
+  await page.getByRole("textbox", { name: "Current password", exact: true }).fill(initialPassword);
+  await page.getByRole("textbox", { name: "New password", exact: true }).fill(newPassword);
+  await page.getByRole("textbox", { name: "Confirm new password", exact: true }).fill("Mismatch#9");
   await page.getByRole("button", { name: "Change password" }).click();
-  await expect(page.locator("#cp-confirm-error")).toBeVisible();
+  await expect(page.getByText("Passwords do not match.")).toBeVisible();
   await expect(page).toHaveURL(/\/change-password$/); // not submitted
 
   // A valid change continues to the role's home (AC-17, AC-77).
-  await page.getByLabel("Confirm new password").fill(newPassword);
+  await page.getByRole("textbox", { name: "Confirm new password", exact: true }).fill(newPassword);
   await page.getByRole("button", { name: "Change password" }).click();
   await expect(page).toHaveURL(/\/my-tickets$/);
   await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible();
