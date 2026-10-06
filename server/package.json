@@ -12,6 +12,8 @@
     "start": "node dist/src/index.js",
     "test": "vitest run",
     "test:db:setup": "tsx scripts/setup-test-db.ts",
+    "test:e2e:setup": "tsx scripts/setup-e2e-db.ts",
+    "prisma:seed:e2e": "tsx prisma/seed-e2e.ts",
     "test:migration:setup": "tsx scripts/setup-migration-db.ts",
     "test:migration": "vitest run --config vitest.migration.config.ts",
     "prisma:migrate": "prisma migrate dev",
