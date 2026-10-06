@@ -115,6 +115,7 @@ Query parameters (all optional):
 | `priority` | `LOW`, `MEDIUM`, `HIGH` (IT Priority) | any |
 | `categoryId` | integer | any |
 | `owner` | `ANY`, `ME`, `UNASSIGNED`, or a user id | `ANY` |
+| `requesterResolved` | `true` restricts to Tickets the Requester has indicated resolved; any other value is ignored | — |
 | `sortBy` | `itPriority`, `createdAt`, `updatedAt`, `ticketNumber`, `currentStatus` | `itPriority` desc, then `createdAt` asc |
 | `sortDir` | `asc`, `desc` | `desc` for the default sort |
 | `page`, `pageSize` | integers; `pageSize` max 50 | 1, 10 |

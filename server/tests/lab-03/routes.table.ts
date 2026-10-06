@@ -47,11 +47,9 @@ export const routes: RouteEntry[] = [
   { method: "POST", path: "/api/tickets/:id/resolved-indication", allowedRoles: ["REQUESTER"], requesterOwnership: true },
 
   // ── Staff routes (IT_STAFF only, some also ADMIN read-only) ───────────────
-  // PARTIAL — Issues #26 (Staff Queue) and #27 (Staff ticket operations) append entries here.
-  // Until then API-17 iterates zero rows.
-  // Example future entries:
-  //   { method: "GET",  path: "/api/staff/tickets",           allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
-  //   { method: "POST", path: "/api/staff/tickets/:id/claim", allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  // Issue #26 (Staff Queue) — detail/operations appended by Issue #27.
+  { method: "GET",  path: "/api/staff/tickets",   allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
+  { method: "GET",  path: "/api/staff/assignees", allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
 
   // ── Admin routes (ADMIN only) ─────────────────────────────────────────────
   // PARTIAL — Issue #28 (Administrator User Management) appends entries here.

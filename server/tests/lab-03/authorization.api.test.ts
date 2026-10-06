@@ -148,7 +148,7 @@ describe("Route table coverage", () => {
       "categories.ts":      "/api/categories",
       "related-systems.ts": "/api/related-systems",
       "tickets.ts":         "/api/tickets",
-      // "staff.ts":        "/api/staff",   // added by Issue #26/#27
+      "staff.ts":           "/api/staff",   // Issue #26 (queue); detail added by Issue #27
       // "admin.ts":        "/api/admin",   // added by Issue #28
     };
 

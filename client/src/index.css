@@ -994,3 +994,110 @@ body {
   }
 }
 
+
+/* ══════════════════════════════════════════════════════════════
+   Staff Ticket Queue (Issue #26) — builds on the My Tickets layout
+   ══════════════════════════════════════════════════════════════ */
+
+/* Count chips in the queue header */
+.sq-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  min-height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface, #fff);
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sq-chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.sq-chip--active {
+  background: var(--color-pale);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.sq-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Ticket No. link-style button */
+.sq-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sq-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Queue summary cell: the text truncates, but the resolved marker drops to its
+   own line below so it is never clipped by the summary's ellipsis. Narrower
+   truncation also lets all columns fit without horizontal scroll at >= 1280px. */
+.sq-summary {
+  max-width: 300px;
+}
+
+.sq-summary-text {
+  display: block;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Requester-says-resolved marker (text always accompanies the icon).
+   display:block so it sits on its own line, outside the truncated summary. */
+.sq-resolved-marker {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+/* Owner no-longer-active-staff marker */
+.sq-inactive {
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+/* Tablet (768–991 px): hide Category and Updated columns (ui-spec §6) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .sq-hide-tablet {
+    display: none;
+  }
+}

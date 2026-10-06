@@ -27,7 +27,7 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | UNIT-03 | Unit | AC-46, AC-48, AC-49, AC-51 | Status transition matrix function | Allowed and blocked pairs match the matrix, terminal states have no exits | server/tests/lab-03/lib.unit.test.ts | Planned |
 | UNIT-04 | Unit | AC-13 | Session token generator and SHA-256 hasher | Token is long and random; only the hash is persistable | server/tests/lab-03/lib.unit.test.ts | Planned |
 | UNIT-05 | Unit | AC-07 | Login throttle logic | Counts per normalized email (known or unknown); locks 15 min after the 5th failure; resets on success | server/tests/lab-03/lib.unit.test.ts | Planned |
-| UNIT-06 | Unit | AC-39 | Queue query-parameter parser | Non-integer, <1, pageSize>50 and unsupported sort values fall back to defaults | server/tests/lab-03/lib.unit.test.ts | Planned |
+| UNIT-06 | Unit | AC-39 | Queue query-parameter parser (incl. `requesterResolved` flag) | Non-integer, <1, pageSize>50 and unsupported sort values fall back to defaults; `requesterResolved=true` parsed, any other value ignored | server/tests/lab-03/lib.unit.test.ts | Planned |
 | UNIT-07 | Unit | AC-13 | Password hash/verify wrapper | Hash differs from plaintext; verify true/false correctly | server/tests/lab-03/lib.unit.test.ts | Planned |
 | API-01 | API | AC-01 | Valid login | 200, identity returned, no hash; cookie HttpOnly, SameSite=Lax, Path=/, ~8h expiry, Secure only in production config | server/tests/lab-03/auth.api.test.ts | Planned |
 | API-02 | API | AC-08 | Login with mixed-case, padded email | 200, same user | server/tests/lab-03/auth.api.test.ts | Planned |
@@ -68,7 +68,7 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | API-37 | API | AC-30 | Internal Note validation | 400 on empty/whitespace/2001 chars | server/tests/lab-03/comments-notes.api.test.ts | Planned |
 | API-38 | API | AC-36 | Default queue | Active only; IT Priority desc then oldest; pagination + counts | server/tests/lab-03/staff-queue.api.test.ts | Planned |
 | API-39 | API | AC-37 | Queue search by number, summary, requester name | Matching rows only | server/tests/lab-03/staff-queue.api.test.ts | Planned |
-| API-40 | API | AC-38 | Queue filters combined; status=ALL; owner=ME/UNASSIGNED | AND logic; closed shown with ALL | server/tests/lab-03/staff-queue.api.test.ts | Planned |
+| API-40 | API | AC-38 | Queue filters combined; status=ALL; owner=ME/UNASSIGNED; requesterResolved | AND logic; closed shown with ALL; `requesterResolved=true` returns only active Requester-indicated-resolved Tickets, ANDed with other filters | server/tests/lab-03/staff-queue.api.test.ts | Planned |
 | API-41 | API | AC-39 | Queue sort fields and invalid params | Ordered correctly; invalid values fall back, 200 | server/tests/lab-03/staff-queue.api.test.ts | Planned |
 | API-42 | API | AC-41 | Queue row fields | Owner name or null, badges data, requesterResolvedAt marker | server/tests/lab-03/staff-queue.api.test.ts | Planned |
 | API-43 | API | AC-42 | Claim unassigned NEW Ticket | Owner = caller; status OPEN atomically | server/tests/lab-03/staff-ticket-detail.api.test.ts | Planned |
@@ -116,7 +116,7 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 | UI-10 | UI | AC-73 | 401 during use | Back to Login with session-ended message | client/tests/lab-03/RouteGuard.test.tsx | Planned |
 | UI-11 | UI | AC-28 | No Development Requester selector anywhere | Selector and Change Requester absent; legacy requester key removed from sessionStorage at startup | client/tests/lab-03/AppShell.test.tsx | Planned |
 | UI-12 | UI | AC-41, AC-78 | Staff queue rows | Owner/Unassigned/(inactive), badges, resolved marker, open action | client/tests/lab-03/StaffTicketQueue.test.tsx | Planned |
-| UI-13 | UI | AC-36, AC-37, AC-38, AC-39 | Queue search, filters, sort, pagination | Correct query parameters sent | client/tests/lab-03/StaffTicketQueue.test.tsx | Planned |
+| UI-13 | UI | AC-36, AC-37, AC-38, AC-39 | Queue search, filters, sort, pagination, requesterResolved chip | Correct query parameters sent, incl. `requesterResolved=true` when the chip is on and cleared when toggled off | client/tests/lab-03/StaffTicketQueue.test.tsx | Planned |
 | UI-14 | UI | AC-40 | Queue empty, no-results, failure, forbidden | Four distinct states | client/tests/lab-03/StaffTicketQueue.test.tsx | Planned |
 | UI-15 | UI | AC-42, AC-45, AC-46, AC-78 | Staff detail controls | Claim, reassign, priority, status work with busy state; inactive-owner marker shown | client/tests/lab-03/StaffTicketDetail.test.tsx | Planned |
 | UI-16 | UI | AC-47, AC-48 | Resolve and close/cancel flows | Summary required; confirmation dialog required | client/tests/lab-03/StaffTicketDetail.test.tsx | Planned |

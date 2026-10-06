@@ -6,7 +6,8 @@ import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
 import Forbidden from "./pages/Forbidden";
 import NotFound from "./pages/NotFound";
-import StaffQueuePlaceholder from "./pages/StaffQueuePlaceholder";
+import StaffQueuePage from "./pages/StaffQueuePage";
+import StaffTicketDetailPlaceholder from "./pages/StaffTicketDetailPlaceholder";
 import AdminUsersPlaceholder from "./pages/AdminUsersPlaceholder";
 import {
   CreateTicketPage,
@@ -73,13 +74,13 @@ export default function App() {
             }
           />
 
-          {/* IT Staff routes — placeholder until Issue #26 */}
+          {/* IT Staff routes — Queue (Issue #26); Detail placeholder until Issue #27 */}
           <Route
             path="/staff/queue"
             element={
               <RequireRole role="IT_STAFF">
                 <AppShell>
-                  <StaffQueuePlaceholder />
+                  <StaffQueuePage />
                 </AppShell>
               </RequireRole>
             }
@@ -89,7 +90,7 @@ export default function App() {
             element={
               <RequireRole role="IT_STAFF">
                 <AppShell>
-                  <StaffQueuePlaceholder />
+                  <StaffTicketDetailPlaceholder />
                 </AppShell>
               </RequireRole>
             }

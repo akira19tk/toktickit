@@ -159,7 +159,7 @@ const SEEDED_TICKETS: TicketSeed[] = [
   {
     ticketNumber: "TKT-2026-900006",
     requesterEmail: "bob@example.com",
-    ownerEmail: "david.lee@example.com",
+    ownerEmail: "emma.clark@example.com", // inactive staff: demonstrates BR-29/AC-78 "(inactive)" owner marker
     category: "Software",
     relatedSystem: "Learning Management System",
     summary: "LMS video upload fails for files over 500 MB",
