@@ -8,7 +8,7 @@ import Forbidden from "./pages/Forbidden";
 import NotFound from "./pages/NotFound";
 import StaffQueuePage from "./pages/StaffQueuePage";
 import StaffTicketDetailPage from "./pages/StaffTicketDetailPage";
-import AdminUsersPlaceholder from "./pages/AdminUsersPlaceholder";
+import AdminUsers from "./pages/AdminUsers";
 import {
   CreateTicketPage,
   MyTicketsPage,
@@ -96,13 +96,13 @@ export default function App() {
             }
           />
 
-          {/* Admin routes — placeholder until Issue #28 */}
+          {/* Admin routes — User Management (Issue #28) */}
           <Route
             path="/admin/users"
             element={
               <RequireRole role="ADMIN">
                 <AppShell>
-                  <AdminUsersPlaceholder />
+                  <AdminUsers />
                 </AppShell>
               </RequireRole>
             }

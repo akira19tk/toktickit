@@ -1,14 +1,17 @@
 // UI-26: Login and Change Password pages are accessible by keyboard
-//        (every input has a visible label; errors are in aria-live regions)
-//        Dialogs: it.todo for Issue #28
-import { render, screen, waitFor } from "@testing-library/react";
+//        (every input has a visible label; errors are in aria-live regions);
+//        User Management dialogs trap focus, close on Escape and return focus
+//        to the trigger (Issue #28)
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import * as AuthContextModule from "../../src/context/AuthContext";
+import * as api from "../../src/api";
 import { ApiError } from "../../src/api";
 import Login from "../../src/pages/Login";
 import ChangePassword from "../../src/pages/ChangePassword";
+import UserManagement from "../../src/components/UserManagement";
 import type { User } from "../../src/context/AuthContext";
 
 vi.mock("../../src/context/AuthContext");
@@ -129,5 +132,49 @@ describe("Accessibility", () => {
     });
   });
 
-  it.todo("UI-26: dialog focus trap and Escape close — Issue #28");
+  describe("User Management dialogs", () => {
+    function renderUserManagement() {
+      mockUseAuth.mockReturnValue(
+        makeAuthValue({ user: makeUser({ id: 9, name: "Admin User", role: "ADMIN" }) })
+      );
+      vi.spyOn(api, "fetchAdminUsers").mockResolvedValue([]);
+      render(<UserManagement />);
+    }
+
+    it("UI-26: the dialog traps focus with Tab and Shift+Tab", async () => {
+      const user = userEvent.setup();
+      renderUserManagement();
+      await screen.findByTestId("empty-state");
+
+      await user.click(screen.getByRole("button", { name: /create user/i }));
+      const dialog = screen.getByRole("dialog");
+
+      // Focus moves into the dialog, onto the first field.
+      const firstField = within(dialog).getByLabelText(/^name/i);
+      const submit = within(dialog).getByRole("button", { name: /create user/i });
+      expect(firstField).toHaveFocus();
+
+      // Shift+Tab from the first control wraps to the last (submit).
+      await user.tab({ shift: true });
+      expect(submit).toHaveFocus();
+
+      // Tab from the last control wraps back to the first.
+      await user.tab();
+      expect(firstField).toHaveFocus();
+    });
+
+    it("UI-26: Escape closes the dialog and returns focus to the trigger", async () => {
+      const user = userEvent.setup();
+      renderUserManagement();
+      await screen.findByTestId("empty-state");
+
+      const trigger = screen.getByRole("button", { name: /create user/i });
+      await user.click(trigger);
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+      await user.keyboard("{Escape}");
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(trigger).toHaveFocus();
+    });
+  });
 });

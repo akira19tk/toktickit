@@ -702,3 +702,85 @@ export async function createTicket(
   }
   return res.json();
 }
+
+// ── Administrator User Management (Issue #28) ────────────────────────────────
+
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMIN";
+  isActive: boolean;
+  mustChangePassword: boolean;
+  createdAt: string;
+}
+
+export interface AdminUserListParams {
+  search?: string;
+  role?: string;
+}
+
+export interface CreateAdminUserPayload {
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  initialPassword: string;
+}
+
+export interface UpdateAdminUserPayload {
+  name?: string;
+  email?: string;
+  role?: string;
+  isActive?: boolean;
+}
+
+export async function fetchAdminUsers(params: AdminUserListParams = {}): Promise<AdminUser[]> {
+  const query = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== "" && v !== null) query.set(k, String(v));
+  }
+  const url = `${API_BASE_URL}/api/admin/users${query.toString() ? "?" + query : ""}`;
+  const res = await apiFetch(url);
+  const body = await jsonOrApiError<{ data: AdminUser[] }>(res, "Failed to load users");
+  return body.data;
+}
+
+export async function createAdminUser(payload: CreateAdminUserPayload): Promise<AdminUser> {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/users`, {
+    method: "POST",
+    headers: CSRF_JSON,
+    body: JSON.stringify(payload),
+  });
+  return jsonOrApiError<AdminUser>(res, "Failed to create the user");
+}
+
+export async function updateAdminUser(
+  id: number,
+  payload: UpdateAdminUserPayload
+): Promise<AdminUser> {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/users/${id}`, {
+    method: "PATCH",
+    headers: CSRF_JSON,
+    body: JSON.stringify(payload),
+  });
+  return jsonOrApiError<AdminUser>(res, "Failed to update the user");
+}
+
+// Set a new initial password for another user. The password is passed straight
+// to the request and never returned, logged or retained by this function.
+export async function setUserInitialPassword(id: number, initialPassword: string): Promise<void> {
+  const res = await apiFetch(`${API_BASE_URL}/api/admin/users/${id}/initial-password`, {
+    method: "POST",
+    headers: CSRF_JSON,
+    body: JSON.stringify({ initialPassword }),
+  });
+  if (res.ok) return; // 204 No Content
+  const body = await res.json().catch(() => ({}));
+  throw new ApiError(
+    res.status,
+    body.code ?? "INTERNAL_ERROR",
+    body.error ?? "Failed to set the initial password",
+    body.errors
+  );
+}
