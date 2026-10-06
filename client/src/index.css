@@ -919,6 +919,20 @@ body {
   color: var(--color-primary);
 }
 
+/* User Management success toast — fixed so it stays visible regardless of page
+   scroll once a dialog closes, and above the modal overlay (z-index 1000).
+   Pairs with role="status"/aria-live="polite" and a 5s auto-dismiss. */
+.um-toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  max-width: min(92vw, 520px);
+  margin: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
 /* ── Input wrapper (for show/hide toggle) ────────────────────── */
 .zen-input-wrap {
   position: relative;
