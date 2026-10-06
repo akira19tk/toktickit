@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
 
 /**
  * Stage 5 — Administrator user management E2E (E2E-05, E2E-06).
@@ -21,8 +21,43 @@ import { test, expect, type Page } from "@playwright/test";
 const SEED_PASSWORD = process.env.E2E_SEED_PASSWORD || process.env.SEED_INITIAL_PASSWORD || "Welcome#2026";
 const ADMIN_EMAIL = "admin.e2e@example.com";
 const ADMIN_NAME = "Admin E2E";
+const ADMIN2_EMAIL = "admin2.e2e@example.com"; // the second seeded admin (the toggle for the sole-admin case)
 const REQUESTER_EMAIL = "requester.e2e@example.com";
 const STAFF_EMAIL = "staff.e2e@example.com";
+
+// API server started by playwright.config.ts on port 4100 (isolated e2e database).
+const API = "http://localhost:4100";
+const CSRF = { "X-Requested-With": "TokTickIT" } as const;
+
+async function apiAdminLogin(request: APIRequestContext): Promise<void> {
+  const res = await request.post(`${API}/api/auth/login`, {
+    headers: CSRF,
+    data: { email: ADMIN_EMAIL, password: SEED_PASSWORD },
+  });
+  expect(res.ok(), "API admin login should succeed").toBeTruthy();
+}
+
+// Sorted emails of the currently active Administrators.
+async function activeAdminEmails(request: APIRequestContext): Promise<string[]> {
+  const res = await request.get(`${API}/api/admin/users?role=ADMIN`);
+  expect(res.ok()).toBeTruthy();
+  const body = (await res.json()) as { data: Array<{ email: string; isActive: boolean }> };
+  return body.data.filter((u) => u.isActive).map((u) => u.email).sort();
+}
+
+async function adminIdByEmail(request: APIRequestContext, email: string): Promise<number> {
+  const res = await request.get(`${API}/api/admin/users?role=ADMIN`);
+  expect(res.ok()).toBeTruthy();
+  const body = (await res.json()) as { data: Array<{ id: number; email: string }> };
+  const match = body.data.find((u) => u.email === email);
+  expect(match, `admin ${email} should exist`).toBeTruthy();
+  return match!.id;
+}
+
+async function setUserActiveViaApi(request: APIRequestContext, id: number, isActive: boolean): Promise<void> {
+  const res = await request.patch(`${API}/api/admin/users/${id}`, { headers: CSRF, data: { isActive } });
+  expect(res.ok(), `set user ${id} active=${isActive} should succeed`).toBeTruthy();
+}
 
 async function uiLogin(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
@@ -150,8 +185,9 @@ test("E2E-05: admin creates a user, rejects a duplicate email, edits the user, a
   await editSelf.getByRole("button", { name: "Cancel" }).click();
 });
 
-test("E2E-06: non-admins are blocked; admin cannot self-deactivate; deactivating a non-last admin succeeds", async ({
+test("E2E-06: non-admins are blocked; admin cannot self-deactivate; last-admin rule enforced", async ({
   page,
+  request,
 }) => {
   const runId = `${Date.now()}`;
   const ephEmail = `e2e-admin-${runId}@example.com`;
@@ -208,4 +244,50 @@ test("E2E-06: non-admins are blocked; admin cannot self-deactivate; deactivating
 
   await searchUsers(page, ephEmail);
   await expect(usersTable(page).getByText("Inactive")).toBeVisible();
+
+  // ── Real LAST_ADMIN case (AC-64 failure clause) ─────────────────────────────
+  // This briefly makes admin.e2e the ONLY active Administrator. It is safe only
+  // because playwright.config.ts runs with workers=1 / fullyParallel=false, so no
+  // other test runs concurrently and could observe or act on the sole-admin state.
+  // The second seeded admin is restored in `finally`, so a failed assertion still
+  // leaves the database with its starting admins. If that restore itself ever
+  // fails (e.g. the server is down), the finally throws and `npm run e2e:setup`
+  // reseeds as the fallback.
+  await apiAdminLogin(request);
+  const admin2Id = await adminIdByEmail(request, ADMIN2_EMAIL);
+
+  try {
+    // Make admin.e2e the sole active Administrator via the API.
+    await setUserActiveViaApi(request, admin2Id, false);
+
+    // SAFETY GUARD: never attempt the self role-change unless admin.e2e is provably
+    // the only active admin — otherwise the change would succeed and demote it.
+    expect(
+      await activeAdminEmails(request),
+      "admin.e2e must be the sole active admin before the demote attempt"
+    ).toEqual([ADMIN_EMAIL]);
+
+    // As admin.e2e, change own Role away from Administrator → blocked by LAST_ADMIN.
+    await searchUsers(page, ADMIN_EMAIL);
+    const editSelf2 = await openEdit(page, ADMIN_NAME);
+    const roleSelect = editSelf2.getByRole("combobox", { name: "Role" });
+    await roleSelect.selectOption("IT_STAFF");
+    await expect(roleSelect).toHaveValue("IT_STAFF");
+    await editSelf2.getByRole("button", { name: "Save Changes" }).click();
+    await expect(
+      editSelf2.getByText("There must always be at least one active Administrator.")
+    ).toBeVisible();
+    await editSelf2.getByRole("button", { name: "Cancel" }).click();
+    await expect(editSelf2).toBeHidden();
+
+    // The role was not changed: the badge still says Administrator.
+    await searchUsers(page, ADMIN_EMAIL);
+    await expect(usersTable(page).getByText("Administrator")).toBeVisible();
+  } finally {
+    // Always restore the second admin, even if an assertion above failed.
+    await setUserActiveViaApi(request, admin2Id, true);
+  }
+
+  // After the restore, the active admins equal the seed's starting set (count = 2).
+  expect(await activeAdminEmails(request)).toEqual([ADMIN_EMAIL, ADMIN2_EMAIL].sort());
 });
