@@ -1,0 +1,53 @@
+
+> toktickit-e2e@0.0.0 e2e
+> playwright test
+
+[WebServer] 
+[WebServer] > server@1.0.0 dev
+[WebServer] > tsx watch src/index.ts
+[WebServer] 
+[WebServer] TokTickIT API listening on http://localhost:4100
+[WebServer] 
+[WebServer] > client@0.0.0 build
+[WebServer] > tsc -b && vite build
+[WebServer] 
+[WebServer] vite v8.2.1 building client environment for production...
+[WebServer] transforming...[WebServer] ✓ 47 modules transformed.
+[WebServer] rendering chunks...
+[WebServer] computing gzip size...
+[WebServer] dist/index.html                   0.45 kB │ gzip:  0.29 kB
+[WebServer] dist/assets/index-B2hWsZEO.css  244.95 kB │ gzip: 34.18 kB
+[WebServer] dist/assets/index-DHEc1Qw2.js   332.13 kB │ gzip: 93.63 kB
+[WebServer] 
+[WebServer] ✓ built in 116ms
+[WebServer] 
+[WebServer] > client@0.0.0 preview
+[WebServer] > vite preview --port 4173 --strictPort
+[WebServer] 
+[WebServer]   ➜  Local:   http://localhost:4173/
+[WebServer]   ➜  Network: use --host to expose
+
+Running 15 tests using 1 worker
+
+  ✓   1 [chromium] › e2e/lab-03/authentication.spec.ts:49:5 › E2E-01: first login with an initial password forces a password change before the app opens (2.7s)
+  ✓   2 [chromium] › e2e/lab-03/authentication.spec.ts:87:5 › E2E-02: login failures show a safe message, and after logout protected data is unreachable (558ms)
+  ✓   3 [chromium] › e2e/lab-03/authentication.spec.ts:111:5 › E2E-07: each role lands on its home and wrong-role or unknown URLs are blocked (755ms)
+  ✓   4 [chromium] › e2e/lab-03/responsive.spec.ts:103:5 › RESP-01: Login and Change Password have no overflow at 375/850/1440 (503ms)
+  ✓   5 [chromium] › e2e/lab-03/responsive.spec.ts:129:5 › RESP-02: Requester screens have no overflow and My Tickets becomes cards on mobile (402ms)
+  ✓   6 [chromium] › e2e/lab-03/responsive.spec.ts:148:5 › RESP-03: Staff queue has no overflow and the table becomes cards on mobile (584ms)
+  ✓   7 [chromium] › e2e/lab-03/responsive.spec.ts:162:5 › RESP-04: Staff ticket detail has no overflow and its panels/tabs stack (565ms)
+  ✓   8 [chromium] › e2e/lab-03/responsive.spec.ts:179:5 › RESP-05: User Management has no overflow, becomes cards on mobile, and dialogs fit the viewport (734ms)
+  ✓   9 [chromium] › e2e/lab-03/responsive.spec.ts:219:5 › STYLE-01: status, priority and role badges render identical computed colours across screens (714ms)
+  ✓  10 [chromium] › e2e/lab-03/staff-ticket-flow.spec.ts:39:5 › E2E-03: a requester signs in, creates a ticket, comments, and marks it as appearing resolved (727ms)
+  ✓  11 [chromium] › e2e/lab-03/staff-ticket-flow.spec.ts:98:5 › E2E-04: IT staff claim, prioritise, progress a ticket and add a comment and note; requester sees the comment but not the note (2.6s)
+  ✓  12 [chromium] › e2e/lab-03/user-administration.spec.ts:71:5 › E2E-05: admin creates a user, rejects a duplicate email, edits the user, and resets the initial password (3.4s)
+  ✓  13 [chromium] › e2e/lab-03/user-administration.spec.ts:160:5 › E2E-06: non-admins are blocked; admin cannot self-deactivate; last-admin rule enforced (1.3s)
+  ✓  14 [chromium] › e2e/smoke.spec.ts:12:5 › SMOKE: API health endpoint responds ok (4ms)
+  ✓  15 [chromium] › e2e/smoke.spec.ts:18:5 › SMOKE: client renders the Login screen (106ms)
+
+  15 passed (18.4s)
+
+To open last HTML report run:
+[36m[39m
+[36m  npx playwright show-report[39m
+[36m[39m
