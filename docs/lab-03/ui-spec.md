@@ -131,16 +131,24 @@ At every size: no clipped labels, overlapping messages or hidden buttons.
 - Icon-only controls have accessible labels and tooltips; focus indicators stay visible; logical tab order.
 - Login and Change Password are fully operable with the keyboard alone.
 
-## 8. Visual Inspection Checklist (completed before submission)
-- [ ] Zen Green tokens match this document and Lab 2 on every new screen
-- [ ] Role navigation shows only permitted destinations for each of the three roles
-- [ ] Status, priority and role badges are identical for the same value across screens
-- [ ] Editable vs read-only fields are visually distinct
-- [ ] Validation messages sit directly under their fields
-- [ ] Public Comments and Internal Notes are unmistakably different
-- [ ] Focus ring visible on every control; dialogs trap focus
-- [ ] No clipping, overlap or horizontal overflow at 1440, 850 and 375 px
-- [ ] Empty, No-Results, Forbidden, Not Found and Failure states checked on queue and user list
-- [ ] Screenshots saved to the paths below
+## 8. Visual Inspection Checklist
+
+Each item below records whether an automated test asserts it. A checked box means
+at least one test — client unit (`client/tests/lab-03/`), server API
+(`server/tests/lab-03/`) or Playwright E2E (`e2e/lab-03/`) — verifies that item;
+the Test ID(s), the kind of test (**unit**/**E2E**) and the scope follow. Items
+left unchecked are asserted by **no** automated test and need a manual visual
+check.
+
+- [ ] Zen Green tokens match this document and Lab 2 on every new screen — **no test asserts this** (manual check). UI-12 (Badges, unit) only checks each badge renders its own distinct style, and STYLE-01 (E2E) only checks badge colours are *consistent across screens*; neither compares against the documented token values.
+- [x] Role navigation shows only permitted destinations per role — **UI-08 (unit)**: the shell renders only the role-permitted nav links (and only Logout while a password change is forced); **E2E-07 (E2E)**: each role lands on its own home and is blocked from the other roles' routes (wrong role → Forbidden, unknown URL → Not Found, unauthenticated → Login).
+- [x] Status, priority and role badges identical for the same value across screens — **STYLE-01 (E2E)**: computed colours of the Open status and High priority badges match between the staff queue and detail header, and the IT Staff role badge matches between the shell and the Users table; **UI-12 (Badges, unit)**: each status/priority value renders its fixed label and distinct style.
+- [ ] Editable vs read-only fields are visually distinct — **no test asserts this** (manual check).
+- [x] Validation messages sit directly under their fields — **UI-02 (unit)** (Login empty-submit errors under fields), **UI-06 (unit)** (confirmation mismatch under the Confirm field), **UI-22 (unit)** (Create/Edit field errors incl. duplicate email under the email field), **UI-24 (unit)** (weak password rejected under the field), **UI-27 (unit)** (composer validation); also **E2E-01/E2E-05 (E2E)** assert the messages appear and block submission.
+- [x] Public Comments and Internal Notes are unmistakably different — **UI-17 (unit)**: the two tabs are separate panels with distinct labels and button wording; **E2E-04 (E2E)**: a requester sees the public comment but not the internal-note text, has no Internal Notes tab, and sees exactly two tabs.
+- [x] Dialogs trap focus; Escape returns focus — **UI-26 (unit)**: a dialog traps focus with Tab/Shift+Tab and Escape closes it and returns focus to the trigger. The *visible* focus ring on every control is **not asserted by any test** (jsdom cannot see the rendered outline) and needs a manual check.
+- [x] No horizontal overflow at 1440, 850 and 375 px — **RESP-01..05 (E2E)**: `documentElement.scrollWidth <= innerWidth` on Login, Change Password, requester screens, Create Ticket, staff queue, staff detail and User Management. Clipping and element overlap are **not directly asserted**.
+- [x] Empty, No-Results, Forbidden, Not Found and Failure states — queue: **UI-14 (unit)** (empty, no-results, failure, forbidden); user list: **UI-25 (unit)** (success, forbidden, failure); plus **E2E-06/E2E-07 (E2E)** (Forbidden) and **E2E-07 (E2E)** (Not Found).
+- [x] Screenshots saved to the paths below — written as viewport-only captures by **RESP-01** (login, change-password), **RESP-03** (queue), **RESP-04** (detail) and **RESP-05** (users) at mobile/tablet/desktop.
 
 **Screenshot paths:** `artifacts/lab-03/screenshots/authentication/`, `…/staff-queue/`, `…/staff-ticket-detail/`, `…/user-management/` (each with `desktop`, `tablet`, `mobile` files).

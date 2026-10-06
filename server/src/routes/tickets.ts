@@ -11,7 +11,7 @@ import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
 import { mkdirSync } from "fs";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "node:crypto";
 import { prisma } from "../prismaClient";
 import { generateTicketNumber } from "../lib/ticketNumber";
 import { requireRole } from "../middleware/auth";
@@ -305,7 +305,7 @@ router.post(
         continue;
       }
 
-      const storedFileName = `${uuidv4()}${ext}`;
+      const storedFileName = `${randomUUID()}${ext}`;
       const destPath = path.join(UPLOAD_DIR, storedFileName);
       await fs.writeFile(destPath, file.buffer);
 
@@ -396,7 +396,7 @@ router.post(
       return;
     }
 
-    const storedFileName = `${uuidv4()}${ext}`;
+    const storedFileName = `${randomUUID()}${ext}`;
     await fs.writeFile(path.join(UPLOAD_DIR, storedFileName), file.buffer);
 
     const attachment = await prisma.attachment.create({

@@ -32,3 +32,11 @@ server/uploads/
 # Generated migration test artifacts
 server/.migration-snapshot.json
 server/.fixture-lab2.sql
+
+# Playwright E2E (Issue #29)
+test-results/
+playwright-report/
+playwright/.cache/
+blob-report/
+e2e/.auth/
+.last-run.json
