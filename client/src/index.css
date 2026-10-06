@@ -734,3 +734,429 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Lab 3 — Zen Green extensions (ui-spec.md §1–§3)
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  --color-internal-bg:     #FEF3C7;
+  --color-internal-border: #B45309;
+  --color-public-accent:   #0B7A46;
+  --color-role-admin:      #1F2A25;
+}
+
+/* ── Role badges ─────────────────────────────────────────────── */
+.zen-role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.zen-role-badge--requester {
+  background: var(--color-pale);
+  color: var(--color-secondary);
+}
+
+.zen-role-badge--staff {
+  background: var(--color-secondary);
+  color: #fff;
+}
+
+.zen-role-badge--admin {
+  background: var(--color-role-admin);
+  color: #fff;
+}
+
+/* ── Ticket status badges ─────────────────────────────────────── */
+.zen-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.zen-status-badge--new          { background: #E8EEF3; color: #374151; }
+.zen-status-badge--open         { background: var(--color-pale); color: var(--color-primary); }
+.zen-status-badge--in-progress  { background: var(--color-secondary); color: #fff; }
+.zen-status-badge--waiting      { background: var(--color-warning-bg); color: #92400E; }
+.zen-status-badge--resolved     { background: var(--color-primary); color: #fff; }
+.zen-status-badge--closed       { background: #6B7280; color: #fff; }
+.zen-status-badge--reopened     { background: transparent; color: var(--color-internal-border); border: 1px solid var(--color-internal-border); }
+.zen-status-badge--cancelled    { background: #F3F4F6; color: #9CA3AF; text-decoration: line-through; }
+
+/* Resolved carries a check icon (decorative; the visible label stays "Resolved") */
+.zen-status-badge--resolved::before {
+  content: "✓";
+  font-weight: 700;
+}
+
+/* ── Priority badges (ui-spec §2): Low green, Medium amber-brown, High red ── */
+.zen-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.zen-priority-badge--low    { background: #0B7A46; }
+.zen-priority-badge--medium { background: #B45309; }
+.zen-priority-badge--high   { background: #B3261E; }
+
+/* ── Login page ──────────────────────────────────────────────── */
+.zen-login-page {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-bg);
+}
+
+.zen-login-card {
+  width: 100%;
+  max-width: 440px;
+}
+
+.zen-login-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0 0 24px;
+  text-align: center;
+}
+
+/* ── Change Password page ────────────────────────────────────── */
+.zen-change-password-page {
+  min-height: calc(100svh - 56px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px 24px;
+  background: var(--color-bg);
+}
+
+.zen-cp-card {
+  width: 100%;
+  max-width: 480px;
+}
+
+.zen-pw-rules {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 8px 0 20px 16px;
+  padding: 0;
+}
+
+.zen-pw-rules li { margin-bottom: 4px; }
+
+/* ── Error pages (Forbidden, Not Found) ─────────────────────── */
+.zen-error-page {
+  min-height: calc(100svh - 56px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--color-bg);
+}
+
+/* Inside the app shell the card aligns to the top of the content area (like the
+   placeholder screens), not the vertical centre of the viewport. Standalone
+   (signed-out) Not Found keeps the centred look above. */
+.zen-error-page--in-shell {
+  min-height: auto;
+  align-items: flex-start;
+  padding: 0;
+}
+
+.zen-error-card {
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+}
+
+.zen-error-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+/* ── Banners ─────────────────────────────────────────────────── */
+.zen-banner {
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.zen-banner--info {
+  background: var(--color-pale);
+  border: 1px solid #b8dfc8;
+  color: var(--color-secondary);
+}
+
+.zen-banner--error {
+  background: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #991B1B;
+}
+
+.zen-banner--success {
+  background: var(--color-pale);
+  border: 1px solid #b8dfc8;
+  color: var(--color-primary);
+}
+
+/* User Management success toast — fixed so it stays visible regardless of page
+   scroll once a dialog closes, and above the modal overlay (z-index 1000).
+   Pairs with role="status"/aria-live="polite" and a 5s auto-dismiss. */
+.um-toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  max-width: min(92vw, 520px);
+  margin: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+/* ── Input wrapper (for show/hide toggle) ────────────────────── */
+.zen-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.zen-input-wrap .zen-input {
+  flex: 1;
+  padding-right: 60px;
+}
+
+.zen-show-hide-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  padding: 0 12px;
+  background: none;
+  border: none;
+  color: var(--color-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ── Full-width button ───────────────────────────────────────── */
+.zen-btn-full {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* ── Header — user area & mobile menu ───────────────────────── */
+.zen-user-name {
+  font-size: 14px;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.zen-user-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zen-mobile-menu-btn {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .zen-mobile-menu-btn {
+    display: inline-flex;
+  }
+
+  .zen-nav,
+  .zen-user-area {
+    display: none;
+  }
+
+  .zen-user-area--open {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: absolute;
+    top: 56px;
+    right: 0;
+    left: 0;
+    background: var(--color-primary);
+    padding: 12px 24px;
+    gap: 8px;
+    z-index: 100;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   Staff Ticket Queue (Issue #26) — builds on the My Tickets layout
+   ══════════════════════════════════════════════════════════════ */
+
+/* Count chips in the queue header */
+.sq-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  min-height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface, #fff);
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sq-chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.sq-chip--active {
+  background: var(--color-pale);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.sq-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Ticket No. link-style button */
+.sq-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sq-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Queue summary cell: the text truncates, but the resolved marker drops to its
+   own line below so it is never clipped by the summary's ellipsis. Narrower
+   truncation also lets all columns fit without horizontal scroll at >= 1280px. */
+.sq-summary {
+  max-width: 300px;
+}
+
+.sq-summary-text {
+  display: block;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Requester-says-resolved marker (text always accompanies the icon).
+   display:block so it sits on its own line, outside the truncated summary. */
+.sq-resolved-marker {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+/* Owner no-longer-active-staff marker */
+.sq-inactive {
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+/* Tablet (768–991 px): hide Category and Updated columns (ui-spec §6) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .sq-hide-tablet {
+    display: none;
+  }
+}
+
+/* ── Tabs (ui-spec §4.5 "Tabs: Public Comments (n) · Internal Notes (n) ·
+      Attachments (n)"; §5 "Tabs: keyboard operable (arrow keys), aria-selected,
+      count in the label"). Zen Green selected state; the Internal Notes tab turns
+      amber when selected to match its amber panel. ── */
+.zen-tablist {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 16px;
+}
+.zen-tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  padding: 10px 16px;
+  min-height: 44px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.zen-tab:hover {
+  color: var(--color-text);
+  background: var(--color-pale);
+}
+.zen-tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.zen-tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+.zen-tab--internal.zen-tab--active {
+  color: var(--color-internal-border);
+  border-bottom-color: var(--color-internal-border);
+  background: var(--color-internal-bg);
+}
