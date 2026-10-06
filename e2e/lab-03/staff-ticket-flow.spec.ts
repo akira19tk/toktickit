@@ -1,34 +1,26 @@
-import { test, expect, type APIRequestContext, type Page, type Locator } from "@playwright/test";
+import { test, expect, type APIRequestContext, type Locator } from "@playwright/test";
+import {
+  API,
+  CSRF,
+  SEED_PASSWORD,
+  REQUESTER_EMAIL,
+  STAFF_EMAIL,
+  STAFF_NAME,
+  loginAs,
+  apiLogin,
+  apiLogout,
+  createTicketViaApi,
+} from "./helpers";
 
 /**
  * Stage 4 — Requester + Staff ticket flow E2E (E2E-03, E2E-04).
  *
- * Rerun safety: every run creates its OWN ticket (E2E-03 through the Create
- * Ticket UI; E2E-04 via the requester API), so no test depends on earlier state
- * and reruns never collide. Server-generated ticket numbers are unique per run.
- *
- * Selectors use accessible names / roles (Stage 3 lesson), never label text that
- * includes the "*" marker and never CSS ids.
+ * Rerun safety: every run creates its own ticket, so no test depends on earlier
+ * state and reruns never collide. Login helpers (./helpers) wait for the
+ * post-login screen, so later navigations don't race the login.
  */
 
-// API server started by playwright.config.ts on port 4100 (isolated e2e database).
-const API = "http://localhost:4100";
-const CSRF = { "X-Requested-With": "TokTickIT" } as const;
-
-const SEED_PASSWORD = process.env.E2E_SEED_PASSWORD || process.env.SEED_INITIAL_PASSWORD || "Welcome#2026";
-const REQUESTER_EMAIL = "requester.e2e@example.com";
-const STAFF_EMAIL = "staff.e2e@example.com";
-const STAFF_NAME = "Staff E2E";
-
-async function uiLogin(page: Page, email: string, password: string): Promise<void> {
-  await page.goto("/login");
-  await page.getByRole("textbox", { name: "Email", exact: true }).fill(email);
-  await page.getByRole("textbox", { name: "Password", exact: true }).fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-}
-
-// Wait for the option to exist (a user cannot pick an option that has not
-// loaded), select it once, then assert the value was committed — no retry.
+// Wait for the option to exist, select it once, then confirm the value held.
 async function selectOptionByLabel(select: Locator, label: string): Promise<void> {
   await expect(select).toBeVisible();
   await expect(select.locator("option", { hasText: label })).toBeAttached();
@@ -36,46 +28,12 @@ async function selectOptionByLabel(select: Locator, label: string): Promise<void
   await expect(select).not.toHaveValue("");
 }
 
-async function apiLogin(request: APIRequestContext, email: string): Promise<void> {
-  const res = await request.post(`${API}/api/auth/login`, {
-    headers: CSRF,
-    data: { email, password: SEED_PASSWORD },
-  });
-  expect(res.ok(), `API login for ${email} should succeed`).toBeTruthy();
-}
-
-// Create a fresh ticket owned by the requester, via the API, returning its id.
-async function createTicketViaApi(request: APIRequestContext): Promise<{ id: number; ticketNumber: string }> {
-  await apiLogin(request, REQUESTER_EMAIL);
-
-  const categories = (await (await request.get(`${API}/api/categories`)).json()) as Array<{ id: number; name: string }>;
-  const systems = (await (await request.get(`${API}/api/related-systems`)).json()) as Array<{ id: number; name: string }>;
-  const category = categories.find((c) => c.name === "Software") ?? categories[0];
-  const system = systems.find((s) => s.name === "Email") ?? systems[0];
-
-  const res = await request.post(`${API}/api/tickets`, {
-    headers: CSRF,
-    multipart: {
-      categoryId: String(category.id),
-      relatedSystemId: String(system.id),
-      summary: "E2E staff-flow ticket",
-      description: "Created via API to drive the staff ticket-flow E2E test.",
-      requestedPriority: "MEDIUM",
-    },
-  });
-  expect(res.status(), "ticket creation should return 201").toBe(201);
-  const ticket = (await res.json()) as { id: number; ticketNumber: string };
-
-  await request.post(`${API}/api/auth/logout`, { headers: CSRF });
-  return { id: ticket.id, ticketNumber: ticket.ticketNumber };
-}
-
 // Staff claims a ticket via the API (used only as setup to reach an OPEN status).
 async function claimAsStaff(request: APIRequestContext, ticketId: number): Promise<void> {
   await apiLogin(request, STAFF_EMAIL);
   const res = await request.post(`${API}/api/staff/tickets/${ticketId}/claim`, { headers: CSRF });
   expect(res.ok(), "staff claim should succeed").toBeTruthy();
-  await request.post(`${API}/api/auth/logout`, { headers: CSRF });
+  await apiLogout(request);
 }
 
 test("E2E-03: a requester signs in, creates a ticket, comments, and marks it as appearing resolved", async ({
@@ -86,9 +44,7 @@ test("E2E-03: a requester signs in, creates a ticket, comments, and marks it as 
   const summary = `E2E requester ticket ${runId}`;
   const commentText = `E2E requester comment ${runId}`;
 
-  // Sign in and create a ticket through the UI (AC-25).
-  await uiLogin(page, REQUESTER_EMAIL, SEED_PASSWORD);
-  await expect(page).toHaveURL(/\/my-tickets$/);
+  await loginAs(page, REQUESTER_EMAIL, SEED_PASSWORD, "REQUESTER");
 
   await page.getByRole("link", { name: "Create Ticket" }).click();
   await expect(page).toHaveURL(/\/tickets\/new$/);
@@ -152,8 +108,7 @@ test("E2E-04: IT staff claim, prioritise, progress a ticket and add a comment an
   const { id: ticketId } = await createTicketViaApi(request);
 
   // Staff signs in and opens the ticket; it starts NEW and unassigned.
-  await uiLogin(page, STAFF_EMAIL, SEED_PASSWORD);
-  await expect(page).toHaveURL(/\/staff\/queue$/);
+  await loginAs(page, STAFF_EMAIL, SEED_PASSWORD, "IT_STAFF");
   await page.goto(`/staff/tickets/${ticketId}`);
   const header = page.getByTestId("detail-header");
   await expect(header.getByText("New", { exact: true })).toBeVisible();
@@ -190,8 +145,7 @@ test("E2E-04: IT staff claim, prioritise, progress a ticket and add a comment an
   const reqContext = await browser.newContext();
   const reqPage = await reqContext.newPage();
   try {
-    await uiLogin(reqPage, REQUESTER_EMAIL, SEED_PASSWORD);
-    await expect(reqPage).toHaveURL(/\/my-tickets$/);
+    await loginAs(reqPage, REQUESTER_EMAIL, SEED_PASSWORD, "REQUESTER");
     await reqPage.goto(`/tickets/${ticketId}`);
     await expect(reqPage.getByRole("heading", { name: "Ticket Detail" })).toBeVisible();
 
