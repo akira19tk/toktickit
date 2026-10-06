@@ -236,14 +236,20 @@ This plan is written from `specification.md` **before** implementation (Test DD)
 
 ## 4. Responsive and Visual Checklist
 
-- [ ] Login and Change Password: no clipping or overflow at 375, 850 and 1440 px
-- [ ] Requester screens still correct after the shell change
-- [ ] Staff queue: table on desktop, cards on mobile; filters usable on mobile
-- [ ] Staff Ticket Detail: Public Comments and Internal Notes visibly different at every size
-- [ ] User Management: table becomes cards; dialogs fit the screen on mobile
-- [ ] Role, status and priority badges identical for the same value everywhere
-- [ ] Focus ring visible on every control; dialogs trap focus
-- [ ] Forbidden and Not Found pages checked
+A checked box means at least one automated test — client unit
+(`client/tests/lab-03/`), server API (`server/tests/lab-03/`) or Playwright E2E
+(`e2e/lab-03/`) — asserts the item; the Test ID(s), the kind (**unit**/**E2E**)
+and the scope follow. Items left unchecked are asserted by **no** test and need a
+manual visual check.
+
+- [x] Login and Change Password: no horizontal overflow at 375, 850 and 1440 px — **RESP-01 (E2E)** (clipping itself is not asserted).
+- [x] Requester screens correct after the shell change — **RESP-02 (E2E)**: no overflow at all three widths, My Tickets becomes cards on mobile, Create Ticket shows the Submit button.
+- [x] Staff queue: table on desktop, cards on mobile; filters usable — **RESP-03 (E2E)**: no overflow, `.mt-table-wrap`/`.mt-cards` swap at <768 px, Search tickets box visible; **UI-13 (unit)**: search, filters, sort and pagination send the correct query parameters. The mobile Filters-button collapse itself is **not asserted**.
+- [x] Staff Ticket Detail: Public Comments and Internal Notes visibly different at every size — **UI-17 (unit)**: separate panels, distinct labels and button wording; **E2E-04 (E2E)**: role-based content separation; **RESP-04 (E2E)**: panels/tabs present with no overflow at each size.
+- [x] User Management: table becomes cards; dialogs fit the screen — **RESP-05 (E2E)**: card swap on mobile and the Create User dialog stays within the viewport at all three widths.
+- [x] Role, status and priority badges identical for the same value — **STYLE-01 (E2E)** (Open status, High priority, IT Staff role across queue/detail/shell/Users table); **UI-12 (Badges, unit)** (each value renders its fixed label and distinct style).
+- [x] Dialogs trap focus; Escape returns focus — **UI-26 (unit)** (Tab/Shift+Tab focus trap, Escape closes and restores focus). The *visible* focus ring on every control is **not asserted by any test** (manual check).
+- [x] Forbidden and Not Found pages checked — **E2E-06/E2E-07 (E2E)** (Forbidden) and **E2E-07 (E2E)** (Not Found); also **UI-09 (unit)** (wrong role → Forbidden) and **UI-28 (unit)** (unknown URL → Not Found).
 
 ## 5. Test Commands
 

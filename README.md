@@ -72,12 +72,9 @@ cp .env.example .env
 npm run dev   # http://localhost:5173
 ```
 
-> **Known limitation — Issue #25 (Login/Shell UI):** The client still sends the
-> old `x-requester-id` header and the Development Requester selector from Lab 2.
-> The Lab 3 server ignores that header, so the Lab 2 UI **does not work** against
-> the new server until the Login and Shell screens are built in Issue #25.
-> All Lab 3 features are tested via the API test suite; no UI interaction with
-> the new auth layer is possible until that Issue lands.
+The client uses the Lab 3 session-auth UI: a Login screen, the mandatory
+first-login Change Password screen, and role-aware shells for Requester, IT Staff
+and Administrator. Sign in with a seed account from the table below.
 
 ## 3. Environment variables (`server/.env`)
 
@@ -155,7 +152,69 @@ cd client
 npm test
 ```
 
-## 6. Git branch and Pull Request rules
+## 6. Production build and run
+
+Build and run the compiled server (TypeScript → `dist/`, then plain Node):
+
+```bash
+cd server
+npm run build          # tsc → server/dist
+npm run start          # node dist/src/index.js (reads server/.env, PORT default 4000)
+```
+
+Build the client and preview the production bundle locally:
+
+```bash
+cd client
+npm run build          # tsc -b && vite build → client/dist
+npm run preview        # serves client/dist (default http://localhost:4173)
+```
+
+The client bakes `VITE_API_BASE_URL` in at build time, so set it in `client/.env`
+before `npm run build` if the API is not on the default origin.
+
+## 7. End-to-end tests (Playwright)
+
+E2E runs against an **isolated** database, `toktickit_e2e`, on its own ports (API
+`4100`, client preview `4173`). It never reads or writes the development database
+(`toktickit`) or the API test database (`toktickit_test`): the setup and seed
+scripts refuse to run unless the database name ends in `_e2e` and differs from
+`DATABASE_URL`.
+
+Add the E2E connection string to `server/.env` (used by the setup and seed
+scripts via dotenv; it must match `playwright.config.ts`):
+
+```bash
+# server/.env
+E2E_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/toktickit_e2e?schema=public"
+```
+
+The Playwright config also reads it from the shell; export it there if you want to
+point the whole run elsewhere (the value must still end in `_e2e`):
+
+```bash
+export E2E_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/toktickit_e2e?schema=public"
+# optional overrides consumed by the specs / config:
+export E2E_SEED_PASSWORD="Welcome#2026"   # seeded-account password (defaults to SEED_INITIAL_PASSWORD)
+```
+
+Run from the repository root:
+
+```bash
+npm install            # root harness (@playwright/test)
+npm run e2e:install    # one-time: download the Chromium browser
+
+npm run e2e:setup      # drop + recreate + migrate + seed toktickit_e2e
+npm run e2e            # run every spec; Playwright starts the API (4100) and
+                       # the client production preview (4173) automatically
+
+npm run e2e:report     # open the HTML report (traces attach on first retry)
+```
+
+`npm run e2e:smoke` runs the single smoke spec only. Re-run `npm run e2e:setup`
+whenever you want a clean, deterministically seeded database.
+
+## 8. Git branch and Pull Request rules
 
 | Branch | Purpose |
 |---|---|
@@ -174,7 +233,7 @@ Current sprint Issues:
 - **#27** Staff Ticket Operations
 - **#28** Administrator User Management
 
-## 7. API quick reference (Lab 3)
+## 9. API quick reference (Lab 3)
 
 | Area | Endpoints |
 |---|---|

@@ -26,6 +26,10 @@ import {
  * race an unfinished login. Data is created per run via the API. No password text
  * is typed into a screenshotted screen (Login/Change Password are shot empty).
  *
+ * Captures are viewport-only (default fullPage: false): each image shows exactly
+ * what a user sees on that device at the set viewport size, not a stitched full
+ * scroll height.
+ *
  * Screenshots (15): artifacts/lab-03/screenshots/<folder>/<screen>-<viewport>.png
  *   authentication/     login-{mobile,tablet,desktop}.png, change-password-{...}.png
  *   staff-queue/        queue-{mobile,tablet,desktop}.png
@@ -105,7 +109,7 @@ test("RESP-01: Login and Change Password have no overflow at 375/850/1440", asyn
     await expect(page.getByRole("textbox", { name: "Email", exact: true })).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Password", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
-    await page.screenshot({ path: shot("authentication", "login", vp.name), fullPage: true });
+    await page.screenshot({ path: shot("authentication", "login", vp.name) });
   });
 
   // Change Password — logged in (non-mandatory), fields left empty.
@@ -118,7 +122,7 @@ test("RESP-01: Login and Change Password have no overflow at 375/850/1440", asyn
     await expect(page.getByRole("textbox", { name: "New password", exact: true })).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Confirm new password", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Change password" })).toBeVisible();
-    await page.screenshot({ path: shot("authentication", "change-password", vp.name), fullPage: true });
+    await page.screenshot({ path: shot("authentication", "change-password", vp.name) });
   });
 });
 
@@ -151,7 +155,7 @@ test("RESP-03: Staff queue has no overflow and the table becomes cards on mobile
     await expect(page.getByRole("heading", { name: "Ticket Queue" })).toBeVisible();
     await expect(page.getByRole("searchbox", { name: "Search tickets" })).toBeVisible();
     await assertTableBecomesCards(page, vp.name);
-    await page.screenshot({ path: shot("staff-queue", "queue", vp.name), fullPage: true });
+    await page.screenshot({ path: shot("staff-queue", "queue", vp.name) });
   });
 });
 
@@ -168,7 +172,7 @@ test("RESP-04: Staff ticket detail has no overflow and its panels/tabs stack", a
     await expect(page.getByTestId("facts-panel")).toBeVisible();
     await expect(page.getByTestId("operations-panel")).toBeVisible();
     await expect(page.getByRole("tab", { name: /Public Comments/ })).toBeVisible();
-    await page.screenshot({ path: shot("staff-ticket-detail", "detail", vp.name), fullPage: true });
+    await page.screenshot({ path: shot("staff-ticket-detail", "detail", vp.name) });
   });
 });
 
@@ -181,7 +185,7 @@ test("RESP-05: User Management has no overflow, becomes cards on mobile, and dia
     await expect(page.getByRole("heading", { name: "User Management" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Create User" })).toBeVisible();
     await assertTableBecomesCards(page, vp.name);
-    await page.screenshot({ path: shot("user-management", "users", vp.name), fullPage: true });
+    await page.screenshot({ path: shot("user-management", "users", vp.name) });
   });
 
   // Dialogs fit within the viewport at every size, with no page overflow open.
