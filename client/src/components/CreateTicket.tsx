@@ -12,7 +12,6 @@ import {
 } from "../api";
 
 interface Props {
-  requesterId: number;
   onBack?: () => void;
   onSuccess?: (ticket: CreatedTicket) => void;
 }
@@ -125,7 +124,7 @@ function validateForm(form: FormValues): Record<string, string> {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export default function CreateTicket({ requesterId, onBack }: Props) {
+export default function CreateTicket({ onBack }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [state, dispatch] = useReducer(reducer, {
@@ -196,7 +195,6 @@ export default function CreateTicket({ requesterId, onBack }: Props) {
             | "HIGH",
           attachments: files,
         },
-        requesterId
       );
       dispatch({ type: "SUBMIT_SUCCESS", ticket });
     } catch (err) {

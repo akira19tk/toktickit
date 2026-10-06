@@ -28,6 +28,9 @@ export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: 
   { method: "POST",   path: "/api/tickets/:id/attachments" },
   { method: "GET",    path: "/api/tickets/:id/attachments/:attachmentId/download" },
   { method: "DELETE", path: "/api/tickets/:id/attachments/:attachmentId" },
+  { method: "GET",    path: "/api/tickets/:id/comments" },
+  { method: "POST",   path: "/api/tickets/:id/comments" },
+  { method: "POST",   path: "/api/tickets/:id/resolved-indication" },
   // Staff routes — appended by Issues #26 and #27
   // Admin routes — appended by Issue #28
 ];

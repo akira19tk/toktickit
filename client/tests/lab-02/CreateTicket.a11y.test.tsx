@@ -21,7 +21,7 @@ afterEach(() => {
 describe("CreateTicket — keyboard accessibility (UI-13)", () => {
   it("every form control is reachable via Tab; none use outline:none", async () => {
     const user = userEvent.setup();
-    render(<CreateTicket requesterId={1} />);
+    render(<CreateTicket />);
 
     // Wait for async data to load
     await waitFor(() =>

@@ -42,8 +42,8 @@ afterEach(() => {
 });
 
 // Helper: render form and wait until selects are populated
-async function renderAndWaitForForm(requesterId = 1) {
-  render(<CreateTicket requesterId={requesterId} />);
+async function renderAndWaitForForm() {
+  render(<CreateTicket />);
   await waitFor(() =>
     expect(screen.getByLabelText(/category/i)).toBeInTheDocument()
   );
