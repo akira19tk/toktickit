@@ -11,6 +11,12 @@ import {
   verifyPassword,
 } from "../../src/lib/auth";
 import { parseStaffQueueQuery } from "../../src/lib/staffQueue";
+import {
+  STATUS_TRANSITIONS,
+  allowedTransitions,
+  canTransition,
+} from "../../src/lib/ticketStatus";
+import type { TicketStatus } from "@prisma/client";
 
 // Load shared password vectors from repo root
 const vectorsPath = path.join(
@@ -94,6 +100,81 @@ describe("UNIT-02: normalizeEmail", () => {
     expect(normalizeEmail("user@mail.example.co.th")).toBe(
       "user@mail.example.co.th"
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// UNIT-03 — Status transition matrix function (AC-46, AC-48, AC-49, AC-51)
+// ---------------------------------------------------------------------------
+
+// Independent copy of the spec matrix (§5.3). The test must fail if the source
+// matrix drifts from the contract, so it is NOT imported from the source.
+const EXPECTED_MATRIX: Record<TicketStatus, TicketStatus[]> = {
+  NEW: ["OPEN", "IN_PROGRESS", "CANCELLED"],
+  OPEN: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  IN_PROGRESS: ["OPEN", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  WAITING_FOR_REQUESTER: ["OPEN", "IN_PROGRESS", "RESOLVED", "CANCELLED"],
+  RESOLVED: ["CLOSED", "REOPENED"],
+  CLOSED: ["REOPENED"],
+  REOPENED: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  CANCELLED: [],
+};
+
+const ALL_STATUSES = Object.keys(EXPECTED_MATRIX) as TicketStatus[];
+
+describe("UNIT-03: status transition matrix", () => {
+  it("UNIT-03: allowedTransitions returns exactly the matrix targets for every status", () => {
+    for (const from of ALL_STATUSES) {
+      expect(new Set(allowedTransitions(from))).toEqual(
+        new Set(EXPECTED_MATRIX[from])
+      );
+      expect(allowedTransitions(from)).toHaveLength(EXPECTED_MATRIX[from].length);
+    }
+  });
+
+  it("UNIT-03: canTransition is true for every allowed pair (AC-46)", () => {
+    for (const from of ALL_STATUSES) {
+      for (const to of EXPECTED_MATRIX[from]) {
+        expect(canTransition(from, to)).toBe(true);
+      }
+    }
+  });
+
+  it("UNIT-03: canTransition is false for every pair not in the matrix, including same-status (AC-46)", () => {
+    for (const from of ALL_STATUSES) {
+      const allowed = new Set(EXPECTED_MATRIX[from]);
+      for (const to of ALL_STATUSES) {
+        if (!allowed.has(to)) {
+          expect(canTransition(from, to)).toBe(false);
+        }
+      }
+      // A status is never an allowed transition to itself (NO_CHANGE, not a move)
+      expect(canTransition(from, from)).toBe(false);
+    }
+  });
+
+  it("UNIT-03: RESOLVED moves only to CLOSED or REOPENED (AC-48, AC-49)", () => {
+    expect(new Set(allowedTransitions("RESOLVED"))).toEqual(
+      new Set<TicketStatus>(["CLOSED", "REOPENED"])
+    );
+  });
+
+  it("UNIT-03: CLOSED moves only to REOPENED (AC-49, AC-51)", () => {
+    expect(allowedTransitions("CLOSED")).toEqual(["REOPENED"]);
+  });
+
+  it("UNIT-03: CANCELLED is terminal — no exits (AC-51)", () => {
+    expect(allowedTransitions("CANCELLED")).toEqual([]);
+    for (const to of ALL_STATUSES) {
+      expect(canTransition("CANCELLED", to)).toBe(false);
+    }
+  });
+
+  it("UNIT-03: allowedTransitions returns a fresh array that does not mutate the matrix", () => {
+    const first = allowedTransitions("OPEN");
+    first.push("NEW");
+    expect(allowedTransitions("OPEN")).not.toContain("NEW");
+    expect(STATUS_TRANSITIONS.OPEN).not.toContain("NEW");
   });
 });
 

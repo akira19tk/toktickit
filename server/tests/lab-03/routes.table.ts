@@ -50,6 +50,20 @@ export const routes: RouteEntry[] = [
   // Issue #26 (Staff Queue) — detail/operations appended by Issue #27.
   { method: "GET",  path: "/api/staff/tickets",   allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
   { method: "GET",  path: "/api/staff/assignees", allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  // Issue #27 (Staff Ticket Detail + operations). GET detail allows ADMIN
+  // read-only; every mutation is IT_STAFF only; comments/notes added in Stage 2.
+  { method: "GET",   path: "/api/staff/tickets/:id",                                     allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
+  { method: "POST",  path: "/api/staff/tickets/:id/claim",                               allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  { method: "PATCH", path: "/api/staff/tickets/:id/owner",                               allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  { method: "PATCH", path: "/api/staff/tickets/:id/it-priority",                         allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  { method: "PATCH", path: "/api/staff/tickets/:id/status",                              allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  { method: "GET",   path: "/api/staff/tickets/:id/attachments/:attachmentId/download",  allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  // Issue #27 Stage 2 — staff Public Comments and Internal Notes. GET allows
+  // ADMIN read-only; POST is IT_STAFF only (a Requester is refused at the gate).
+  { method: "GET",   path: "/api/staff/tickets/:id/comments",                            allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
+  { method: "POST",  path: "/api/staff/tickets/:id/comments",                            allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  { method: "GET",   path: "/api/staff/tickets/:id/notes",                               allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
+  { method: "POST",  path: "/api/staff/tickets/:id/notes",                               allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
 
   // ── Admin routes (ADMIN only) ─────────────────────────────────────────────
   // PARTIAL — Issue #28 (Administrator User Management) appends entries here.

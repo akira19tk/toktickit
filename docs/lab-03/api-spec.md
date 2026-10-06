@@ -24,7 +24,7 @@ Roles: `REQUESTER`, `IT_STAFF`, `ADMIN`. Password hashes are never returned.
 ```
 `code` and `errors` are optional.
 
-**Check order.** authentication (401) → password-change gate (403) → CSRF header (403) → role (403) → resource lookup / ownership (404) → validation (400) → state conflict (409). Conflict order: status changes `NO_CHANGE` → `INVALID_TRANSITION` → `TICKET_UNASSIGNED`; owner and IT Priority `TICKET_CLOSED` → `NO_CHANGE`; claim `TICKET_CLOSED` → `ALREADY_OWNED`.
+**Check order.** authentication (401) → password-change gate (403) → CSRF header (403) → role (403) → resource lookup / ownership (404) → validation (400) → state conflict (409). Conflict order: status changes `NO_CHANGE` → `INVALID_TRANSITION` → `TICKET_UNASSIGNED`; owner and IT Priority `TICKET_CLOSED` → `NO_CHANGE`; claim `TICKET_CLOSED` → `ALREADY_OWNED`. For the status endpoint only the `status` enum value is validated in the 400 step; the `resolutionSummary` (RESOLVED) and `confirm` (CLOSED/CANCELLED) requirements are validated **after** the status 409 conflicts, so an illegal or no-op transition returns 409 rather than a 400.
 
 **Allow-listed fields.** Each endpoint accepts only the fields documented here; any other field in a request body is ignored (never written).
 

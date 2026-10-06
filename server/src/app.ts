@@ -35,6 +35,16 @@ export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: 
   // Staff routes — Issue #26 (Ticket Queue); detail/operations appended by Issue #27
   { method: "GET",    path: "/api/staff/tickets" },
   { method: "GET",    path: "/api/staff/assignees" },
+  { method: "GET",    path: "/api/staff/tickets/:id" },
+  { method: "POST",   path: "/api/staff/tickets/:id/claim" },
+  { method: "PATCH",  path: "/api/staff/tickets/:id/owner" },
+  { method: "PATCH",  path: "/api/staff/tickets/:id/it-priority" },
+  { method: "PATCH",  path: "/api/staff/tickets/:id/status" },
+  { method: "GET",    path: "/api/staff/tickets/:id/attachments/:attachmentId/download" },
+  { method: "GET",    path: "/api/staff/tickets/:id/comments" },
+  { method: "POST",   path: "/api/staff/tickets/:id/comments" },
+  { method: "GET",    path: "/api/staff/tickets/:id/notes" },
+  { method: "POST",   path: "/api/staff/tickets/:id/notes" },
   // Admin routes — appended by Issue #28
 ];
 
