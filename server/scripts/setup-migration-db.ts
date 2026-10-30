@@ -2,13 +2,23 @@
  * Builds toktickit_migration_test and runs the full migration scenario:
  *
  *   1. Drop and recreate toktickit_migration_test
- *   2. Apply the Lab 2 migration SQL files (all but the last) via psql -f
+ *   2. Apply the Lab 1-2 migration SQL files (everything before the Lab 3
+ *      "users_auth" migration) via psql -f
  *   3. Load a small Lab 2 fixture (categories, related systems, requesters,
  *      tickets with different priorities, attachments)
- *   4. Apply the Lab 3 migration SQL (the last migration folder) via psql -f
- *   5. Record which migrated users have null passwordHash (before seed)
- *   6. Run the seed
- *   7. Write the snapshot to server/.migration-snapshot.json
+ *   4. Snapshot the pre-Lab-3 (DevRequester-era) state
+ *   5. Apply the Lab 3 "users_auth" migration SQL via psql -f
+ *   6. Record which migrated users have null passwordHash (before seed)
+ *   7. Run the seed (pass 1 — Users, Tickets, Comments, Notes)
+ *   8. Snapshot the Lab 1-3 row counts + legacy ticket numbers immediately
+ *      before the Lab 4 migration (the additive baseline for MIG-L4-01)
+ *   9. Apply the Lab 4 (and any later) migration SQL via psql -f
+ *  10. Run the seed again (pass 2 — now also seeds Actions Taken)
+ *  11. Write the combined snapshot to server/.migration-snapshot.json
+ *
+ * The partition in steps 2/5/9 is name-based (not "last folder = Lab 3"), so the
+ * existing Lab 3 migration test keeps its exact pre-Lab-3 snapshot semantics and
+ * stays green unchanged after the Lab 4 migration folder is added.
  *
  * Refuses to run unless MIGRATION_TEST_DATABASE_URL ends in "_test" and
  * differs from DATABASE_URL.
@@ -99,12 +109,20 @@ async function main() {
     .filter((f) => !f.endsWith(".toml") && !f.startsWith("."))
     .sort();
 
-  // Convention: last folder = Lab 3 migration; everything before = Lab 2.
-  const lab3Folder = migrationFolders[migrationFolders.length - 1];
-  const lab2Folders = migrationFolders.slice(0, -1);
+  // Name-based partition so adding later-lab migrations never shifts the stages:
+  //   • pre-User   = Lab 1-2 schema (DevRequester/Ticket/Attachment) — fixture loads here
+  //   • users_auth = the Lab 3 migration that renames DevRequester → User
+  //   • post-Lab-3 = Lab 4+ migrations (e.g. actions_taken), applied after the Lab 3 seed
+  const userAuthIdx = migrationFolders.findIndex((f) => f.includes("users_auth"));
+  if (userAuthIdx === -1) {
+    throw new Error('Could not find the Lab 3 "users_auth" migration folder.');
+  }
+  const preUserFolders = migrationFolders.slice(0, userAuthIdx);
+  const lab3Folder = migrationFolders[userAuthIdx];
+  const postLab3Folders = migrationFolders.slice(userAuthIdx + 1);
 
-  console.log(`\nApplying ${lab2Folders.length} Lab 2 migrations...`);
-  for (const folder of lab2Folders) {
+  console.log(`\nApplying ${preUserFolders.length} Lab 1-2 migrations...`);
+  for (const folder of preUserFolders) {
     const sqlFile = path.join(migrationsDir, folder, "migration.sql");
     console.log(`  ${folder}`);
     psqlFile(sqlFile);
@@ -231,8 +249,8 @@ async function main() {
 
   await prisma.$disconnect();
 
-  // --- Step 6: Run seed ---
-  console.log("\nRunning seed...");
+  // --- Step 7: Run seed (pass 1 — Users, Tickets, Comments, Notes) ---
+  console.log("\nRunning seed (pass 1)...");
   execSync("npx tsx prisma/seed.ts", {
     cwd: serverDir,
     env: {
@@ -243,12 +261,64 @@ async function main() {
     },
     stdio: "inherit",
   });
-  console.log("Seed completed.");
+  console.log("Seed pass 1 completed.");
 
-  // --- Step 7: Write snapshot ---
+  // --- Step 8: Snapshot Lab 1-3 state immediately before the Lab 4 migration ---
+  // These are the additive baseline: Lab 4 is additive and the seed is
+  // idempotent, so every count here must be unchanged after migrate + reseed.
+  const prisma2 = new PrismaClient({ datasources: { db: { url: dbUrl } } });
+  const countOf = async (table: string) => {
+    const rows = await prisma2.$queryRawUnsafe<CountRow[]>(
+      `SELECT COUNT(*)::text AS count FROM "${table}"`
+    );
+    return parseInt(rows[0].count, 10);
+  };
+  const preLab4 = {
+    userCount: await countOf("User"),
+    ticketCount: await countOf("Ticket"),
+    attachmentCount: await countOf("Attachment"),
+    categoryCount: await countOf("Category"),
+    relatedSystemCount: await countOf("RelatedSystem"),
+    publicCommentCount: await countOf("PublicComment"),
+    internalNoteCount: await countOf("InternalNote"),
+  };
+  // Legacy (pre-Lab-4) Tickets = the Lab 2 fixture rows, which never get Actions.
+  const legacyIds = preMigCounts.requesterIdMap.map((r) => r.ticketId);
+  const legacyRows = legacyIds.length
+    ? await prisma2.$queryRawUnsafe<{ ticketNumber: string }[]>(
+        `SELECT "ticketNumber" FROM "Ticket" WHERE id IN (${legacyIds.join(",")}) ORDER BY id`
+      )
+    : [];
+  const legacyTicketNumbers = legacyRows.map((r) => r.ticketNumber);
+  await prisma2.$disconnect();
+  console.log("Pre-Lab4 counts:", preLab4);
+
+  // --- Step 9: Apply Lab 4 (and any later) migrations ---
+  for (const folder of postLab3Folders) {
+    console.log(`\nApplying post-Lab-3 migration: ${folder}`);
+    psqlFile(path.join(migrationsDir, folder, "migration.sql"));
+  }
+
+  // --- Step 10: Run seed (pass 2 — now also seeds Actions Taken) ---
+  console.log("\nRunning seed (pass 2 — Actions)...");
+  execSync("npx tsx prisma/seed.ts", {
+    cwd: serverDir,
+    env: {
+      ...process.env,
+      DATABASE_URL: dbUrl,
+      SEED_INITIAL_PASSWORD:
+        process.env.SEED_INITIAL_PASSWORD || "Welcome#2026",
+    },
+    stdio: "inherit",
+  });
+  console.log("Seed pass 2 completed.");
+
+  // --- Step 11: Write snapshot ---
   const snapshot = {
     ...preMigCounts,
     nullHashUserEmails,
+    preLab4,
+    legacyTicketNumbers,
   };
   fs.writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2));
   console.log(`\nSnapshot written to ${snapshotPath}`);

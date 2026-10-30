@@ -52,6 +52,46 @@ approved before merge. Each review's comments, responses, and follow-up commits 
 
 **Follow-up Issues opened:** none — all four points resolved within PR #47.
 
+---
+
+### PR #58 — feat(lab-04): Actions Taken DB migration, model, seed (Issue #49)
+**Link:** https://github.com/akira19tk/toktickit/pull/58
+**Status:** Changes requested → addressed → re-review requested
+
+**Review received:**
+> 1. Ensure the foreign key constraints and delete restrictions behave correctly, especially for performedBy and assignee.
+> 2. Verify that the migration remains safe for existing Lab 1-3 data and that rollback limitations are clearly documented.
+> 3. Confirm that the seed remains idempotent across repeated runs and handles partially populated databases correctly.
+> 4. Consider investigating the intermittent timeout in the Lab 3 authorization test.
+
+**My responses and fixes:**
+
+1. **FK constraints / delete restrictions** — `f694bda`.
+   Added **MIG-L4-05**: with an isolated disposable fixture, deleting a `User`
+   referenced by an `ActionTaken` as `performedBy`, `assignee`, or `updatedBy` is rejected
+   (all four FKs are `ON DELETE RESTRICT`), and deleting a `Ticket` that still has Actions is
+   rejected — each FK exercised independently, then torn down.
+
+2. **Migration safety + rollback limitations** — `7616cbf` (plus existing evidence).
+   Lab 1–3 safety is already proven by **MIG-L4-01** (additive migration; all Lab 1–3 row
+   counts preserved) and **MIG-L4-03** (rollback drops only `ActionTaken`/`ActionStatus`; all
+   Lab 1–3 rows survive), per spec **§7.3**. Made the one data-loss consequence explicit in
+   §7.3: rollback **permanently discards all `ActionTaken` rows**; capture them with
+   `pg_dump --table=ActionTaken` or restore the pre-migrate `pg_dump` snapshot.
+
+3. **Seed idempotency / partial DB** — `f694bda`.
+   Added **MIG-L4-06**: starting from a partially populated DB (one seeded Ticket emptied, the
+   rest kept), reseeding refills only the gap, leaves already-populated Tickets untouched,
+   creates no duplicates, and remains idempotent on a further run. This is in addition to
+   **MIG-L4-04** (re-run safe) and the `ActionTaken`-table-absent guard in the seed.
+
+4. **Intermittent Lab 3 auth-test timeout** — no change in this PR (as scoped).
+   This flake is tracked in **#41** and will be fixed in the **#57** final-hardening issue;
+   the test passes 52/52 when run in isolation, so it is an environmental bcrypt timeout under
+   parallel load, not a logic regression introduced here.
+
+**Follow-up Issues opened:** none — timeout investigation already tracked in #41 (fix in #57).
+
 <!-- Add further feature-PR reviews below as the sprint proceeds. -->
 
 ---
@@ -61,7 +101,7 @@ approved before merge. Each review's comments, responses, and follow-up commits 
 | PR | Issue | Scope | Reviewer | Status | Merged into |
 |---|---|---|---|---|---|
 | #47 | #48 | Sprint 4 engineering contract (specification/api/ui/tests) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
-| #__ | #49 | Actions Taken foundation (migration, model, seed, API, authz, tests) | | | lab4-staging |
+| #58 | #49 | Actions Taken DB foundation (migration, model, seed) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #__ | #50 | Actions Taken API + authorization | | | lab4-staging |
 | #__ | #51 | Ticket workflow (resolution gate, Admin write, Lab 3 auth test updates) | | | lab4-staging |
 | #__ | #52 | Requester dashboard (API + UI) | | | lab4-staging |
