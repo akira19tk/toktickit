@@ -53,3 +53,9 @@ These rules apply to all work on the Lab 4 sprint. They are binding for AI codin
 - **Backend is the authority.** The backend enforces all authorization and workflow rules
   (ownership, role permissions, Ticket status transitions, resolution gate). Hiding a
   control in the UI is not authorization — every write must be enforced server-side.
+- **Post-merge issue housekeeping.** When the user reports that a feature PR has been merged
+  into `lab4-staging`, close that PR's linked GitHub Issue and move it to **Done** on
+  Project 2 ("TokTickIT Individual Sprints", project id `PVT_kwHOCxwHQ84Bgewt`, Status field
+  `PVTSSF_lAHOCxwHQ84BgewtzhfeNqA`, Done option `e5eaef4b`). `Closes #<n>` in a PR targeting
+  `lab4-staging` does **not** auto-close the issue, because GitHub only auto-closes on merges
+  into the default branch (`main`) — so this step is manual until the release PR merges.
