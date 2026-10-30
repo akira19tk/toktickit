@@ -233,6 +233,185 @@ describe("MIG-L4-04: seed is idempotent and covers 0/1/many Actions and metric d
 });
 
 // ---------------------------------------------------------------------------
+// MIG-L4-05: ActionTaken FK delete restrictions are RESTRICT (spec §7.1)
+// A User referenced as performedBy / assignee / updatedBy cannot be deleted,
+// and a Ticket that still has Actions cannot be deleted. Uses a disposable
+// fixture (users / ticket / actions created here) so each FK is isolated, and
+// tears it down afterwards so the rest of the suite is unaffected.
+// ---------------------------------------------------------------------------
+describe("MIG-L4-05: ActionTaken FK deletes are RESTRICT", () => {
+  const mk = (s: string) => `fk-${s}@restrict.test`;
+  let perfId: number;
+  let refPerfId: number;
+  let refAssigneeId: number;
+  let refUpdatedId: number;
+  let ticketId: number;
+  let aPerfId: number;
+  let aAssigneeId: number;
+  let aUpdatedId: number;
+
+  beforeAll(async () => {
+    const category = await prisma.category.findFirst({ select: { id: true } });
+    const relatedSystem = await prisma.relatedSystem.findFirst({ select: { id: true } });
+
+    const newStaff = (email: string) =>
+      prisma.user.create({
+        data: { name: email, email, role: "IT_STAFF", isActive: true },
+        select: { id: true },
+      });
+
+    // One required performer, plus three users each referenced by exactly one role.
+    perfId = (await newStaff(mk("perf"))).id;
+    refPerfId = (await newStaff(mk("ref-perf"))).id;
+    refAssigneeId = (await newStaff(mk("ref-assignee"))).id;
+    refUpdatedId = (await newStaff(mk("ref-updated"))).id;
+
+    ticketId = (
+      await prisma.ticket.create({
+        data: {
+          ticketNumber: "TKT-TEST-FK-0001",
+          requesterId: perfId,
+          categoryId: category!.id,
+          relatedSystemId: relatedSystem!.id,
+          summary: "FK restrict fixture",
+          description: "Disposable ticket for MIG-L4-05 FK restrict checks.",
+          requestedPriority: "LOW",
+          itPriority: "LOW",
+          currentStatus: "NEW",
+        },
+        select: { id: true },
+      })
+    ).id;
+
+    // Each action references exactly one "ref" user in one role, so a failed
+    // delete isolates that one foreign key.
+    aPerfId = (
+      await prisma.actionTaken.create({
+        data: { ticketId, performedById: refPerfId, description: "perf-only" },
+        select: { id: true },
+      })
+    ).id;
+    aAssigneeId = (
+      await prisma.actionTaken.create({
+        data: { ticketId, performedById: perfId, assigneeId: refAssigneeId, description: "assignee-only" },
+        select: { id: true },
+      })
+    ).id;
+    aUpdatedId = (
+      await prisma.actionTaken.create({
+        data: { ticketId, performedById: perfId, updatedById: refUpdatedId, description: "updated-only" },
+        select: { id: true },
+      })
+    ).id;
+  });
+
+  afterAll(async () => {
+    // Tear the disposable fixture down (actions first, then ticket, then users).
+    await prisma.actionTaken.deleteMany({
+      where: { id: { in: [aPerfId, aAssigneeId, aUpdatedId] } },
+    });
+    await prisma.ticket.delete({ where: { id: ticketId } });
+    await prisma.user.deleteMany({
+      where: { id: { in: [perfId, refPerfId, refAssigneeId, refUpdatedId] } },
+    });
+  });
+
+  it("MIG-L4-05: deleting a User referenced as performedBy is rejected", async () => {
+    await expect(prisma.user.delete({ where: { id: refPerfId } })).rejects.toThrow();
+    expect(await prisma.user.count({ where: { id: refPerfId } })).toBe(1);
+  });
+
+  it("MIG-L4-05: deleting a User referenced as assignee is rejected", async () => {
+    await expect(prisma.user.delete({ where: { id: refAssigneeId } })).rejects.toThrow();
+    expect(await prisma.user.count({ where: { id: refAssigneeId } })).toBe(1);
+  });
+
+  it("MIG-L4-05: deleting a User referenced as updatedBy is rejected", async () => {
+    await expect(prisma.user.delete({ where: { id: refUpdatedId } })).rejects.toThrow();
+    expect(await prisma.user.count({ where: { id: refUpdatedId } })).toBe(1);
+  });
+
+  it("MIG-L4-05: deleting a Ticket that still has Actions is rejected (RESTRICT)", async () => {
+    await expect(prisma.ticket.delete({ where: { id: ticketId } })).rejects.toThrow();
+    expect(await prisma.ticket.count({ where: { id: ticketId } })).toBe(1);
+    expect(await prisma.actionTaken.count({ where: { ticketId } })).toBe(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// MIG-L4-06: seeding a partially populated DB fills only the gaps and never
+// duplicates. Emulates a DB where some Tickets already have Actions and one
+// does not, then re-runs the seed twice.
+// ---------------------------------------------------------------------------
+describe("MIG-L4-06: seed fills missing Actions without duplicating on a partial DB", () => {
+  const emptiedTicketNumber = "TKT-2026-900005"; // seeded with exactly 1 Action
+  let emptiedTicketId: number;
+  let originalTotal: number;
+  let originalEmptiedCount: number;
+  let perTicketBefore: Map<number, number>;
+
+  const seedOnce = () =>
+    execSync("npx tsx prisma/seed.ts", {
+      cwd: serverDir,
+      env: {
+        ...process.env,
+        DATABASE_URL: process.env.MIGRATION_TEST_DATABASE_URL,
+        SEED_INITIAL_PASSWORD: process.env.SEED_INITIAL_PASSWORD || "Welcome#2026",
+      },
+      stdio: "pipe",
+    });
+
+  const perTicketCounts = async () => {
+    const grouped = await prisma.actionTaken.groupBy({ by: ["ticketId"], _count: { _all: true } });
+    return new Map(grouped.map((g) => [g.ticketId, g._count._all]));
+  };
+
+  beforeAll(async () => {
+    const t = await prisma.ticket.findUnique({
+      where: { ticketNumber: emptiedTicketNumber },
+      select: { id: true },
+    });
+    emptiedTicketId = t!.id;
+    originalTotal = await prisma.actionTaken.count();
+    perTicketBefore = await perTicketCounts();
+    originalEmptiedCount = perTicketBefore.get(emptiedTicketId) ?? 0;
+
+    // Simulate a partially populated DB: one seeded Ticket loses its Actions,
+    // every other seeded Ticket keeps theirs.
+    await prisma.actionTaken.deleteMany({ where: { ticketId: emptiedTicketId } });
+
+    // First reseed — should refill only the emptied Ticket.
+    seedOnce();
+  }, 120_000);
+
+  it("MIG-L4-06: the fixture really was partial (emptied Ticket had Actions to begin with)", () => {
+    expect(originalEmptiedCount).toBeGreaterThan(0);
+    expect(perTicketBefore.size).toBeGreaterThan(1); // other Tickets had Actions too
+  });
+
+  it("MIG-L4-06: the emptied Ticket's Actions are refilled after reseed", async () => {
+    const count = await prisma.actionTaken.count({ where: { ticketId: emptiedTicketId } });
+    expect(count).toBe(originalEmptiedCount);
+  });
+
+  it("MIG-L4-06: already-populated Tickets are not duplicated", async () => {
+    const after = await perTicketCounts();
+    for (const [ticketId, before] of perTicketBefore) {
+      expect(after.get(ticketId)).toBe(before);
+    }
+  });
+
+  it("MIG-L4-06: total Action count returns to the original (no net change)", async () => {
+    expect(await prisma.actionTaken.count()).toBe(originalTotal);
+  });
+
+  it("MIG-L4-06: a further seed run adds nothing (still idempotent)", async () => {
+    seedOnce();
+    expect(await prisma.actionTaken.count()).toBe(originalTotal);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // MIG-L4-03: rollback drops ONLY ActionTaken + ActionStatus; Lab 1-3 intact
 // (destructive — runs last, then re-applies the migration to restore the DB)
 // ---------------------------------------------------------------------------
