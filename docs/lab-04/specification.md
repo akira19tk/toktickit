@@ -282,9 +282,23 @@ No existing field is altered or dropped.
 - **Backfill:** none required. Legacy Tickets simply have zero Actions. The resolution gate (BR-12) treats
   "zero Actions" as resolvable, so no existing Ticket becomes un-resolvable. Action-derived dashboard metrics
   (e.g. "my open Actions") compute to `0` for legacy data.
-- **Rollback/recovery:** the down migration drops `ActionTaken` and the `ActionStatus` type; because the
-  change is purely additive, no Lab 1–3 data is touched or lost. A migration/regression test asserts that
-  Lab 1–3 rows survive apply and that rollback leaves them intact.
+- **Backup before migrate:** take a `pg_dump` snapshot of the database immediately before applying the
+  migration (documented in the README migrate step). This is the recovery point if anything goes wrong.
+- **Rollback/recovery (explicit steps):**
+  1. `DROP TABLE "ActionTaken";` — removes the Action rows and their three indexes and the four foreign keys
+     (`ticketId`, `performedById`, `updatedById`, `assigneeId`). **The only data dropped is `ActionTaken`
+     rows.**
+  2. `DROP TYPE "ActionStatus";` — removes the enum type (now unreferenced).
+  3. No other statement runs. **`User`, `Ticket`, `Attachment`, `PublicComment`, `InternalNote`, `Session`,
+     `Category`, `RelatedSystem`, and `TicketCounter` are untouched** — the migration never altered,
+     renamed, or dropped a column on any of them (the `actions` / `performedActions` / `updatedActions` /
+     `assignedActions` relations are Prisma-virtual; the FK columns live only on `ActionTaken`).
+  4. If rows must be preserved for later re-apply, `pg_dump --table=ActionTaken` (or restore the pre-migrate
+     snapshot) before step 1.
+  - Mechanics: `prisma migrate resolve --rolled-back <migration>` + the down SQL above in a non-Prisma
+    environment, or restore the pre-migrate `pg_dump`. Because the change is purely additive, rollback never
+    causes Lab 1–3 data loss. **MIG-L4-03** asserts rollback drops only `ActionTaken`/`ActionStatus` and that
+    all Lab 1–3 rows survive.
 - **Seed (idempotent):** re-runnable safely (upsert/skip by deterministic key). Adds Tickets covering all
   major statuses and priorities, assigned and unassigned, and Tickets with **zero, one, and multiple**
   Actions across OPEN/COMPLETED/CANCELLED, with and without follow-up, assigned to active staff (and the
