@@ -64,6 +64,7 @@ prove no lost update and no duplicate write.
 | API-L4-29 | API | AC-18 | Staff dashboard requested by Requester | 403 | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
 | API-L4-30 | API | AC-27 | Concurrent resolve + new-Action-create on an all-completed Ticket (Promise.all) | Invariant holds: resolve commits & create 409 TICKET_CLOSED, OR create commits & resolve 409 OPEN_ACTIONS_EXIST; never RESOLVED with an OPEN Action | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
 | API-L4-31 | API | AC-14 | Create Action on a RESOLVED Ticket; then reopen (→REOPENED) and create | 409 TICKET_CLOSED; after reopen, 201 | server/tests/lab-04/actions-taken.api.test.ts | Planned |
+| API-L4-32 | API | AC-28 | Requester Action read model excludes Internal Notes; non-owned 404; requester hits /notes | Payload has only Action fields (no note content); 404; 403 on /notes | server/tests/lab-04/actions-taken.api.test.ts | Planned |
 | UI-L4-01 | UI | AC-16, AC-24 | StaffDashboard renders cards, My Open Actions, urgent list | Values and labels shown; non-color cues | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-02 | UI | AC-17 | StaffDashboard card/row drill-down navigation | Navigates to correct queue/detail route+params | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-03 | UI | AC-15, AC-25 | RequesterDashboard own metrics + Waiting for Me cue | Correct cards; attention cue present | client/src/pages/__tests__/RequesterDashboard.test.tsx | Planned |
@@ -115,8 +116,9 @@ prove no lost update and no duplicate write.
 | AC-25 | API-L4-22, UI-L4-03 |
 | AC-26 | UNIT-L4-04, API-L4-23 |
 | AC-27 | API-L4-30 |
+| AC-28 | API-L4-32, UI-L4-07 |
 
 ## 4. Planned totals
 
-54 tests planned — Unit 4, API 31, UI 9, Responsive/Style 1, Migration 4, Regression 1, E2E 4.
+55 tests planned — Unit 4, API 32, UI 9, Responsive/Style 1, Migration 4, Regression 1, E2E 4.
 Final per-test status and the full passing output from `main` are recorded here once implemented.

@@ -183,6 +183,10 @@ existing Lab 2 Attachments; it is not a new upload channel), and deleting Action
   has no OPEN Action"* hold under concurrency: a resolve and a concurrent Action-create can never interleave
   to leave a RESOLVED Ticket with an OPEN Action. On a serialization conflict the later transaction retries
   once, then fails safe with `409 STALE_UPDATE` (nothing written).
+- **BR-24 (Requester isolation)** A Requester can read only their own Tickets' Actions, read-only, and the
+  response contains only Action fields — never Internal Notes or any other user's data. Reads of a
+  non-owned Ticket's Actions return `404`; every Action write path is `403` for Requesters. The full Lab 4
+  authorization matrix is in §8.2.
 
 ## 6. UI Specification Summary
 
@@ -342,6 +346,28 @@ All counts are backend-computed; empty scope returns `0` or `[]` (never 404). Da
 | Recently Resolved | `count(resolvedAt within last 7 days, Asia/Bangkok)` | `0` | `/tickets?status=RESOLVED` |
 | My Recent Tickets | top 5 by `updatedAt desc` | `[]` | `/tickets` |
 
+### 8.2 Authorization matrix (Lab 4 surfaces)
+
+Backend-enforced. `✓` = allowed; `404` = behaves as not-found to avoid existence leaks; `403` = forbidden
+by role. "own" = the Requester is the Ticket's `requesterId`.
+
+| Capability | Requester (own) | Requester (other) | IT_STAFF | ADMIN |
+| --- | --- | --- | --- | --- |
+| `GET /api/tickets/:id/actions` (read Actions) | ✓ read-only, all Action fields | 404 | — (uses staff route) | — (uses staff route) |
+| `GET /api/staff/tickets/:id/actions` | 403 | 403 | ✓ | ✓ |
+| `POST/PATCH …/actions` (create/edit/assign/complete/cancel) | 403 | 403 | ✓ | ✓ |
+| `PATCH …/status` (Ticket workflow) | 403 | 403 | ✓ | ✓ (Lab 4 change) |
+| `GET/POST …/notes` (**Internal Notes**) | 403 | 403 | ✓ | 403 read-only¹ |
+| `GET /api/staff/dashboard` | 403 | 403 | ✓ | ✓ |
+| `GET /api/requester/dashboard` | ✓ own scope only | n/a | 403 | 403 |
+
+¹ ADMIN Internal-Note behavior is unchanged from Lab 3 (read allowed per Lab 3 BR-22; write 403).
+
+**Internal Notes are never exposed to Requesters.** They live in a separate `InternalNote` entity and are
+served only by `/api/staff/tickets/:id/notes` (IT_STAFF, and ADMIN read-only). No Action field, Action
+endpoint, Requester Ticket Detail payload, or Requester dashboard ever includes Internal Note data — the
+Action read model (`GET /api/tickets/:id/actions`) returns only Action fields (BR-11, BR-24).
+
 ## 9. Acceptance Criteria (Given/When/Then)
 
 | ID | Maps to | Criterion |
@@ -373,6 +399,7 @@ All counts are backend-computed; empty scope returns `0` or `[]` (never 404). Da
 | **AC-25** | FR-11, BR-22 | Given the Requester has Tickets in WAITING_FOR_REQUESTER, when the Requester dashboard is retrieved, then the "Waiting for Me" count matches and drills down to `/tickets?status=WAITING_FOR_REQUESTER`. |
 | **AC-26** | BR-18 | Given a Ticket resolved at a time that falls on different calendar days in UTC vs Asia/Bangkok, when "Recently Resolved" is computed, then the Asia/Bangkok day boundary is used. |
 | **AC-27** | FR-09, BR-12, BR-23 | Given a Ticket whose Actions are all completed, when a resolve request and a new-Action-create request are issued concurrently, then the invariant holds: either the resolve commits and the create is rejected `409 TICKET_CLOSED`, or the create commits (Ticket still active) and the resolve returns `409 OPEN_ACTIONS_EXIST` — the system never ends with a `RESOLVED` Ticket that has an `OPEN` Action. |
+| **AC-28** | FR-06, BR-11, BR-24 | Given a Requester, when they read their own Ticket's Actions, then the payload contains only Action fields and no Internal Note content; when they request a non-owned Ticket's Actions, then `404`; when they call `/api/staff/tickets/:id/notes`, then `403`. (Requesters never see Internal Notes by any path.) |
 
 Every AC maps to at least one planned test in `tests.md`.
 
