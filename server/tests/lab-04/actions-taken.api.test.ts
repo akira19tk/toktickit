@@ -620,3 +620,155 @@ describe("API-L4-34: 400 field bounds (AC-30)", () => {
     expect(res.body.errors?.followUpNote).toBeDefined();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Added in response to the PR #59 review (see docs/lab-04/reviewer.md).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── API-L4-35 ───────────────────────────────────────────────────────────────
+// Review item 1 (error handling): when a single PATCH violates several rules at
+// once, the response code must follow api-spec §6:
+//   400 fields → 422 assignee → 409 TICKET_CLOSED → INVALID_ACTION_STATE → STALE_UPDATE
+
+describe("API-L4-35: PATCH error-ordering when several rules are violated (AC-14)", () => {
+  it("API-L4-35: invalid transition on a CLOSED Ticket → TICKET_CLOSED wins over INVALID_ACTION_STATE", async () => {
+    const id = await makeTicket({ currentStatus: "OPEN" });
+    // A terminal Action (COMPLETED→COMPLETED is an illegal transition) under a
+    // Ticket we then close, plus a stale token — three conflicting signals.
+    const a = await makeAction(id, { status: "COMPLETED", result: "Done." });
+    await prisma.ticket.update({ where: { id }, data: { currentStatus: "CLOSED" } });
+    const res = await patch(`/api/staff/tickets/${id}/actions/${a.id}`, staffASession).send({
+      status: "COMPLETED",
+      expectedUpdatedAt: new Date(Date.now() - 60_000).toISOString(),
+    });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("TICKET_CLOSED"); // precedes INVALID_ACTION_STATE & STALE_UPDATE
+  });
+
+  it("API-L4-35: 422 assignee precedes 409 TICKET_CLOSED on a RESOLVED Ticket", async () => {
+    const id = await makeTicket({ currentStatus: "OPEN" });
+    const a = await makeAction(id);
+    await prisma.ticket.update({ where: { id }, data: { currentStatus: "RESOLVED" } });
+    const res = await patch(`/api/staff/tickets/${id}/actions/${a.id}`, staffASession).send({
+      assigneeId: staffInactive.id, // 422 ASSIGNEE_INACTIVE, which comes before 409
+    });
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe("ASSIGNEE_INACTIVE");
+  });
+});
+
+// ── API-L4-36 ───────────────────────────────────────────────────────────────
+// Review item 2 (authorization / data exposure). API-L4-12 and API-L4-32 already
+// prove owner-only access, the top-level field whitelist, and that no Internal
+// Note body leaks. This adds the missing nested-user-field assertion: performedBy
+// / assignee / updatedBy expose only {id,name} — never email, role, or passwordHash.
+
+describe("API-L4-36: Requester Action view exposes no extra user fields (AC-28)", () => {
+  it("API-L4-36: nested user refs are exactly {id,name}; no email/role/passwordHash anywhere", async () => {
+    const id = await makeTicket({ currentStatus: "OPEN", requesterId: requester.id });
+    // An Action touching every user ref: performed by A, assigned to B, edited by B.
+    const a = await makeAction(id, { performedById: staffA.id, assigneeId: staffB.id });
+    await patch(`/api/staff/tickets/${id}/actions/${a.id}`, staffBSession).send({
+      description: "Edited to populate updatedBy.",
+    });
+
+    const res = await get(`/api/tickets/${id}/actions`, requesterSession);
+    expect(res.status).toBe(200);
+    const action = res.body.actions[0];
+    for (const key of ["performedBy", "assignee", "updatedBy"] as const) {
+      expect(action[key]).not.toBeNull();
+      expect(Object.keys(action[key]).sort()).toEqual(["id", "name"]);
+    }
+    const raw = JSON.stringify(res.body);
+    expect(raw).not.toContain("email");
+    expect(raw).not.toContain("role");
+    expect(raw).not.toContain("passwordHash");
+    expect(raw).not.toContain("@act.test"); // no email value leaked either
+  });
+});
+
+// ── API-L4-37 ───────────────────────────────────────────────────────────────
+// Review item 3 (concurrency). Two PATCHes carrying the SAME expectedUpdatedAt,
+// fired in parallel: exactly one 200 and one 409 STALE_UPDATE, and the persisted
+// row matches the winner (no lost update, no inconsistent state).
+
+describe("API-L4-37: Concurrent PATCH with the same expectedUpdatedAt (AC-13)", () => {
+  it("API-L4-37: exactly one 200, one 409 STALE_UPDATE, final DB matches the winner", async () => {
+    const id = await makeTicket({ currentStatus: "OPEN" });
+    const a = await makeAction(id);
+    const token = (await prisma.actionTaken.findUnique({ where: { id: a.id } }))!.updatedAt.toISOString();
+
+    const [r1, r2] = await Promise.all([
+      patch(`/api/staff/tickets/${id}/actions/${a.id}`, staffASession).send({
+        description: "concurrent-A", expectedUpdatedAt: token,
+      }),
+      patch(`/api/staff/tickets/${id}/actions/${a.id}`, staffBSession).send({
+        description: "concurrent-B", expectedUpdatedAt: token,
+      }),
+    ]);
+
+    expect([r1.status, r2.status].sort()).toEqual([200, 409]);
+    const winner = r1.status === 200 ? r1 : r2;
+    const loser = r1.status === 409 ? r1 : r2;
+    expect(loser.body.code).toBe("STALE_UPDATE");
+
+    const row = await prisma.actionTaken.findUnique({ where: { id: a.id } });
+    expect(["concurrent-A", "concurrent-B"]).toContain(row!.description);
+    expect(row!.description).toBe(winner.body.description); // DB == winner's write
+  });
+});
+
+// ── API-L4-38 ───────────────────────────────────────────────────────────────
+// Review item 4 (PATCH edge cases). Requester-PATCH-403 (API-L4-13), edit of a
+// non-OPEN Action (API-L4-06) and complete-without-result (API-L4-04) are already
+// covered on PATCH; the gap was assignee semantics on PATCH (only create was
+// tested, by API-L4-02/03). This closes it.
+
+describe("API-L4-38: PATCH assignee semantics (AC-02, AC-03)", () => {
+  it("API-L4-38: reassign to an active Admin → 200 and assignee updated", async () => {
+    const id = await makeTicket({ currentStatus: "OPEN" });
+    const a = await makeAction(id);
+    const res = await patch(`/api/staff/tickets/${id}/actions/${a.id}`, staffASession).send({
+      assigneeId: admin.id,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.assignee.id).toBe(admin.id);
+  });
+
+  it("API-L4-38: reassign to an inactive staff/admin → 422 ASSIGNEE_INACTIVE, unchanged", async () => {
+    const id = await makeTicket({ currentStatus: "OPEN" });
+    const a = await makeAction(id, { assigneeId: staffB.id });
+    const res = await patch(`/api/staff/tickets/${id}/actions/${a.id}`, staffASession).send({
+      assigneeId: staffInactive.id,
+    });
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe("ASSIGNEE_INACTIVE");
+    const row = await prisma.actionTaken.findUnique({ where: { id: a.id } });
+    expect(row!.assigneeId).toBe(staffB.id); // unchanged
+  });
+
+  it("API-L4-38: reassign to a Requester / unknown id → 422 INVALID_ASSIGNEE", async () => {
+    const id = await makeTicket({ currentStatus: "OPEN" });
+    const a = await makeAction(id);
+    const toRequester = await patch(`/api/staff/tickets/${id}/actions/${a.id}`, staffASession).send({
+      assigneeId: requester.id,
+    });
+    expect(toRequester.status).toBe(422);
+    expect(toRequester.body.code).toBe("INVALID_ASSIGNEE");
+
+    const toUnknown = await patch(`/api/staff/tickets/${id}/actions/${a.id}`, staffASession).send({
+      assigneeId: 999999,
+    });
+    expect(toUnknown.status).toBe(422);
+    expect(toUnknown.body.code).toBe("INVALID_ASSIGNEE");
+  });
+
+  it("API-L4-38: a Requester PATCH under /staff/* stays 403 (role gate, re-confirmed)", async () => {
+    const id = await makeTicket({ currentStatus: "OPEN", requesterId: requester.id });
+    const a = await makeAction(id);
+    const res = await patch(`/api/staff/tickets/${id}/actions/${a.id}`, requesterSession).send({
+      description: "nope",
+    });
+    expect(res.status).toBe(403);
+  });
+});

@@ -918,18 +918,7 @@ router.patch(
       });
     }
 
-    // 409 — optimistic concurrency, checked last (api-spec §1).
-    if (hasKey(body, "expectedUpdatedAt") && body.expectedUpdatedAt != null && body.expectedUpdatedAt !== "") {
-      const expected = new Date(String(body.expectedUpdatedAt)).getTime();
-      if (expected !== action.updatedAt.getTime()) {
-        return void res.status(409).json({
-          error: "This action was updated by someone else. Reload and try again.",
-          code: "STALE_UPDATE",
-        });
-      }
-    }
-
-    const data: Prisma.ActionTakenUncheckedUpdateInput = { updatedById: req.user!.id };
+    const data: Prisma.ActionTakenUncheckedUpdateManyInput = { updatedById: req.user!.id };
     if (v.description !== undefined) data.description = v.description;
     if (v.actionDate !== undefined) data.actionDate = v.actionDate;
     if (v.result !== undefined) data.result = v.result;
@@ -939,12 +928,38 @@ router.patch(
     if (assigneeChange) data.assigneeId = assigneeChange.assigneeId;
     if (target !== null) data.status = target;
 
-    const updated = await prisma.actionTaken.update({
+    // 409 STALE_UPDATE — checked last (api-spec §1). The expectedUpdatedAt guard
+    // is applied *inside* the UPDATE (WHERE updatedAt = expected) rather than as a
+    // read-then-write compare, so two concurrent edits carrying the same token
+    // cannot both win: the first flips @updatedAt and the second matches zero
+    // rows. When the token is omitted, no guard is added (Lab 3 clients keep
+    // working). The row's existence was already confirmed above, so a zero count
+    // here can only mean a stale token.
+    const guard: Prisma.ActionTakenWhereInput = { id: actionId };
+    if (hasKey(body, "expectedUpdatedAt") && body.expectedUpdatedAt != null && body.expectedUpdatedAt !== "") {
+      const expected = new Date(String(body.expectedUpdatedAt));
+      if (Number.isNaN(expected.getTime())) {
+        return void res.status(409).json({
+          error: "This action was updated by someone else. Reload and try again.",
+          code: "STALE_UPDATE",
+        });
+      }
+      guard.updatedAt = expected;
+    }
+
+    const { count } = await prisma.actionTaken.updateMany({ where: guard, data });
+    if (count === 0) {
+      return void res.status(409).json({
+        error: "This action was updated by someone else. Reload and try again.",
+        code: "STALE_UPDATE",
+      });
+    }
+
+    const updated = await prisma.actionTaken.findUnique({
       where: { id: actionId },
-      data,
       include: ACTION_INCLUDE,
     });
-    res.status(200).json(actionView(updated));
+    res.status(200).json(actionView(updated!));
   }
 );
 

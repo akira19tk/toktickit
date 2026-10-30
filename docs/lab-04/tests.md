@@ -67,6 +67,10 @@ prove no lost update and no duplicate write.
 | API-L4-32 | API | AC-28 | Requester Action read model excludes Internal Notes; non-owned 404; requester hits /notes | Payload has only Action fields (no note content); 404; 403 on /notes | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-33 | API | AC-29 | 404 edge cases: PATCH unknown actionId under a valid Ticket; GET/POST actions on unknown Ticket | 404 (no existence leak) | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-34 | API | AC-30 | 400 field bounds: description empty/>2000, actionDate in the future, attachmentNotes >500, followUpNote >1000 | 400 VALIDATION_FAILED with field errors; nothing written | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-35 | API | AC-14 | PATCH error-ordering when several rules collide (invalid transition on a closed Ticket; inactive assignee on a resolved Ticket) | TICKET_CLOSED before INVALID_ACTION_STATE/STALE_UPDATE; 422 assignee before TICKET_CLOSED (api-spec §6) | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-36 | API | AC-28 | Requester Action view nested user fields | performedBy/assignee/updatedBy are exactly {id,name}; no email/role/passwordHash anywhere | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-37 | API | AC-13 | Concurrent PATCH with the same expectedUpdatedAt | Exactly one 200, one 409 STALE_UPDATE; final DB matches the winner | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-38 | API | AC-02, AC-03 | PATCH assignee semantics | Active→200; inactive→422 ASSIGNEE_INACTIVE (unchanged); requester/unknown→422 INVALID_ASSIGNEE; Requester PATCH→403 | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | UI-L4-01 | UI | AC-16, AC-24 | StaffDashboard renders cards, My Open Actions, urgent list | Values and labels shown; non-color cues | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-02 | UI | AC-17 | StaffDashboard card/row drill-down navigation | Navigates to correct queue/detail route+params | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-03 | UI | AC-15, AC-25 | RequesterDashboard own metrics + Waiting for Me cue | Correct cards; attention cue present | client/src/pages/__tests__/RequesterDashboard.test.tsx | Planned |
@@ -96,20 +100,22 @@ Every error class across the Lab 4 endpoints has at least one explicit test:
 | Error class | Covered by |
 |---|---|
 | 400 validation (field shape/bounds) | API-L4-04 (complete w/o result), API-L4-07 (follow-up note), API-L4-34 (description/actionDate/attachmentNotes/followUpNote bounds) |
-| 422 assignee semantics | API-L4-02 (inactive), API-L4-03 (requester/unknown) |
-| 403 forbidden (role) | API-L4-13 (requester write), API-L4-24/29 (dashboards), API-L4-32 (/notes) |
+| 422 assignee semantics | API-L4-02 (inactive, create), API-L4-03 (requester/unknown, create), API-L4-38 (inactive + requester/unknown, PATCH) |
+| 403 forbidden (role) | API-L4-13 (requester write), API-L4-24/29 (dashboards), API-L4-32 (/notes), API-L4-38 (requester PATCH) |
 | 404 not-found / ownership | API-L4-12 (non-owned read), API-L4-33 (unknown ticket/action) |
 | 409 INVALID_TRANSITION / OPEN_ACTIONS_EXIST / INVALID_ACTION_STATE / NO_CHANGE | API-L4-16, API-L4-15/17, API-L4-04/05, API-L4-17 |
-| 409 STALE_UPDATE (concurrency) | API-L4-11 (action), API-L4-18 (status), API-L4-30 (serializable gate) |
+| 409 STALE_UPDATE (concurrency) | API-L4-11 (action), API-L4-18 (status), API-L4-30 (serializable gate), API-L4-37 (parallel PATCH, same token) |
 | 409 TICKET_CLOSED (resolved/closed/cancelled) | API-L4-08, API-L4-31 |
+| Error ordering across multiple simultaneous violations | API-L4-35 (PATCH: TICKET_CLOSED > INVALID_ACTION_STATE/STALE_UPDATE; 422 > TICKET_CLOSED), API-L4-17 (status endpoint) |
+| No sensitive-field exposure in Requester view | API-L4-32 (top-level keys, no note body), API-L4-36 (nested user refs only {id,name}) |
 
 ## 3. Acceptance-Criterion Traceability
 
 | AC | Tests |
 |---|---|
 | AC-01 | API-L4-01, UI-L4-05, E2E-L4-01 |
-| AC-02 | API-L4-02, E2E-L4-01 |
-| AC-03 | API-L4-03 |
+| AC-02 | API-L4-02, API-L4-38, E2E-L4-01 |
+| AC-03 | API-L4-03, API-L4-38 |
 | AC-04 | UNIT-L4-02, API-L4-04, UI-L4-06, E2E-L4-01 |
 | AC-05 | UNIT-L4-02, API-L4-05, UI-L4-06, E2E-L4-01 |
 | AC-06 | API-L4-06, UI-L4-06 |
@@ -119,8 +125,8 @@ Every error class across the Lab 4 endpoints has at least one explicit test:
 | AC-10 | API-L4-15, MIG-L4-02, UI-L4-09, E2E-L4-02 |
 | AC-11 | UNIT-L4-01, API-L4-16, UI-L4-08, E2E-L4-02 |
 | AC-12 | API-L4-17 |
-| AC-13 | API-L4-11, API-L4-18 |
-| AC-14 | API-L4-08, API-L4-31 |
+| AC-13 | API-L4-11, API-L4-18, API-L4-37 |
+| AC-14 | API-L4-08, API-L4-31, API-L4-35 |
 | AC-15 | API-L4-21, API-L4-24, UI-L4-03, E2E-L4-03 |
 | AC-16 | API-L4-25, UI-L4-01, E2E-L4-03 |
 | AC-17 | API-L4-28, UI-L4-02, UI-L4-04, E2E-L4-03 |
@@ -134,13 +140,16 @@ Every error class across the Lab 4 endpoints has at least one explicit test:
 | AC-25 | API-L4-22, UI-L4-03 |
 | AC-26 | UNIT-L4-04, API-L4-23 |
 | AC-27 | API-L4-30 |
-| AC-28 | API-L4-32, UI-L4-07 |
+| AC-28 | API-L4-32, API-L4-36, UI-L4-07 |
 | AC-29 | API-L4-33 |
 | AC-30 | API-L4-34 |
 
 ## 4. Planned totals
 
-59 tests — Unit 4, API 34, UI 9, Responsive/Style 1, Migration 6, Regression 1, E2E 4.
+63 tests — Unit 4, API 38, UI 9, Responsive/Style 1, Migration 6, Regression 1, E2E 4.
 (Migration count grew from 4 to 6: **MIG-L4-05** and **MIG-L4-06** were added in response to the PR #58
 review — FK delete restrictions and partial-DB seed idempotency.)
+(API count grew from 34 to 38: **API-L4-35**–**API-L4-38** were added in response to the PR #59
+review — PATCH error-ordering, nested-user-field whitelist, parallel-PATCH stale-update, and PATCH
+assignee semantics; the PATCH stale check was also made an atomic guarded UPDATE.)
 Final per-test status and the full passing output from `main` are recorded here once implemented.
