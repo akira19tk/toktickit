@@ -30,6 +30,7 @@ async function tryDelete(table: string) {
 }
 
 export async function clearDatabase() {
+  await tryDelete("ActionTaken"); // Ticket→ActionTaken FK is RESTRICT; clear first
   await tryDelete("InternalNote");
   await tryDelete("PublicComment");
   await tryDelete("Session");

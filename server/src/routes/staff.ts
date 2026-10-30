@@ -12,7 +12,13 @@ import { prisma } from "../prismaClient";
 import { requireRole } from "../middleware/auth";
 import { parseStaffQueueQuery } from "../lib/staffQueue";
 import { allowedTransitions, canTransition } from "../lib/ticketStatus";
-import type { Prisma, TicketStatus, Priority } from "@prisma/client";
+import {
+  validateActionFields,
+  canTransitionAction,
+  actionView,
+} from "../lib/actions";
+import { Prisma } from "@prisma/client";
+import type { TicketStatus, Priority, ActionStatus } from "@prisma/client";
 
 const router = Router();
 
@@ -692,6 +698,268 @@ router.post(
       include: { author: AUTHOR_SELECT },
     });
     res.status(201).json(entryView(note));
+  }
+);
+
+// ── Actions Taken (Issue #50) ────────────────────────────────────────────────
+// POST   /tickets/:id/actions            create (IT_STAFF, ADMIN)
+// GET    /tickets/:id/actions            list, newest-first (IT_STAFF, ADMIN)
+// PATCH  /tickets/:id/actions/:actionId  edit/assign/complete/cancel (IT_STAFF, ADMIN)
+//
+// `performedBy`/`updatedBy` come from the session, never the body (BR-03/BR-20).
+// Error order (api-spec §6): 404 → 400 fields → 422 assignee → 409 TICKET_CLOSED
+// → (PATCH only) INVALID_ACTION_STATE → STALE_UPDATE.
+
+// Actions may be created/edited only while the Ticket is in an active working
+// status — not RESOLVED, CLOSED, or CANCELLED (BR-10).
+const ACTION_BLOCKED: TicketStatus[] = ["RESOLVED", "CLOSED", "CANCELLED"];
+
+const ACTION_INCLUDE = {
+  performedBy: { select: { id: true, name: true } },
+  assignee: { select: { id: true, name: true } },
+  updatedBy: { select: { id: true, name: true } },
+} as const;
+
+const hasKey = (b: Record<string, unknown>, k: string) =>
+  Object.prototype.hasOwnProperty.call(b, k);
+
+// A positive-integer assignee id, or null when omitted/blank (unassigned).
+function parseAssigneeId(raw: unknown): number | null {
+  return typeof raw === "number" && Number.isInteger(raw) && raw > 0 ? raw : null;
+}
+
+// BR-04: an assignee must be an active IT_STAFF/ADMIN. A REQUESTER or unknown id
+// is INVALID_ASSIGNEE (422); an inactive staff/admin is ASSIGNEE_INACTIVE (422).
+async function checkAssignee(
+  assigneeId: number
+): Promise<"OK" | "ASSIGNEE_INACTIVE" | "INVALID_ASSIGNEE"> {
+  const u = await prisma.user.findUnique({ where: { id: assigneeId } });
+  if (!u || u.role === "REQUESTER") return "INVALID_ASSIGNEE";
+  if (!u.isActive) return "ASSIGNEE_INACTIVE";
+  return "OK";
+}
+
+const assigneeError = (res: Response, code: "ASSIGNEE_INACTIVE" | "INVALID_ASSIGNEE") =>
+  res.status(422).json({
+    error:
+      code === "ASSIGNEE_INACTIVE"
+        ? "The selected assignee is no longer an active IT Staff or Administrator."
+        : "The assignee must be an active IT Staff or Administrator.",
+    code,
+  });
+
+const ticketClosed = (res: Response) =>
+  res.status(409).json({
+    error: "This ticket is resolved, closed, or cancelled; reopen it to work on actions.",
+    code: "TICKET_CLOSED",
+  });
+
+// ── POST /api/staff/tickets/:id/actions ──────────────────────────────────────
+
+router.post(
+  "/tickets/:id/actions",
+  requireRole("IT_STAFF", "ADMIN") as RequestHandler,
+  async (req: Request, res: Response) => {
+    const id = parseId(req.params.id);
+    if (id === null) return void notFound(res);
+
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) return void notFound(res);
+
+    const body = req.body as Record<string, unknown>;
+    const fields = validateActionFields(body, { mode: "create" });
+    if (!fields.ok) {
+      return void res
+        .status(400)
+        .json({ error: "Validation failed.", code: "VALIDATION_FAILED", errors: fields.errors });
+    }
+
+    const assigneeId = parseAssigneeId(body.assigneeId);
+    if (assigneeId !== null) {
+      const verdict = await checkAssignee(assigneeId);
+      if (verdict !== "OK") return void assigneeError(res, verdict);
+    }
+
+    const v = fields.values;
+    // BR-10/BR-23: re-check the Ticket status inside a serializable transaction
+    // so a concurrent resolve cannot slip a new OPEN Action onto a RESOLVED Ticket.
+    const created = await prisma.$transaction(
+      async (tx) => {
+        const fresh = await tx.ticket.findUnique({
+          where: { id },
+          select: { currentStatus: true },
+        });
+        if (!fresh || ACTION_BLOCKED.includes(fresh.currentStatus)) return null;
+        return tx.actionTaken.create({
+          data: {
+            ticketId: id,
+            performedById: req.user!.id, // from the session (BR-03), never the body
+            description: v.description!,
+            ...(v.actionDate !== undefined ? { actionDate: v.actionDate } : {}),
+            ...(v.result !== undefined ? { result: v.result } : {}),
+            ...(v.attachmentNotes !== undefined ? { attachmentNotes: v.attachmentNotes } : {}),
+            ...(v.followUpRequired !== undefined ? { followUpRequired: v.followUpRequired } : {}),
+            ...(v.followUpNote !== undefined ? { followUpNote: v.followUpNote } : {}),
+            ...(assigneeId !== null ? { assigneeId } : {}),
+          },
+          include: ACTION_INCLUDE,
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
+
+    if (!created) return void ticketClosed(res);
+    res.status(201).json(actionView(created));
+  }
+);
+
+// ── GET /api/staff/tickets/:id/actions ───────────────────────────────────────
+
+router.get(
+  "/tickets/:id/actions",
+  requireRole("IT_STAFF", "ADMIN") as RequestHandler,
+  async (req: Request, res: Response) => {
+    const id = parseId(req.params.id);
+    if (id === null) return void notFound(res);
+
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) return void notFound(res);
+
+    const actions = await prisma.actionTaken.findMany({
+      where: { ticketId: id },
+      include: ACTION_INCLUDE,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }], // newest-first, stable tie-break
+    });
+    res.status(200).json({ actions: actions.map(actionView) });
+  }
+);
+
+// ── PATCH /api/staff/tickets/:id/actions/:actionId ───────────────────────────
+
+router.patch(
+  "/tickets/:id/actions/:actionId",
+  requireRole("IT_STAFF", "ADMIN") as RequestHandler,
+  async (req: Request, res: Response) => {
+    const id = parseId(req.params.id);
+    const actionId = parseId(req.params.actionId);
+    if (id === null || actionId === null) return void notFound(res);
+
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) return void notFound(res);
+
+    // An Action not under this Ticket is a 404 (no existence leak).
+    const action = await prisma.actionTaken.findFirst({
+      where: { id: actionId, ticketId: id },
+    });
+    if (!action) {
+      return void res.status(404).json({ error: "Action not found", code: "NOT_FOUND" });
+    }
+
+    const body = req.body as Record<string, unknown>;
+
+    // 400 — field shape (present keys only), follow-up merged over current.
+    const fields = validateActionFields(body, {
+      mode: "patch",
+      current: { followUpRequired: action.followUpRequired, followUpNote: action.followUpNote },
+    });
+    if (!fields.ok) {
+      return void res
+        .status(400)
+        .json({ error: "Validation failed.", code: "VALIDATION_FAILED", errors: fields.errors });
+    }
+    const v = fields.values;
+
+    const target = hasKey(body, "status") ? (String(body.status) as ActionStatus) : null;
+    const effectiveResult = v.result !== undefined ? v.result : action.result;
+
+    // 400 — completing requires a result (BR-06); a field check per api-spec §6.
+    if (target === "COMPLETED" && (effectiveResult ?? "").trim().length === 0) {
+      return void res.status(400).json({
+        error: "A result is required to complete an action.",
+        code: "VALIDATION_FAILED",
+        errors: { result: "Enter a result to complete this action." },
+      });
+    }
+
+    // 400 — a COMPLETED/CANCELLED Action is read-only history (BR-09); a bare
+    // status-only request is not an "edit" and falls through to the 409 below.
+    const EDIT_KEYS = [
+      "description", "result", "assigneeId", "followUpRequired",
+      "followUpNote", "attachmentNotes", "actionDate",
+    ];
+    const editsFields = EDIT_KEYS.some((k) => hasKey(body, k));
+    if (action.status !== "OPEN" && editsFields) {
+      return void res.status(400).json({
+        error: "This action is completed or cancelled and can no longer be edited.",
+        code: "VALIDATION_FAILED",
+        errors: { status: "This action is read-only." },
+      });
+    }
+
+    // 422 — assignee semantics.
+    let assigneeChange: { assigneeId: number | null } | undefined;
+    if (hasKey(body, "assigneeId")) {
+      const assigneeId = parseAssigneeId(body.assigneeId);
+      if (assigneeId !== null) {
+        const verdict = await checkAssignee(assigneeId);
+        if (verdict !== "OK") return void assigneeError(res, verdict);
+      }
+      assigneeChange = { assigneeId };
+    }
+
+    // 409 — Ticket must be in an active working status (BR-10).
+    if (ACTION_BLOCKED.includes(ticket.currentStatus)) return void ticketClosed(res);
+
+    // 409 — illegal lifecycle transition (BR-09).
+    if (target !== null && !canTransitionAction(action.status, target)) {
+      return void res.status(409).json({
+        error: `An action cannot move from ${action.status} to ${target}.`,
+        code: "INVALID_ACTION_STATE",
+      });
+    }
+
+    const data: Prisma.ActionTakenUncheckedUpdateManyInput = { updatedById: req.user!.id };
+    if (v.description !== undefined) data.description = v.description;
+    if (v.actionDate !== undefined) data.actionDate = v.actionDate;
+    if (v.result !== undefined) data.result = v.result;
+    if (v.attachmentNotes !== undefined) data.attachmentNotes = v.attachmentNotes;
+    if (v.followUpRequired !== undefined) data.followUpRequired = v.followUpRequired;
+    if (v.followUpNote !== undefined) data.followUpNote = v.followUpNote;
+    if (assigneeChange) data.assigneeId = assigneeChange.assigneeId;
+    if (target !== null) data.status = target;
+
+    // 409 STALE_UPDATE — checked last (api-spec §1). The expectedUpdatedAt guard
+    // is applied *inside* the UPDATE (WHERE updatedAt = expected) rather than as a
+    // read-then-write compare, so two concurrent edits carrying the same token
+    // cannot both win: the first flips @updatedAt and the second matches zero
+    // rows. When the token is omitted, no guard is added (Lab 3 clients keep
+    // working). The row's existence was already confirmed above, so a zero count
+    // here can only mean a stale token.
+    const guard: Prisma.ActionTakenWhereInput = { id: actionId };
+    if (hasKey(body, "expectedUpdatedAt") && body.expectedUpdatedAt != null && body.expectedUpdatedAt !== "") {
+      const expected = new Date(String(body.expectedUpdatedAt));
+      if (Number.isNaN(expected.getTime())) {
+        return void res.status(409).json({
+          error: "This action was updated by someone else. Reload and try again.",
+          code: "STALE_UPDATE",
+        });
+      }
+      guard.updatedAt = expected;
+    }
+
+    const { count } = await prisma.actionTaken.updateMany({ where: guard, data });
+    if (count === 0) {
+      return void res.status(409).json({
+        error: "This action was updated by someone else. Reload and try again.",
+        code: "STALE_UPDATE",
+      });
+    }
+
+    const updated = await prisma.actionTaken.findUnique({
+      where: { id: actionId },
+      include: ACTION_INCLUDE,
+    });
+    res.status(200).json(actionView(updated!));
   }
 );
 

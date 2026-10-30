@@ -92,6 +92,56 @@ approved before merge. Each review's comments, responses, and follow-up commits 
 
 **Follow-up Issues opened:** none — timeout investigation already tracked in #41 (fix in #57).
 
+### PR #59 — feat(lab-04): Actions Taken API + authorization (Issue #50)
+**Link:** https://github.com/akira19tk/toktickit/pull/59
+**Status:** Changes requested → addressed → re-review requested
+
+**Review received:**
+> 1. Error handling: Ensure the validation and error response order matches the API specification, especially for invalid action transitions and closed tickets.
+> 2. Authorization: Verify that requesters can only access their own tickets and that internal notes or sensitive fields are never exposed.
+> 3. Concurrency: Confirm that stale updates and concurrent requests are handled safely to prevent inconsistent action states.
+> 4. Test coverage: Ensure edge cases and permission restrictions are covered, particularly for PATCH operations.
+
+**My responses and fixes:**
+
+1. **Error ordering** — `dc08999`.
+   The PATCH order (api-spec §6) is `400 fields → 422 assignee → 409 TICKET_CLOSED →
+   INVALID_ACTION_STATE → STALE_UPDATE`, and create is `404 → 400 → 422 → TICKET_CLOSED`.
+   Added **API-L4-35**: a PATCH that simultaneously requests an illegal transition on a
+   **closed** Ticket with a **stale** token returns `409 TICKET_CLOSED` (it precedes both
+   `INVALID_ACTION_STATE` and `STALE_UPDATE`); and an inactive assignee on a RESOLVED Ticket
+   returns `422 ASSIGNEE_INACTIVE` (before `TICKET_CLOSED`). Existing per-code tests remain:
+   `INVALID_ACTION_STATE` (**API-L4-04/05**), `TICKET_CLOSED` (**API-L4-08/31**).
+
+2. **Authorization / no sensitive-field exposure** — cited + `dc08999`.
+   Owner-only access is already proven by **API-L4-12** (non-owner Requester → 404, no
+   existence leak) and **API-L4-32** (Requester payload has only Action top-level keys; a
+   seeded Internal Note body never appears; Requester on `/staff/.../notes` → 403). The one
+   gap — the **nested** user refs — is closed by new **API-L4-36**: `performedBy`, `assignee`,
+   and `updatedBy` are exactly `{id,name}`, and the serialized response contains no `email`,
+   `role`, or `passwordHash`. The single shared `actionView` serializer guarantees staff and
+   Requester reads are byte-identical in shape.
+
+3. **Concurrency** — `dc08999` (behavioural fix, not just a test).
+   The stale check was a read-then-compare, which let two parallel PATCHes carrying the same
+   `expectedUpdatedAt` both pass and both write. It is now an **atomic guarded UPDATE**
+   (`updateMany … WHERE id = :id AND updatedAt = :expected`): the first write flips `@updatedAt`
+   so the second matches zero rows → `409 STALE_UPDATE`. New **API-L4-37** fires both PATCHes
+   with `Promise.all` and asserts exactly one `200`, one `409 STALE_UPDATE`, and that the
+   persisted row equals the winner's write. Omitting the token still proceeds (**API-L4-11**).
+
+4. **PATCH edge-case coverage** — `dc08999`.
+   Already covered: Requester PATCH → 403 (**API-L4-13**), edit of a non-OPEN Action → 400
+   (**API-L4-06**), complete without a result → 400 (**API-L4-04**). The gap was assignee
+   semantics on PATCH (only create was tested, by **API-L4-02/03**); new **API-L4-38** covers
+   active → 200, inactive staff/admin → 422 `ASSIGNEE_INACTIVE` (row unchanged),
+   requester/unknown id → 422 `INVALID_ASSIGNEE`, and re-confirms Requester PATCH → 403.
+
+**Verification:** full Lab 1–4 suite green — server **461**, migration **46**, client **90**,
+E2E **15**. API-L4 test count 34 → 38.
+
+**Follow-up Issues opened:** none — all four points resolved within PR #59.
+
 <!-- Add further feature-PR reviews below as the sprint proceeds. -->
 
 ---
@@ -102,7 +152,7 @@ approved before merge. Each review's comments, responses, and follow-up commits 
 |---|---|---|---|---|---|
 | #47 | #48 | Sprint 4 engineering contract (specification/api/ui/tests) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #58 | #49 | Actions Taken DB foundation (migration, model, seed) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
-| #__ | #50 | Actions Taken API + authorization | | | lab4-staging |
+| #59 | #50 | Actions Taken API + authorization | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #__ | #51 | Ticket workflow (resolution gate, Admin write, Lab 3 auth test updates) | | | lab4-staging |
 | #__ | #52 | Requester dashboard (API + UI) | | | lab4-staging |
 | #__ | #53 | Staff dashboard (API + UI + queue filters) | | | lab4-staging |

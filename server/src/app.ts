@@ -33,6 +33,7 @@ export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: 
   { method: "GET",    path: "/api/tickets/:id/comments" },
   { method: "POST",   path: "/api/tickets/:id/comments" },
   { method: "POST",   path: "/api/tickets/:id/resolved-indication" },
+  { method: "GET",    path: "/api/tickets/:id/actions" },
   // Staff routes — Issue #26 (Ticket Queue); detail/operations appended by Issue #27
   { method: "GET",    path: "/api/staff/tickets" },
   { method: "GET",    path: "/api/staff/assignees" },
@@ -46,6 +47,10 @@ export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: 
   { method: "POST",   path: "/api/staff/tickets/:id/comments" },
   { method: "GET",    path: "/api/staff/tickets/:id/notes" },
   { method: "POST",   path: "/api/staff/tickets/:id/notes" },
+  // Actions Taken — Issue #50 (IT_STAFF, ADMIN)
+  { method: "POST",   path: "/api/staff/tickets/:id/actions" },
+  { method: "GET",    path: "/api/staff/tickets/:id/actions" },
+  { method: "PATCH",  path: "/api/staff/tickets/:id/actions/:actionId" },
   // Admin routes — Issue #28 (Administrator User Management), ADMIN only
   { method: "GET",    path: "/api/admin/users" },
   { method: "POST",   path: "/api/admin/users" },
