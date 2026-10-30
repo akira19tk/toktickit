@@ -33,20 +33,20 @@ prove no lost update and no duplicate write.
 | UNIT-L4-02 | Unit | AC-04, AC-05 | Action lifecycle validator (OPEN→COMPLETED/CANCELLED only; complete needs result) | Legal transitions pass, others rejected | server/tests/lab-04/lib.unit.test.ts | Pass |
 | UNIT-L4-03 | Unit | AC-07 | Follow-up note rule (required iff followUpRequired) | Mismatches rejected | server/tests/lab-04/lib.unit.test.ts | Pass |
 | UNIT-L4-04 | Unit | AC-26 | Asia/Bangkok "last 7 days" / day-boundary helper | Boundary computed in UTC+7, not UTC | server/tests/lab-04/lib.unit.test.ts | Planned |
-| API-L4-01 | API | AC-01 | Create a valid Action | 201; under correct Ticket; performedBy=creator; status OPEN; updatedBy null | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-02 | API | AC-02 | Assign to active vs inactive staff/admin | Active → set; inactive → 422 ASSIGNEE_INACTIVE, unchanged | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-03 | API | AC-03 | Assign to a Requester / unknown id | 422 INVALID_ASSIGNEE | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-04 | API | AC-04 | Complete OPEN with/without result; complete non-OPEN | result→COMPLETED; none→400; non-OPEN→409 INVALID_ACTION_STATE | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-05 | API | AC-05 | Cancel OPEN then repeat | →CANCELLED; second transition 409 INVALID_ACTION_STATE | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-06 | API | AC-06 | Edit a COMPLETED/CANCELLED Action | 400 (read-only history) | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-07 | API | AC-07 | followUpRequired true with empty note; valid note | 400; then success | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-08 | API | AC-14 | Create/edit Action on RESOLVED/CLOSED/CANCELLED Ticket | 409 TICKET_CLOSED | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-09 | API | AC-19 | Multiple Actions list order | Newest-first by createdAt, stable | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-10 | API | AC-22 | Staff B (not author) edits/completes staff A's Action | 200; updatedBy=B; updatedAt refreshed | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-11 | API | AC-13 | Action PATCH with stale expectedUpdatedAt; omitted | 409 STALE_UPDATE; omitted → proceeds | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-12 | API | AC-08 | Requester reads own Ticket Actions; non-owned | 200 all fields newest-first; non-owned 404 | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-13 | API | AC-09 | Requester attempts Action write under /staff/* | 403 | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-14 | API | AC-18 | Admin creates/updates Action | 201/200 (Lab 4 change) | server/tests/lab-04/actions-taken.api.test.ts | Planned |
+| API-L4-01 | API | AC-01 | Create a valid Action | 201; under correct Ticket; performedBy=creator; status OPEN; updatedBy null | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-02 | API | AC-02 | Assign to active vs inactive staff/admin | Active → set; inactive → 422 ASSIGNEE_INACTIVE, unchanged | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-03 | API | AC-03 | Assign to a Requester / unknown id | 422 INVALID_ASSIGNEE | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-04 | API | AC-04 | Complete OPEN with/without result; complete non-OPEN | result→COMPLETED; none→400; non-OPEN→409 INVALID_ACTION_STATE | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-05 | API | AC-05 | Cancel OPEN then repeat | →CANCELLED; second transition 409 INVALID_ACTION_STATE | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-06 | API | AC-06 | Edit a COMPLETED/CANCELLED Action | 400 (read-only history) | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-07 | API | AC-07 | followUpRequired true with empty note; valid note | 400; then success | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-08 | API | AC-14 | Create/edit Action on RESOLVED/CLOSED/CANCELLED Ticket | 409 TICKET_CLOSED | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-09 | API | AC-19 | Multiple Actions list order | Newest-first by createdAt, stable | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-10 | API | AC-22 | Staff B (not author) edits/completes staff A's Action | 200; updatedBy=B; updatedAt refreshed | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-11 | API | AC-13 | Action PATCH with stale expectedUpdatedAt; omitted | 409 STALE_UPDATE; omitted → proceeds | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-12 | API | AC-08 | Requester reads own Ticket Actions; non-owned | 200 all fields newest-first; non-owned 404 | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-13 | API | AC-09 | Requester attempts Action write under /staff/* | 403 | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-14 | API | AC-18 | Admin creates/updates Action | 201/200 (Lab 4 change) | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-15 | API | AC-10 | Resolve with an OPEN Action; then all COMPLETED/CANCELLED; zero-Action Ticket | 409 OPEN_ACTIONS_EXIST; then resolves; zero-Action resolves | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
 | API-L4-16 | API | AC-11 | Transition matrix over the API | Allowed succeed; others 409 INVALID_TRANSITION w/ targets | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
 | API-L4-17 | API | AC-12 | RESOLVED request violating several rules at once | First applicable error (…→OPEN_ACTIONS_EXIST→400 summary) | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
@@ -63,10 +63,10 @@ prove no lost update and no duplicate write.
 | API-L4-28 | API | AC-17 | Dashboards with empty scope | Zeros / empty lists, 200 (no 404) | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
 | API-L4-29 | API | AC-18 | Staff dashboard requested by Requester | 403 | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
 | API-L4-30 | API | AC-27 | Concurrent resolve + new-Action-create on an all-completed Ticket (Promise.all) | Invariant holds: resolve commits & create 409 TICKET_CLOSED, OR create commits & resolve 409 OPEN_ACTIONS_EXIST; never RESOLVED with an OPEN Action | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| API-L4-31 | API | AC-14 | Create Action on a RESOLVED Ticket; then reopen (→REOPENED) and create | 409 TICKET_CLOSED; after reopen, 201 | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-32 | API | AC-28 | Requester Action read model excludes Internal Notes; non-owned 404; requester hits /notes | Payload has only Action fields (no note content); 404; 403 on /notes | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-33 | API | AC-29 | 404 edge cases: PATCH unknown actionId under a valid Ticket; GET/POST actions on unknown Ticket | 404 (no existence leak) | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-34 | API | AC-30 | 400 field bounds: description empty/>2000, actionDate in the future, attachmentNotes >500, followUpNote >1000 | 400 VALIDATION_FAILED with field errors; nothing written | server/tests/lab-04/actions-taken.api.test.ts | Planned |
+| API-L4-31 | API | AC-14 | Create Action on a RESOLVED Ticket; then reopen (→REOPENED) and create | 409 TICKET_CLOSED; after reopen, 201 | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-32 | API | AC-28 | Requester Action read model excludes Internal Notes; non-owned 404; requester hits /notes | Payload has only Action fields (no note content); 404; 403 on /notes | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-33 | API | AC-29 | 404 edge cases: PATCH unknown actionId under a valid Ticket; GET/POST actions on unknown Ticket | 404 (no existence leak) | server/tests/lab-04/actions-taken.api.test.ts | Pass |
+| API-L4-34 | API | AC-30 | 400 field bounds: description empty/>2000, actionDate in the future, attachmentNotes >500, followUpNote >1000 | 400 VALIDATION_FAILED with field errors; nothing written | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | UI-L4-01 | UI | AC-16, AC-24 | StaffDashboard renders cards, My Open Actions, urgent list | Values and labels shown; non-color cues | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-02 | UI | AC-17 | StaffDashboard card/row drill-down navigation | Navigates to correct queue/detail route+params | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-03 | UI | AC-15, AC-25 | RequesterDashboard own metrics + Waiting for Me cue | Correct cards; attention cue present | client/src/pages/__tests__/RequesterDashboard.test.tsx | Planned |
