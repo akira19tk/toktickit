@@ -30,8 +30,8 @@ prove no lost update and no duplicate write.
 | Test ID | Type | AC | What It Tests | Expected Result | Automated Test File | Status |
 |---|---|---|---|---|---|---|
 | UNIT-L4-01 | Unit | AC-11 | Ticket transition matrix incl. CANCELLED terminal | Allowed/blocked pairs match BR-14 | server/tests/lab-04/lib.unit.test.ts | Planned |
-| UNIT-L4-02 | Unit | AC-04, AC-05 | Action lifecycle validator (OPEN→COMPLETED/CANCELLED only; complete needs result) | Legal transitions pass, others rejected | server/tests/lab-04/lib.unit.test.ts | Planned |
-| UNIT-L4-03 | Unit | AC-07 | Follow-up note rule (required iff followUpRequired) | Mismatches rejected | server/tests/lab-04/lib.unit.test.ts | Planned |
+| UNIT-L4-02 | Unit | AC-04, AC-05 | Action lifecycle validator (OPEN→COMPLETED/CANCELLED only; complete needs result) | Legal transitions pass, others rejected | server/tests/lab-04/lib.unit.test.ts | Pass |
+| UNIT-L4-03 | Unit | AC-07 | Follow-up note rule (required iff followUpRequired) | Mismatches rejected | server/tests/lab-04/lib.unit.test.ts | Pass |
 | UNIT-L4-04 | Unit | AC-26 | Asia/Bangkok "last 7 days" / day-boundary helper | Boundary computed in UTC+7, not UTC | server/tests/lab-04/lib.unit.test.ts | Planned |
 | API-L4-01 | API | AC-01 | Create a valid Action | 201; under correct Ticket; performedBy=creator; status OPEN; updatedBy null | server/tests/lab-04/actions-taken.api.test.ts | Planned |
 | API-L4-02 | API | AC-02 | Assign to active vs inactive staff/admin | Active → set; inactive → 422 ASSIGNEE_INACTIVE, unchanged | server/tests/lab-04/actions-taken.api.test.ts | Planned |
@@ -77,10 +77,10 @@ prove no lost update and no duplicate write.
 | UI-L4-08 | UI | AC-11, AC-21 | TicketWorkflow shows only permitted transitions; disables on submit | Permitted options only; no double submit | client/src/components/__tests__/TicketWorkflow.test.tsx | Planned |
 | UI-L4-09 | UI | AC-10 | TicketWorkflow surfaces OPEN_ACTIONS_EXIST without losing summary | Inline conflict; entered data preserved | client/src/components/__tests__/TicketWorkflow.test.tsx | Planned |
 | RESP-L4-01 | Responsive/Style | AC-20 | Dashboards + Actions table reflow (desktop/tablet/mobile) | 2-up/1-up grid; Actions table → stacked cards; no horizontal overflow | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
-| MIG-L4-01 | Migration | AC-20 | Apply Lab 4 migration on a Lab 3 DB | All Lab 1–3 rows preserved; ActionTaken + enum created | server/tests/lab-04/migration.test.ts | Planned |
-| MIG-L4-02 | Migration | AC-10, AC-20 | Legacy Ticket (zero Actions) resolvable after migration | Resolution gate passes; no backfill needed | server/tests/lab-04/migration.test.ts | Planned |
-| MIG-L4-03 | Migration | AC-20 | Rollback drops ActionTaken/enum only | Lab 1–3 data intact | server/tests/lab-04/migration.test.ts | Planned |
-| MIG-L4-04 | Migration | AC-20 | Seed is idempotent; covers zero/one/multiple Actions and non-zero/zero metrics | Re-run safe; dashboard-demo data present | server/tests/lab-04/migration.test.ts | Planned |
+| MIG-L4-01 | Migration | AC-20 | Apply Lab 4 migration on a Lab 3 DB | All Lab 1–3 rows preserved; ActionTaken + enum created | server/tests/lab-04/migration.test.ts | Pass |
+| MIG-L4-02 | Migration | AC-10, AC-20 | Legacy Ticket (zero Actions) resolvable after migration | Resolution gate passes; no backfill needed | server/tests/lab-04/migration.test.ts | Pass |
+| MIG-L4-03 | Migration | AC-20 | Rollback drops ActionTaken/enum only | Lab 1–3 data intact | server/tests/lab-04/migration.test.ts | Pass |
+| MIG-L4-04 | Migration | AC-20 | Seed is idempotent; covers zero/one/multiple Actions and non-zero/zero metrics | Re-run safe; dashboard-demo data present | server/tests/lab-04/migration.test.ts | Pass |
 | REG-L4-01 | Regression | AC-20 | Full Lab 1–3 server suites still green | All prior API/unit tests pass | server/tests/lab-01..03/* | Planned |
 | E2E-L4-01 | E2E | AC-01,AC-02,AC-04,AC-05,AC-22 | Actions Taken flow: create→assign→complete / cancel, multiple on one Ticket | Visible, persisted, role-restricted | e2e/lab-04/actions-taken-flow.spec.ts | Planned |
 | E2E-L4-02 | E2E | AC-10, AC-11 | Ticket resolution: blocked by open Action, then resolve, reopen | Gate enforced end-to-end | e2e/lab-04/ticket-resolution.spec.ts | Planned |
