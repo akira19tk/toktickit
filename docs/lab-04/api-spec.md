@@ -27,7 +27,13 @@ Action `PATCH` accept an optional `expectedUpdatedAt` (ISO-8601 string equal to 
 | 422 | Semantic validation (assignee) | `ASSIGNEE_INACTIVE`, `INVALID_ASSIGNEE` |
 | 409 | New state conflicts | `INVALID_ACTION_STATE`, `OPEN_ACTIONS_EXIST`, `STALE_UPDATE` |
 
-`TICKET_CLOSED` (409) is reused from Lab 3 for Actions on CLOSED/CANCELLED Tickets.
+`TICKET_CLOSED` (409) is reused from Lab 3 for Actions on Tickets not in an active working status — i.e.
+`RESOLVED`, `CLOSED`, or `CANCELLED` (Lab 4 extends this to `RESOLVED`; see spec BR-10).
+
+**Atomic resolution gate.** `PATCH …/status` runs the OPEN-Actions check and the status `UPDATE` in a single
+serializable transaction, and Action create re-checks the Ticket status in its own transaction, so the two
+can never interleave to leave a `RESOLVED` Ticket holding an `OPEN` Action (spec BR-23). A serialization
+conflict retries once, then returns `409 STALE_UPDATE`.
 
 **Action object** (returned by all Action endpoints; same shape for staff and Requester reads)
 ```json
@@ -74,7 +80,8 @@ Request (allow-listed)
 - **422** `ASSIGNEE_INACTIVE` (assignee is an inactive IT_STAFF/ADMIN) or `INVALID_ASSIGNEE` (assignee is a
   REQUESTER or unknown id).
 - **403** Requester, or missing CSRF/password gate. **404** Ticket not found.
-- **409** `TICKET_CLOSED` — Ticket is CLOSED or CANCELLED.
+- **409** `TICKET_CLOSED` — Ticket is `RESOLVED`, `CLOSED`, or `CANCELLED` (not an active working status).
+  Reopen the Ticket (`→ REOPENED`) to add Actions.
 
 `actionDate` defaults to now when omitted. `assigneeId` is optional (unassigned Action).
 
@@ -118,7 +125,7 @@ Request `{ "status": "RESOLVED", "resolutionSummary": "…", "confirm": true, "e
   → then **400** for the target-conditional requirement (`resolutionSummary` 10–1000 for RESOLVED; `confirm`
   for CLOSED/CANCELLED); `STALE_UPDATE` if `expectedUpdatedAt` is stale.
 - `OPEN_ACTIONS_EXIST` message lists the count of still-open Actions. A Ticket with zero Actions resolves
-  normally.
+  normally. The gate check and the status `UPDATE` run in one serializable transaction (BR-23).
 - **403** Requester. **404** Ticket not found.
 
 `…/owner`, `…/it-priority`, `…/claim`, `…/comments`, `…/notes` keep **exact Lab 3 behavior and Lab 3 role

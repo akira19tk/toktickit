@@ -40,7 +40,7 @@ prove no lost update and no duplicate write.
 | API-L4-05 | API | AC-05 | Cancel OPEN then repeat | →CANCELLED; second transition 409 INVALID_ACTION_STATE | server/tests/lab-04/actions-taken.api.test.ts | Planned |
 | API-L4-06 | API | AC-06 | Edit a COMPLETED/CANCELLED Action | 400 (read-only history) | server/tests/lab-04/actions-taken.api.test.ts | Planned |
 | API-L4-07 | API | AC-07 | followUpRequired true with empty note; valid note | 400; then success | server/tests/lab-04/actions-taken.api.test.ts | Planned |
-| API-L4-08 | API | AC-14 | Create/edit Action on CLOSED/CANCELLED Ticket | 409 TICKET_CLOSED | server/tests/lab-04/actions-taken.api.test.ts | Planned |
+| API-L4-08 | API | AC-14 | Create/edit Action on RESOLVED/CLOSED/CANCELLED Ticket | 409 TICKET_CLOSED | server/tests/lab-04/actions-taken.api.test.ts | Planned |
 | API-L4-09 | API | AC-19 | Multiple Actions list order | Newest-first by createdAt, stable | server/tests/lab-04/actions-taken.api.test.ts | Planned |
 | API-L4-10 | API | AC-22 | Staff B (not author) edits/completes staff A's Action | 200; updatedBy=B; updatedAt refreshed | server/tests/lab-04/actions-taken.api.test.ts | Planned |
 | API-L4-11 | API | AC-13 | Action PATCH with stale expectedUpdatedAt; omitted | 409 STALE_UPDATE; omitted → proceeds | server/tests/lab-04/actions-taken.api.test.ts | Planned |
@@ -62,6 +62,8 @@ prove no lost update and no duplicate write.
 | API-L4-27 | API | AC-24 | Urgent list contents/order | Exactly HIGH & not Closed/Cancelled, newest-first, ≤5 | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
 | API-L4-28 | API | AC-17 | Dashboards with empty scope | Zeros / empty lists, 200 (no 404) | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
 | API-L4-29 | API | AC-18 | Staff dashboard requested by Requester | 403 | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
+| API-L4-30 | API | AC-27 | Concurrent resolve + new-Action-create on an all-completed Ticket (Promise.all) | Invariant holds: resolve commits & create 409 TICKET_CLOSED, OR create commits & resolve 409 OPEN_ACTIONS_EXIST; never RESOLVED with an OPEN Action | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
+| API-L4-31 | API | AC-14 | Create Action on a RESOLVED Ticket; then reopen (→REOPENED) and create | 409 TICKET_CLOSED; after reopen, 201 | server/tests/lab-04/actions-taken.api.test.ts | Planned |
 | UI-L4-01 | UI | AC-16, AC-24 | StaffDashboard renders cards, My Open Actions, urgent list | Values and labels shown; non-color cues | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-02 | UI | AC-17 | StaffDashboard card/row drill-down navigation | Navigates to correct queue/detail route+params | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-03 | UI | AC-15, AC-25 | RequesterDashboard own metrics + Waiting for Me cue | Correct cards; attention cue present | client/src/pages/__tests__/RequesterDashboard.test.tsx | Planned |
@@ -99,7 +101,7 @@ prove no lost update and no duplicate write.
 | AC-11 | UNIT-L4-01, API-L4-16, UI-L4-08, E2E-L4-02 |
 | AC-12 | API-L4-17 |
 | AC-13 | API-L4-11, API-L4-18 |
-| AC-14 | API-L4-08 |
+| AC-14 | API-L4-08, API-L4-31 |
 | AC-15 | API-L4-21, API-L4-24, UI-L4-03, E2E-L4-03 |
 | AC-16 | API-L4-25, UI-L4-01, E2E-L4-03 |
 | AC-17 | API-L4-28, UI-L4-02, UI-L4-04, E2E-L4-03 |
@@ -112,8 +114,9 @@ prove no lost update and no duplicate write.
 | AC-24 | API-L4-27, UI-L4-01 |
 | AC-25 | API-L4-22, UI-L4-03 |
 | AC-26 | UNIT-L4-04, API-L4-23 |
+| AC-27 | API-L4-30 |
 
 ## 4. Planned totals
 
-52 tests planned — Unit 4, API 29, UI 9, Responsive/Style 1, Migration 4, Regression 1, E2E 4.
+54 tests planned — Unit 4, API 31, UI 9, Responsive/Style 1, Migration 4, Regression 1, E2E 4.
 Final per-test status and the full passing output from `main` are recorded here once implemented.

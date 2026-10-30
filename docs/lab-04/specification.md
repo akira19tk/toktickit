@@ -119,13 +119,18 @@ existing Lab 2 Attachments; it is not a new upload channel), and deleting Action
   Attachment to look at and does not itself store or upload a file.
 - **BR-09** Action lifecycle: `OPEN → COMPLETED` (complete) and `OPEN → CANCELLED` (cancel) are the only
   transitions; `COMPLETED` and `CANCELLED` are terminal. Any other transition is `409 INVALID_ACTION_STATE`.
-- **BR-10** Actions can be created/edited only on Tickets that are not `CLOSED` or `CANCELLED`
-  (`409 TICKET_CLOSED`), mirroring Lab 3 BR-44 for comments/notes.
+- **BR-10** Actions can be created or edited only while the Ticket is in an **active working status**
+  (`NEW`, `OPEN`, `IN_PROGRESS`, `WAITING_FOR_REQUESTER`, `REOPENED`). On `RESOLVED`, `CLOSED`, or
+  `CANCELLED` Tickets, create/edit returns `409 TICKET_CLOSED`. This closes the invariant gap: a `RESOLVED`
+  Ticket can never acquire a new `OPEN` Action. To record further work on a `RESOLVED`/`CLOSED` Ticket, IT
+  Staff must first **reopen it** (`→ REOPENED`) per the transition matrix (BR-14); Actions are never
+  auto-created and never auto-reopen a Ticket. (Extends Lab 3 BR-44, which blocked only CLOSED/CANCELLED.)
 - **BR-11** Requesters may read Actions on their **own** Tickets only; any Action write under `/api/staff/*`
   by a Requester is `403`. Non-owned Ticket reads are `404` (no existence leak), as in Lab 3.
 - **BR-12 (resolution gate)** A Ticket may not transition to `RESOLVED` while any of its Actions has status
   `OPEN` → `409 OPEN_ACTIONS_EXIST`. A Ticket with **zero** Actions may be resolved (legacy Lab 1–3 Tickets
-  and simple tickets are unaffected). This is the Lab 4 rule deferred by Lab 3 BR-39.
+  and simple tickets are unaffected). This is the Lab 4 rule deferred by Lab 3 BR-39. The OPEN-Actions check
+  and the status `UPDATE` are atomic — see BR-23.
 - **BR-13** The Lab 3 resolution requirements still apply: `RESOLVED` requires a 10–1000 char
   `resolutionSummary`; `CLOSED`/`CANCELLED` require `confirm: true`; `CLOSED` is reachable only from
   `RESOLVED`. (Status matrix below.)
@@ -170,6 +175,14 @@ existing Lab 2 Attachments; it is not a new upload channel), and deleting Action
   `updatedAt` desc, limited to 5, each linking to Ticket Detail.
 - **BR-22** The Requester dashboard **"Waiting for Me"** metric = the Requester's own Tickets with
   `currentStatus = WAITING_FOR_REQUESTER`, drilling down to `/tickets?status=WAITING_FOR_REQUESTER`.
+- **BR-23 (atomic resolution gate)** A resolve request runs the OPEN-Actions check and the `UPDATE … SET
+  currentStatus = RESOLVED` inside **one serializable database transaction** (Prisma
+  `$transaction`, isolation `Serializable`), re-reading the Ticket's Action states inside the transaction.
+  Combined with BR-10 (Action create/edit re-checks the Ticket status inside its own transaction and is
+  rejected unless the Ticket is in an active status), this makes the invariant *"a RESOLVED/CLOSED Ticket
+  has no OPEN Action"* hold under concurrency: a resolve and a concurrent Action-create can never interleave
+  to leave a RESOLVED Ticket with an OPEN Action. On a serialization conflict the later transaction retries
+  once, then fails safe with `409 STALE_UPDATE` (nothing written).
 
 ## 6. UI Specification Summary
 
@@ -346,7 +359,7 @@ All counts are backend-computed; empty scope returns `0` or `[]` (never 404). Da
 | **AC-11** | BR-13, BR-14 | Given a target status, when IT Staff change status, then matrix-allowed transitions succeed (with summary/confirm where required) and all others return `409 INVALID_TRANSITION` listing allowed targets. |
 | **AC-12** | BR-15 | Given a `RESOLVED` request that violates several rules at once, when processed, then the first applicable error in order (`INVALID_TRANSITION` → `TICKET_UNASSIGNED` → `OPEN_ACTIONS_EXIST` → `400` summary) is returned. |
 | **AC-13** | BR-16 | Given a stale `expectedUpdatedAt` on a status or Action mutation, when submitted, then `409 STALE_UPDATE`; when omitted, then the mutation proceeds (Lab 3 compatibility). |
-| **AC-14** | BR-10 | Given a `CLOSED` or `CANCELLED` Ticket, when an Action is created/edited, then `409 TICKET_CLOSED`. |
+| **AC-14** | BR-10 | Given a `RESOLVED`, `CLOSED`, or `CANCELLED` Ticket, when an Action is created/edited, then `409 TICKET_CLOSED`; given the Ticket is reopened (`→ REOPENED`), then an Action can be created again. |
 | **AC-15** | FR-11, BR-18 | Given an authenticated Requester, when the Requester dashboard is retrieved, then only metrics and recent Tickets owned by that Requester are returned, with correct open/in-progress/resolved/closed counts and a waiting-for-you indicator. |
 | **AC-16** | FR-12, BR-18 | Given IT Staff, when the dashboard is retrieved, then New/Open/In Progress/Waiting counts, my-assigned, unassigned, my-open-Actions, and the 5 most recently updated active Tickets match direct DB queries. |
 | **AC-17** | FR-13 | Given a dashboard card/row, when activated, then it navigates to the correct filtered Queue / My Tickets / Ticket Detail; given empty scope, then zeros/empty lists render (no error, no 404). |
@@ -359,6 +372,7 @@ All counts are backend-computed; empty scope returns `0` or `[]` (never 404). Da
 | **AC-24** | FR-12, BR-21 | Given Tickets of mixed IT priority and status, when the IT Staff dashboard is retrieved, then the Urgent list contains exactly the HIGH-priority Tickets not in CLOSED/CANCELLED, newest-first, and each links to Ticket Detail. |
 | **AC-25** | FR-11, BR-22 | Given the Requester has Tickets in WAITING_FOR_REQUESTER, when the Requester dashboard is retrieved, then the "Waiting for Me" count matches and drills down to `/tickets?status=WAITING_FOR_REQUESTER`. |
 | **AC-26** | BR-18 | Given a Ticket resolved at a time that falls on different calendar days in UTC vs Asia/Bangkok, when "Recently Resolved" is computed, then the Asia/Bangkok day boundary is used. |
+| **AC-27** | FR-09, BR-12, BR-23 | Given a Ticket whose Actions are all completed, when a resolve request and a new-Action-create request are issued concurrently, then the invariant holds: either the resolve commits and the create is rejected `409 TICKET_CLOSED`, or the create commits (Ticket still active) and the resolve returns `409 OPEN_ACTIONS_EXIST` — the system never ends with a `RESOLVED` Ticket that has an `OPEN` Action. |
 
 Every AC maps to at least one planned test in `tests.md`.
 
