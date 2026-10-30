@@ -299,6 +299,11 @@ No existing field is altered or dropped.
     environment, or restore the pre-migrate `pg_dump`. Because the change is purely additive, rollback never
     causes Lab 1–3 data loss. **MIG-L4-03** asserts rollback drops only `ActionTaken`/`ActionStatus` and that
     all Lab 1–3 rows survive.
+  - **Rollback limitation (explicit):** rollback **permanently discards every `ActionTaken` row** — the
+    table is dropped. No Lab 1–3 data is affected, but any recorded Actions are lost unless first captured
+    via `pg_dump --table=ActionTaken` (step 4 above) or recovered from the pre-migrate `pg_dump` snapshot.
+    This is the only data-loss consequence of the rollback and is accepted as the trade-off for a clean,
+    purely-additive down-migration.
 - **Seed (idempotent):** re-runnable safely (upsert/skip by deterministic key). Adds Tickets covering all
   major statuses and priorities, assigned and unassigned, and Tickets with **zero, one, and multiple**
   Actions across OPEN/COMPLETED/CANCELLED, with and without follow-up, assigned to active staff (and the
