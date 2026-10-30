@@ -400,6 +400,8 @@ Action read model (`GET /api/tickets/:id/actions`) returns only Action fields (B
 | **AC-26** | BR-18 | Given a Ticket resolved at a time that falls on different calendar days in UTC vs Asia/Bangkok, when "Recently Resolved" is computed, then the Asia/Bangkok day boundary is used. |
 | **AC-27** | FR-09, BR-12, BR-23 | Given a Ticket whose Actions are all completed, when a resolve request and a new-Action-create request are issued concurrently, then the invariant holds: either the resolve commits and the create is rejected `409 TICKET_CLOSED`, or the create commits (Ticket still active) and the resolve returns `409 OPEN_ACTIONS_EXIST` — the system never ends with a `RESOLVED` Ticket that has an `OPEN` Action. |
 | **AC-28** | FR-06, BR-11, BR-24 | Given a Requester, when they read their own Ticket's Actions, then the payload contains only Action fields and no Internal Note content; when they request a non-owned Ticket's Actions, then `404`; when they call `/api/staff/tickets/:id/notes`, then `403`. (Requesters never see Internal Notes by any path.) |
+| **AC-29** | FR-01, FR-03, BR-19 | Given an unknown Ticket id (create/list Actions) or an unknown Action id under a valid Ticket (PATCH), when requested by permitted staff, then `404` with no existence leak. |
+| **AC-30** | FR-02, BR-05, BR-06, BR-08 | Given an Action create/edit with a field out of bounds (empty or >2000 char description, future `actionDate`, >500 char `attachmentNotes`, >1000 char `followUpNote`), when submitted, then `400 VALIDATION_FAILED` with field errors and nothing is written. |
 
 Every AC maps to at least one planned test in `tests.md`.
 

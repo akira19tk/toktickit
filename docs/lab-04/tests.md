@@ -65,6 +65,8 @@ prove no lost update and no duplicate write.
 | API-L4-30 | API | AC-27 | Concurrent resolve + new-Action-create on an all-completed Ticket (Promise.all) | Invariant holds: resolve commits & create 409 TICKET_CLOSED, OR create commits & resolve 409 OPEN_ACTIONS_EXIST; never RESOLVED with an OPEN Action | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
 | API-L4-31 | API | AC-14 | Create Action on a RESOLVED Ticket; then reopen (→REOPENED) and create | 409 TICKET_CLOSED; after reopen, 201 | server/tests/lab-04/actions-taken.api.test.ts | Planned |
 | API-L4-32 | API | AC-28 | Requester Action read model excludes Internal Notes; non-owned 404; requester hits /notes | Payload has only Action fields (no note content); 404; 403 on /notes | server/tests/lab-04/actions-taken.api.test.ts | Planned |
+| API-L4-33 | API | AC-29 | 404 edge cases: PATCH unknown actionId under a valid Ticket; GET/POST actions on unknown Ticket | 404 (no existence leak) | server/tests/lab-04/actions-taken.api.test.ts | Planned |
+| API-L4-34 | API | AC-30 | 400 field bounds: description empty/>2000, actionDate in the future, attachmentNotes >500, followUpNote >1000 | 400 VALIDATION_FAILED with field errors; nothing written | server/tests/lab-04/actions-taken.api.test.ts | Planned |
 | UI-L4-01 | UI | AC-16, AC-24 | StaffDashboard renders cards, My Open Actions, urgent list | Values and labels shown; non-color cues | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-02 | UI | AC-17 | StaffDashboard card/row drill-down navigation | Navigates to correct queue/detail route+params | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-03 | UI | AC-15, AC-25 | RequesterDashboard own metrics + Waiting for Me cue | Correct cards; attention cue present | client/src/pages/__tests__/RequesterDashboard.test.tsx | Planned |
@@ -84,6 +86,20 @@ prove no lost update and no duplicate write.
 | E2E-L4-02 | E2E | AC-10, AC-11 | Ticket resolution: blocked by open Action, then resolve, reopen | Gate enforced end-to-end | e2e/lab-04/ticket-resolution.spec.ts | Planned |
 | E2E-L4-03 | E2E | AC-15,AC-16,AC-17 | Dashboards: staff + requester metrics and drill-down | Counts match; navigation correct | e2e/lab-04/dashboards.spec.ts | Planned |
 | E2E-L4-04 | E2E | AC-20 | Representative Lab 1–3 regression (auth, My Tickets, detail, attachments, comments, notes, admin) | All prior flows pass | e2e/lab-04/dashboards.spec.ts | Planned |
+
+## 2.1 Error / edge-case coverage audit
+
+Every error class across the Lab 4 endpoints has at least one explicit test:
+
+| Error class | Covered by |
+|---|---|
+| 400 validation (field shape/bounds) | API-L4-04 (complete w/o result), API-L4-07 (follow-up note), API-L4-34 (description/actionDate/attachmentNotes/followUpNote bounds) |
+| 422 assignee semantics | API-L4-02 (inactive), API-L4-03 (requester/unknown) |
+| 403 forbidden (role) | API-L4-13 (requester write), API-L4-24/29 (dashboards), API-L4-32 (/notes) |
+| 404 not-found / ownership | API-L4-12 (non-owned read), API-L4-33 (unknown ticket/action) |
+| 409 INVALID_TRANSITION / OPEN_ACTIONS_EXIST / INVALID_ACTION_STATE / NO_CHANGE | API-L4-16, API-L4-15/17, API-L4-04/05, API-L4-17 |
+| 409 STALE_UPDATE (concurrency) | API-L4-11 (action), API-L4-18 (status), API-L4-30 (serializable gate) |
+| 409 TICKET_CLOSED (resolved/closed/cancelled) | API-L4-08, API-L4-31 |
 
 ## 3. Acceptance-Criterion Traceability
 
@@ -117,8 +133,10 @@ prove no lost update and no duplicate write.
 | AC-26 | UNIT-L4-04, API-L4-23 |
 | AC-27 | API-L4-30 |
 | AC-28 | API-L4-32, UI-L4-07 |
+| AC-29 | API-L4-33 |
+| AC-30 | API-L4-34 |
 
 ## 4. Planned totals
 
-55 tests planned — Unit 4, API 32, UI 9, Responsive/Style 1, Migration 4, Regression 1, E2E 4.
+57 tests planned — Unit 4, API 34, UI 9, Responsive/Style 1, Migration 4, Regression 1, E2E 4.
 Final per-test status and the full passing output from `main` are recorded here once implemented.
