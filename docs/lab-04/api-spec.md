@@ -134,7 +134,10 @@ rules** (ADMIN remains read-only on these); they only gain the optional `expecte
 ## 5. Dashboards
 
 All metrics are computed by the backend; date boundaries use `Asia/Bangkok` (UTC+7). Empty scope returns
-`0` / `[]`, never 404. Each metric carries a `drillDown` client-route string (see `specification.md` §8.1).
+`0` / `[]`, never 404. The response bodies below are the authoritative shapes: `metrics` is a flat object of
+counts and the recent lists carry only safe Ticket fields. Drill-down targets are **not** part of the
+response — the client maps each metric to its drill-down client route per the catalogue in
+`specification.md` §8.1 (that table stays the single source of truth for drill-down URLs).
 
 ### GET /staff/dashboard — IT_STAFF, ADMIN
 ```json
