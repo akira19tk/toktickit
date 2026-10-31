@@ -1,61 +1,67 @@
 # Lab 4 — AI Use Report
 
-> **Template.** Grading Part 4 wants the LLM(s) named, **6–10 selected key prompts**, and a short
-> "My Reflection" on specification-agent and coding-agent use. Fill the prompts in with the real commit
-> hashes / PR numbers as the work lands; keep prompts representative (not every message), and note where the
-> agent was wrong and how it was caught.
+## 1. Tools used and responsibilities
 
-## 1. Tools used
+- **Claude (Opus), through claude.ai** — specification/planning support in the earlier work. The existing AI-use record identifies it as the specification agent used to draft the engineering contract and discuss requirements. This attribution is retained from that record; the original Claude conversation was not available in the continuation session. The student subsequently supplied the selected prompts in Section 2.
+- **Claude Code (Opus)** — implementation support for the earlier Actions Taken, ticket workflow, dashboards and tests, as identified in the existing report and handoff. The precise Opus version was not recorded.
+- **OpenAI Codex desktop coding agent** — continued the project from the handoff; inspected repository and GitHub state, implemented accessibility and regression hardening, updated tests and evidence, assisted with release preparation, and drafted documentation. The exact model identifier for this session was not recorded, so no model version is claimed.
+- **The student** — selected the implementation scope, approved specification changes, ran Chromium E2E in local Terminal, checked actual results, merged approved PRs, and supplied the personal experiences used for My Reflection.
+- **Peer reviewer @daisysia** — provided human review and approval on GitHub. Peer approval is distinct from AI assistance and automated test results.
 
-- **Claude (claude.ai chat, Opus)** — specification agent / planner / reviewer: turned the handout into the
-  Sprint 4 engineering contract, resolved ambiguities with the author, and reviewed agent output before it
-  was run.
-- **Claude Code (Opus)** — coding agent: wrote and edited server, client, and test code from approved
-  prompts.
-- **The author** ran all server, database, migration, and Playwright commands and decided what to accept.
+The agent ran server, migration, client and build/lint checks. The student ran the successful local E2E checks because Chromium startup was blocked in the agent environment. Therefore, the earlier template's statement that the author ran every command has been corrected.
 
-Stack: TypeScript, Express 5 + Prisma (PostgreSQL), React 19 + Vite, Vitest (unit/API), Playwright (E2E),
-Git. Commit hashes below are from `git log`.
+Stack: TypeScript, Express 5, Prisma 6/PostgreSQL, React 19/Vite, Vitest, Playwright and GitHub.
 
-## 2. Key prompts and what happened
+## 2. Selected prompts
 
-1. **"Act as my specification agent. List every handout ambiguity/contradiction first, then draft
-   `docs/lab-04/specification.md` with sections 1–11."**
-   Surfaced the Actions-Taken-assignee/status gap, the §4.3-vs-§8.3 Requester-visibility conflict, the
-   deferred resolution gate, and the Admin-write conflict; the author decided each, and the spec was written
-   accordingly (`e434819`).
+The following six prompts were supplied by the student for this report. The bracketed reviewer-comments field in prompt 6 represents the review text supplied at that stage.
 
-2. **"Refine the spec: any active staff/admin can edit any Action (track `updatedById`); assignee rejection
-   is 422; dashboards use Asia/Bangkok; add My Open Actions + urgent list + Waiting for Me; give every metric
-   a query/empty/drill-down."**
-   Added BR-20–BR-22, AC-22–AC-26, and the §8.1 metric catalog (`e434819` follow-up).
+### 1. Setup (Coding agent)
 
-3. _"Write `api-spec.md` / `ui-spec.md` / `tests.md` matching Lab 3 conventions; every AC maps to ≥1 test with
-   the handout §12 file paths."_
-   Produced the contract docs and the 52-test plan with full AC traceability.
+**Instructions:**
+> Read the Lab 4 handout and explore this repo (docs, schema, server, client, tests). Summarize the architecture and what Lab 4 must add. Add Lab 4 rules to CLAUDE.md: one Issue = one feature branch = one PR into lab4-staging, tests first, preserve Lab 1-3 behavior, backend enforces all rules. Do not write feature code yet.
 
-4. _"<Actions Taken foundation prompt — Prisma migration + model + seed + API + authz + tests>"_
-   → _<commit>_, API-L4-01..14, MIG-L4-01..04.
+### 2. Draft spec (Spec agent)
 
-5. _"<Ticket workflow / resolution gate prompt>"_ → _<commit>_, API-L4-15..20.
+**Instructions:**
+> Act as my specification agent. Draft docs/lab-04/specification.md with FR, BR, AC (Given/When/Then), data changes, API summary, and Definition of Done. Do not copy the handout. BEFORE writing, list every ambiguity or contradiction in the handout and ask me to decide.
 
-6. _"<Role dashboards prompt — backend metrics + UI>"_ → _<commit>_, API-L4-21..29, UI-L4-01..04.
+### 3. Refine spec (Spec agent)
 
-7. _"<Actions Taken UI prompt>"_ → _<commit>_, UI-L4-05..07.
+**Instructions:**
+> Before committing, check specification.md: any active IT Staff can update any Action; assignee must be active IT Staff (else 422); dashboard dates use Asia/Bangkok; add "My Open Actions" and "Waiting for Me" cards; every metric has an exact query, empty behavior, and drill-down URL. Add ACs and BRs for new items.
 
-8. _"<Final hardening / regression prompt>"_ → _<commit>_, REG-L4-01, E2E-L4-01..04.
+### 4. Decompose work (Spec agent)
 
-<!-- Keep 6–10 total. Replace placeholders with real prompts, commits, and outcomes. -->
+**Instructions:**
+> Decompose the sprint into 8-12 GitHub Issues with gh. Each issue: description, linked FR/AC/test IDs, acceptance checklist, branch name, and dependencies. Show me the list first, then add them to the Project board.
 
-## 3. Where the agent was wrong (and how it was caught)
+### 5. Implement with TDD (Coding agent)
 
-- _<example: the agent first proposed 409 for an inactive assignee; the contract requires 422 — caught in
-  review and corrected in the spec before coding.>_
-- _<add real cases: a mis-ordered error check caught by API-L4-17, a timezone off-by-one caught by
-  UNIT-L4-04, etc.>_
+**Instructions:**
+> Work on Issue #51: Ticket workflow. Enforce the transition matrix server-side; block RESOLVED with 409 OPEN_ACTIONS_EXIST if any Action is OPEN, inside one serializable transaction; return 409 (never 500) on serialization failures. Show me the plan first, write failing tests, implement until they pass, run the full Labs 1-4 suite, then open a PR into lab4-staging.
+
+### 6. Respond to peer review (Coding agent)
+
+**Instructions:**
+> PR #59 got this review: [reviewer comments]. Respond with evidence, adding tests only where coverage is missing. Add a test firing two PATCHes with the same expectedUpdatedAt in parallel: exactly one 200 and one 409. Post a point-by-point reply with commit hashes and record the review in reviewer.md.
+
+
+## 3. Limitations and corrections made during AI-assisted work
+
+- **Historical context required verification.** The handoff described PR #64 as open, but a live GitHub check showed it was already merged. The agent checked repository/PR state before proceeding.
+- **A test summary was not enough.** The initial parallel client run had a workflow timeout that passed in isolation. The agent recorded the failure, changed test execution/cleanup, and used real final results instead of treating the isolated pass as a full-suite pass.
+- **The first server build exposed test-file compatibility problems.** The build reported CommonJS-incompatible `import.meta` and a missing explicit extension in a dynamic import. Both were corrected; the server build and affected server tests then passed. The original failed build output was retained.
+- **Environment failure was not an application pass.** Chromium was denied startup permission in the agent environment. E2E stayed Blocked until the student supplied a successful local Terminal run. The agent did not weaken assertions or add retries to conceal it.
+- **Public evidence needed a privacy check.** Publication of the initial raw transcript/screenshots was blocked by automatic review. Personal shell prompts were removed, the transcript was checked, and representative fixture screenshots were inspected for sensitive content before publication.
+- **Automated coverage has limits.** Passing responsive/style tests and screenshot generation do not establish a full manual accessibility audit. Remaining Prisma CLI dependency advisories and post-release documentation work must not be described as resolved by a green test count.
+
+Release [PR #66](https://github.com/akira19tk/toktickit/pull/66) merged as `a92fa7d`. The final-main checks were server **544**, migration **46**, client **127**, E2E **36**, with builds/lint passing. The main E2E run was performed by the student. This report does not claim that evidence from a feature branch alone verifies the release.
 
 ## 4. My Reflection
 
-_<2–4 short paragraphs: how the specification agent changed the quality of the contract vs. jumping straight
-to code; where the coding agent saved time; where human judgment / running the tests was essential; what you
-would do differently next sprint.>_
+In this project, AI helped me most with writing tests and organizing submission evidence. It made reviewing test coverage and collecting results more systematic. Having a specification and acceptance criteria also helped me check whether the AI-generated tests covered the required behavior.
+
+My main responsibility was running the tests and checking the results reported by AI. For example, the E2E tests could not run through the agent because the environment blocked Chromium from starting. I ran them in my local Terminal and confirmed that all 36 tests passed. I also ran them again after merging into main so that the evidence matched the submitted branch. This experience showed me that AI summaries need to be supported by actual test results.
+
+For my next project, I will define the specification and acceptance criteria clearly before asking AI to write code. This will provide a shared basis for implementation and review. AI can save considerable time, but I remain responsible for verifying its work and deciding whether the results are acceptable.
