@@ -25,6 +25,81 @@ const router = Router();
 // Active = everything except CLOSED and CANCELLED (BR-57).
 const ACTIVE_EXCLUDED: TicketStatus[] = ["CLOSED", "CANCELLED"];
 
+// ── GET /api/staff/dashboard ─────────────────────────────────────────────────
+// IT Staff dashboard (Lab 4, Issue #53). IT_STAFF, ADMIN; Requester → 403.
+// All metrics backend-computed from authoritative data (BR-18). Flat status
+// counts; "my assigned"/"unassigned" exclude CLOSED/CANCELLED; "my open Actions"
+// = Actions assigned to me with status OPEN; urgent = HIGH itPriority not in
+// {CLOSED,CANCELLED} (BR-21). Empty scope → 0 / [] (never 404). Admin reuses the
+// same dashboard (api-spec §5). Shape is authoritative — drill-downs are client
+// routes mapped from specification §8.1, not part of this response.
+
+const DASH_SELECT = {
+  id: true,
+  ticketNumber: true,
+  summary: true,
+  currentStatus: true,
+  itPriority: true,
+  updatedAt: true,
+} as const;
+
+router.get(
+  "/dashboard",
+  requireRole("IT_STAFF", "ADMIN") as RequestHandler,
+  async (req: Request, res: Response) => {
+    const me = req.user!.id;
+    const active: Prisma.TicketWhereInput = {
+      currentStatus: { notIn: ACTIVE_EXCLUDED },
+    };
+
+    const [
+      nw,
+      open,
+      inProgress,
+      waitingForRequester,
+      myAssigned,
+      unassigned,
+      myOpenActions,
+      myRecent,
+      urgent,
+    ] = await Promise.all([
+      prisma.ticket.count({ where: { currentStatus: "NEW" } }),
+      prisma.ticket.count({ where: { currentStatus: "OPEN" } }),
+      prisma.ticket.count({ where: { currentStatus: "IN_PROGRESS" } }),
+      prisma.ticket.count({ where: { currentStatus: "WAITING_FOR_REQUESTER" } }),
+      prisma.ticket.count({ where: { AND: [active, { ownerId: me }] } }),
+      prisma.ticket.count({ where: { AND: [active, { ownerId: null }] } }),
+      prisma.actionTaken.count({ where: { assigneeId: me, status: "OPEN" } }),
+      prisma.ticket.findMany({
+        where: { ownerId: me },
+        orderBy: { updatedAt: "desc" },
+        take: 5,
+        select: DASH_SELECT,
+      }),
+      prisma.ticket.findMany({
+        where: { AND: [active, { itPriority: "HIGH" }] },
+        orderBy: { updatedAt: "desc" },
+        take: 5,
+        select: DASH_SELECT,
+      }),
+    ]);
+
+    res.status(200).json({
+      metrics: {
+        new: nw,
+        open,
+        inProgress,
+        waitingForRequester,
+        myAssigned,
+        unassigned,
+        myOpenActions,
+      },
+      myRecentTickets: myRecent,
+      urgentTickets: urgent,
+    });
+  }
+);
+
 // ── GET /api/staff/tickets ───────────────────────────────────────────────────
 
 router.get(
@@ -62,10 +137,22 @@ router.get(
         break;
     }
 
+    // action-assignee / action-status drill-down (dashboard "My Open Actions").
+    // Restricts to Tickets having at least one ActionTaken matching the filter.
+    // For an Administrator actionAssignee=ME resolves to their own id; an Admin
+    // may legitimately be an Action assignee (BR-04), so this can match rows.
+    const actionSome: Prisma.ActionTakenWhereInput = {};
+    if (p.actionAssignee.kind === "ME") actionSome.assigneeId = me;
+    else if (p.actionAssignee.kind === "USER") actionSome.assigneeId = p.actionAssignee.id;
+    if (p.actionStatus) actionSome.status = p.actionStatus;
+    const actionWhere: Prisma.TicketWhereInput =
+      Object.keys(actionSome).length > 0 ? { actions: { some: actionSome } } : {};
+
     const where: Prisma.TicketWhereInput = {
       AND: [
         statusWhere,
         ownerWhere,
+        actionWhere,
         p.priority ? { itPriority: p.priority } : {},
         p.categoryId !== undefined ? { categoryId: p.categoryId } : {},
         // requesterResolved=true: restrict to Tickets the Requester flagged

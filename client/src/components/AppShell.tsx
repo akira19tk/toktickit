@@ -69,24 +69,44 @@ export default function AppShell({ children }: Props) {
                 </>
               )}
               {user?.role === "IT_STAFF" && (
-                <NavLink
-                  to="/staff/queue"
-                  className={({ isActive }) =>
-                    `zen-nav-link${isActive ? " zen-nav-link--active" : ""}`
-                  }
-                >
-                  Ticket Queue
-                </NavLink>
+                <>
+                  <NavLink
+                    to="/dashboard"
+                    className={({ isActive }) =>
+                      `zen-nav-link${isActive ? " zen-nav-link--active" : ""}`
+                    }
+                  >
+                    Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/staff/queue"
+                    className={({ isActive }) =>
+                      `zen-nav-link${isActive ? " zen-nav-link--active" : ""}`
+                    }
+                  >
+                    Ticket Queue
+                  </NavLink>
+                </>
               )}
               {user?.role === "ADMIN" && (
-                <NavLink
-                  to="/admin/users"
-                  className={({ isActive }) =>
-                    `zen-nav-link${isActive ? " zen-nav-link--active" : ""}`
-                  }
-                >
-                  User Management
-                </NavLink>
+                <>
+                  <NavLink
+                    to="/dashboard"
+                    className={({ isActive }) =>
+                      `zen-nav-link${isActive ? " zen-nav-link--active" : ""}`
+                    }
+                  >
+                    Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/admin/users"
+                    className={({ isActive }) =>
+                      `zen-nav-link${isActive ? " zen-nav-link--active" : ""}`
+                    }
+                  >
+                    User Management
+                  </NavLink>
+                </>
               )}
             </nav>
           )}
@@ -137,8 +157,7 @@ export default function AppShell({ children }: Props) {
   );
 }
 
-function roleHome(role: string): string {
-  if (role === "IT_STAFF") return "/staff/queue";
-  if (role === "ADMIN") return "/admin/users";
-  return "/my-tickets";
+function roleHome(_role: string): string {
+  // Every role lands on the role-aware Dashboard (ui-spec §3).
+  return "/dashboard";
 }

@@ -253,6 +253,33 @@ regression **15/15**; browser-verified end-to-end against the merged backend.
 **Follow-up Issues opened:** none — items 1–4 resolved within PR #62; item 5 (lifecycle E2E) is
 Issue #55.
 
+### PR #63 — feat(lab-04): Staff dashboard API + UI + queue filters (Issue #53)
+**Link:** https://github.com/akira19tk/toktickit/pull/63
+**Status:** Changes requested → addressed → re-review requested
+
+**Review received:**
+> 1. Dashboard metrics: Verify that ticket counts correctly exclude CLOSED/CANCELLED tickets where required, and that My Open Actions only includes OPEN actions assigned to the authenticated user.
+> 2. Queue filtering: Ensure the new actionAssignee and actionStatus filters work correctly when combined with existing status, owner, and priority filters, including empty-result cases.
+> 3. Authorization: Confirm that REQUESTER users cannot access the staff dashboard API and that all metrics are calculated according to the intended user scope.
+> 4. Routing and regression: Verify that the new /dashboard landing page correctly handles all roles without breaking existing Lab 1-3 routes, navigation, or post-login redirects.
+> 5. UI consistency: Ensure dashboard cards link to the correct filtered queue views and that loading, empty, and error states remain accessible and responsive.
+
+**My responses and evidence** — fixes in `c8503d8` (tests only, plus one a11y attribute):
+
+1. **Metric exclusions** — already covered by **API-L4-25** (myAssigned/unassigned = direct Prisma counts with `currentStatus ∉ {CLOSED,CANCELLED}`) and **API-L4-26** (myOpenActions = `count(assigneeId=me AND status=OPEN)`). Hardened with **API-L4-39**: added a CANCELLED-unassigned fixture and explicit assertions that CLOSED/CANCELLED tickets owned by me **and** unassigned are excluded, and that myOpenActions excludes a COMPLETED action assigned to me, an OPEN action assigned to someone else, and an OPEN unassigned action.
+
+2. **Queue filter combinations** — new **API-L4-41** combines `actionAssignee=ME&actionStatus=OPEN` with `status`, `owner`, and `priority` (and proves the single-action AND semantics: a ticket whose only mine-action is COMPLETED plus a separate OPEN action owned by someone else does **not** match). New **API-L4-42** covers over-constrained combinations returning `200, []` (no 404/500). File: `server/tests/lab-04/staff-queue-action-filters.api.test.ts`.
+
+3. **Authorization + scope** — **API-L4-29** asserts a REQUESTER gets `403`. New **API-L4-40** logs in two different staff users against the same seed and asserts they receive **different** `myAssigned`/`myOpenActions` (each equal to a direct per-user query) while the non-scoped global status counts are identical — proving metrics are scoped to the authenticated user.
+
+4. **Routing / regression** — new **UI-L4-13** (`client/tests/lab-04/DashboardRouting.test.tsx`) asserts every role is redirected to `/dashboard` from `/login`, that `/dashboard` role-branches (Requester vs Staff dashboard), and that the legacy `/my-tickets`, `/staff/queue`, `/admin/users` routes still render for their permitted role and forbid others. End-to-end this is also covered by the updated Lab 3 E2E (**E2E-07** "each role lands on its home", plus `e2e/lab-03/helpers.ts` `ROLE_HOME` → `/dashboard` and the RESP-02/03/05 + STYLE-01 + E2E-03/05/06 navigations) — full E2E suite **15/15**.
+
+5. **UI consistency + states** — drill-down hrefs are asserted by **UI-L4-02** (each card → the correct `/staff/queue?…` route, incl. `?actionAssignee=ME&actionStatus=OPEN` and `?itPriority=HIGH`). New **UI-L4-14** asserts the error state is `role="alert"` with a retry button and the loading state exposes a `status` region with an accessible label; the empty state is covered by **UI-L4-01**, and responsive reflow by **RESP-L4-01**.
+
+**Verification:** server **540** green, migration **46**, client **126** (UI-L4-13/14 added), E2E **15/15**; client `tsc`/`vite build` clean.
+
+**Follow-up Issues opened:** none — all five points addressed within PR #63.
+
 <!-- Add further feature-PR reviews below as the sprint proceeds. -->
 
 ---
@@ -266,7 +293,7 @@ Issue #55.
 | #59 | #50 | Actions Taken API + authorization | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #60 | #51 | Ticket workflow (resolution gate, Admin write, Lab 3 auth test updates) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #__ | #52 | Requester dashboard (API + UI) | | | lab4-staging |
-| #__ | #53 | Staff dashboard (API + UI + queue filters) | | | lab4-staging |
+| #63 | #53 | Staff dashboard (API + UI + queue filters) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #62 | #54 | Actions Taken UI | | Changes requested → fixed, re-review | lab4-staging |
 | #__ | #55 | E2E + screenshots | | | lab4-staging |
 | #__ | #56 | Accessibility & visual consistency | | | lab4-staging |

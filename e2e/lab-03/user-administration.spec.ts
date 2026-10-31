@@ -81,6 +81,7 @@ test("E2E-05: admin creates a user, rejects a duplicate email, edits the user, a
   const adminResetPassword = "AdminReset#2026";
 
   await loginAs(page, ADMIN_EMAIL, SEED_PASSWORD, "ADMIN");
+  await page.goto("/admin/users"); // role home is now the Dashboard (ui-spec §3)
 
   // Create a user (AC-59). Default role Requester, active.
   await page.getByRole("button", { name: "Create User" }).click();
@@ -111,7 +112,7 @@ test("E2E-05: admin creates a user, rejects a duplicate email, edits the user, a
   try {
     await loginFirstTime(userPage, email, initialPassword);
     await completeForcedChange(userPage, initialPassword, userChosenPassword);
-    await expect(userPage).toHaveURL(/\/my-tickets$/);
+    await expect(userPage).toHaveURL(/\/dashboard$/); // role home is the Dashboard (ui-spec §3)
 
     // Edit name and role; the list reflects the changes (AC-62).
     await searchUsers(page, email);
@@ -180,6 +181,7 @@ test("E2E-06: non-admins are blocked; admin cannot self-deactivate; last-admin r
 
   // Admin can open User Management.
   await loginAs(page, ADMIN_EMAIL, SEED_PASSWORD, "ADMIN");
+  await page.goto("/admin/users"); // role home is now the Dashboard (ui-spec §3)
 
   // The admin cannot deactivate their own account (AC-63): the Active toggle on
   // the own row is disabled with an explanation.

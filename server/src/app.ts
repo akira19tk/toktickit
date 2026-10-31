@@ -36,6 +36,7 @@ export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: 
   { method: "POST",   path: "/api/tickets/:id/resolved-indication" },
   { method: "GET",    path: "/api/tickets/:id/actions" },
   // Staff routes — Issue #26 (Ticket Queue); detail/operations appended by Issue #27
+  { method: "GET",    path: "/api/staff/dashboard" }, // Lab 4 Issue #53
   { method: "GET",    path: "/api/staff/tickets" },
   { method: "GET",    path: "/api/staff/assignees" },
   { method: "GET",    path: "/api/staff/tickets/:id" },

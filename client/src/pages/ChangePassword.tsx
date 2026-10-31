@@ -8,10 +8,9 @@ import {
   type PasswordErrors,
 } from "../lib/passwordValidator";
 
-function roleHome(role: string): string {
-  if (role === "IT_STAFF") return "/staff/queue";
-  if (role === "ADMIN") return "/admin/users";
-  return "/my-tickets";
+function roleHome(_role: string): string {
+  // Every role lands on the role-aware Dashboard (ui-spec §3).
+  return "/dashboard";
 }
 
 export default function ChangePassword() {

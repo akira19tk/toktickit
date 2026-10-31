@@ -57,11 +57,11 @@ prove no lost update and no duplicate write.
 | API-L4-22 | API | AC-25 | Waiting for Me metric | Equals count(WAITING_FOR_REQUESTER) for me | server/tests/lab-04/requester-dashboard.api.test.ts | Pass |
 | API-L4-23 | API | AC-26 | Recently Resolved uses Asia/Bangkok boundary | Count flips correctly across UTC+7 midnight | server/tests/lab-04/requester-dashboard.api.test.ts | Pass |
 | API-L4-24 | API | AC-15 | Requester dashboard requested by IT Staff/Admin | 403 | server/tests/lab-04/requester-dashboard.api.test.ts | Pass |
-| API-L4-25 | API | AC-16 | Staff dashboard counts match direct DB queries | new/open/inProgress/waiting/myAssigned/unassigned exact | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| API-L4-26 | API | AC-23 | My Open Actions count | Equals count(assigneeId=me AND status=OPEN) | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| API-L4-27 | API | AC-24 | Urgent list contents/order | Exactly HIGH & not Closed/Cancelled, newest-first, ≤5 | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| API-L4-28 | API | AC-17 | Dashboards with empty scope | Zeros / empty lists, 200 (no 404) | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| API-L4-29 | API | AC-18 | Staff dashboard requested by Requester | 403 | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
+| API-L4-25 | API | AC-16 | Staff dashboard counts match direct DB queries | new/open/inProgress/waiting/myAssigned/unassigned exact | server/tests/lab-04/staff-dashboard.api.test.ts | Pass |
+| API-L4-26 | API | AC-23 | My Open Actions count | Equals count(assigneeId=me AND status=OPEN) | server/tests/lab-04/staff-dashboard.api.test.ts | Pass |
+| API-L4-27 | API | AC-24 | Urgent list contents/order | Exactly HIGH & not Closed/Cancelled, newest-first, ≤5 | server/tests/lab-04/staff-dashboard.api.test.ts | Pass |
+| API-L4-28 | API | AC-17 | Dashboards with empty scope | Zeros / empty lists, 200 (no 404) | server/tests/lab-04/staff-dashboard.api.test.ts | Pass |
+| API-L4-29 | API | AC-18 | Staff dashboard requested by Requester | 403 | server/tests/lab-04/staff-dashboard.api.test.ts | Pass |
 | API-L4-30 | API | AC-27 | Concurrent resolve + new-Action-create on an all-completed Ticket (Promise.all) | Invariant holds: resolve commits & create 409 TICKET_CLOSED, OR create commits & resolve 409 OPEN_ACTIONS_EXIST; never RESOLVED with an OPEN Action | server/tests/lab-04/ticket-workflow.api.test.ts | Pass |
 | API-L4-31 | API | AC-14 | Create Action on a RESOLVED Ticket; then reopen (→REOPENED) and create | 409 TICKET_CLOSED; after reopen, 201 | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-32 | API | AC-28 | Requester Action read model excludes Internal Notes; non-owned 404; requester hits /notes | Payload has only Action fields (no note content); 404; 403 on /notes | server/tests/lab-04/actions-taken.api.test.ts | Pass |
@@ -71,8 +71,12 @@ prove no lost update and no duplicate write.
 | API-L4-36 | API | AC-28 | Requester Action view nested user fields | performedBy/assignee/updatedBy are exactly {id,name}; no email/role/passwordHash anywhere | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-37 | API | AC-13 | Concurrent PATCH with the same expectedUpdatedAt | Exactly one 200, one 409 STALE_UPDATE; final DB matches the winner | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-38 | API | AC-02, AC-03 | PATCH assignee semantics | Active→200; inactive→422 ASSIGNEE_INACTIVE (unchanged); requester/unknown→422 INVALID_ASSIGNEE; Requester PATCH→403 | server/tests/lab-04/actions-taken.api.test.ts | Pass |
-| UI-L4-01 | UI | AC-16, AC-24 | StaffDashboard renders cards, My Open Actions, urgent list | Values and labels shown; non-color cues | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
-| UI-L4-02 | UI | AC-17 | StaffDashboard card/row drill-down navigation | Navigates to correct queue/detail route+params | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
+| API-L4-39 | API | AC-16, AC-23 | Dashboard excludes frozen tickets + non-matching actions (PR #63 review) | CLOSED/CANCELLED owned-by-me & unassigned excluded; myOpenActions = OPEN-assigned-to-me only | server/tests/lab-04/staff-dashboard.api.test.ts | Pass |
+| API-L4-40 | API | AC-16, AC-18 | Dashboard metrics scoped per staffer (PR #63 review) | Two staff get different myAssigned/myOpenActions; global status counts equal | server/tests/lab-04/staff-dashboard.api.test.ts | Pass |
+| API-L4-41 | API | AC-17 | Queue action filter combines with status/owner/priority (PR #63 review) | actionAssignee=ME&actionStatus=OPEN × status/owner/priority; single-action AND semantics | server/tests/lab-04/staff-queue-action-filters.api.test.ts | Pass |
+| API-L4-42 | API | AC-17 | Queue action filter over-constrained → empty (PR #63 review) | 200, [] (no 404/500) | server/tests/lab-04/staff-queue-action-filters.api.test.ts | Pass |
+| UI-L4-01 | UI | AC-16, AC-24 | StaffDashboard renders cards, My Open Actions, urgent list | Values and labels shown; non-color cues | client/tests/lab-04/StaffDashboard.test.tsx | Pass |
+| UI-L4-02 | UI | AC-17 | StaffDashboard card/row drill-down navigation | Navigates to correct queue/detail route+params | client/tests/lab-04/StaffDashboard.test.tsx | Pass |
 | UI-L4-03 | UI | AC-15, AC-25 | RequesterDashboard own metrics + Waiting for Me cue | Correct cards; attention cue present | client/tests/lab-04/RequesterDashboard.test.tsx | Pass |
 | UI-L4-04 | UI | AC-17 | RequesterDashboard drill-down + empty state | Links to /tickets?status=…; empty renders 0/message | client/tests/lab-04/RequesterDashboard.test.tsx | Pass |
 | UI-L4-05 | UI | AC-01, AC-07 | ActionsTaken create form + follow-up validation | Required errors inline; follow-up note gated | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
@@ -83,7 +87,9 @@ prove no lost update and no duplicate write.
 | UI-L4-10 | UI | AC-01, AC-04, AC-07 | ActionsTaken rejects whitespace-only description / follow-up note / completion result | Trimmed-empty input blocked inline; no API call | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
 | UI-L4-11 | UI | AC-02, AC-13 | 422 ASSIGNEE_INACTIVE (create) + 409 STALE_UPDATE (edit) preserve typed data and show feedback | Every field retained; message shown; form not reset | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
 | UI-L4-12 | UI | AC-01, AC-04 | Successful create/complete refresh the Actions list and Ticket summary | List re-fetched; onChanged (summary reload) fires once | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
-| RESP-L4-01 | Responsive/Style | AC-20 | Dashboards + Actions table reflow (desktop/tablet/mobile) | 2-up/1-up grid; Actions table → stacked cards; no horizontal overflow | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
+| UI-L4-13 | UI | AC-17 | Dashboard routing + legacy-route gating (PR #63 review) | Each role → /dashboard; /dashboard role-branches; legacy routes render for permitted role, forbid others | client/tests/lab-04/DashboardRouting.test.tsx | Pass |
+| UI-L4-14 | UI | AC-17, AC-20 | StaffDashboard loading/error states are accessible (PR #63 review) | Loading = status region + accessible label; error = role=alert + retry button | client/tests/lab-04/StaffDashboard.test.tsx | Pass |
+| RESP-L4-01 | Responsive/Style | AC-20 | Dashboards + Actions table reflow (desktop/tablet/mobile) | 2-up/1-up grid; Actions table → stacked cards; no horizontal overflow | client/tests/lab-04/StaffDashboard.test.tsx | Pass |
 | MIG-L4-01 | Migration | AC-20 | Apply Lab 4 migration on a Lab 3 DB | All Lab 1–3 rows preserved; ActionTaken + enum created | server/tests/lab-04/migration.test.ts | Pass |
 | MIG-L4-02 | Migration | AC-10, AC-20 | Legacy Ticket (zero Actions) resolvable after migration | Resolution gate passes; no backfill needed | server/tests/lab-04/migration.test.ts | Pass |
 | MIG-L4-03 | Migration | AC-20 | Rollback drops ActionTaken/enum only | Lab 1–3 data intact | server/tests/lab-04/migration.test.ts | Pass |

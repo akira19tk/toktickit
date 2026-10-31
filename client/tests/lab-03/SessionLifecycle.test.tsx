@@ -174,9 +174,10 @@ describe("Session lifecycle (BR-66 / AC-73)", () => {
                 </PublicOnlyRoute>
               }
             />
-            {/* ADMIN home in the real app is /admin/users; this harness routes it to a request-sending page */}
+            {/* Post-login landing is /dashboard for every role (ui-spec §3);
+                this harness routes it to a request-sending page. */}
             <Route
-              path="/admin/users"
+              path="/dashboard"
               element={
                 <RequireAuth>
                   <ProbePage />

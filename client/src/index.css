@@ -1278,6 +1278,23 @@ body {
   flex-wrap: wrap;
   margin-top: 16px;
 }
+.zen-dash-welcome {
+  margin: 4px 0 0;
+}
+.zen-dash-recent-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.zen-dash-recent-viewall {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.zen-dash-recent-viewall:hover { text-decoration: underline; }
 
 /* ══════════════════════════════════════════════════════════════
    Actions Taken (Lab 4, ui-spec §7) — reuses Zen Green tokens.

@@ -46,7 +46,9 @@ test("E2E-03: a requester signs in, creates a ticket, comments, and marks it as 
 
   await loginAs(page, REQUESTER_EMAIL, SEED_PASSWORD, "REQUESTER");
 
-  await page.getByRole("link", { name: "Create Ticket" }).click();
+  // Role home is the Dashboard (ui-spec §3); use the nav link to disambiguate
+  // from the dashboard's "Create Ticket" quick action (same accessible name).
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Create Ticket" }).click();
   await expect(page).toHaveURL(/\/tickets\/new$/);
   await expect(page.getByRole("heading", { name: "Create Ticket" })).toBeVisible();
   await selectOptionByLabel(page.getByRole("combobox", { name: "Category" }), "Software");

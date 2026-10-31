@@ -9,7 +9,7 @@ import NotFound from "./pages/NotFound";
 import StaffQueuePage from "./pages/StaffQueuePage";
 import StaffTicketDetailPage from "./pages/StaffTicketDetailPage";
 import AdminUsers from "./pages/AdminUsers";
-import RequesterDashboard from "./pages/RequesterDashboard";
+import Dashboard from "./pages/Dashboard";
 import {
   CreateTicketPage,
   MyTicketsPage,
@@ -43,13 +43,13 @@ export default function App() {
             }
           />
 
-          {/* Requester routes */}
+          {/* Role-aware Dashboard landing — every role lands here (ui-spec §3). */}
           <Route
             path="/dashboard"
             element={
-              <RequireRole role="REQUESTER">
+              <RequireRole role={["REQUESTER", "IT_STAFF", "ADMIN"]}>
                 <AppShell>
-                  <RequesterDashboard />
+                  <Dashboard />
                 </AppShell>
               </RequireRole>
             }

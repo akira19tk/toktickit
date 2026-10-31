@@ -3,10 +3,12 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import AppShell from "./AppShell";
 
-function roleHome(role: string): string {
-  if (role === "IT_STAFF") return "/staff/queue";
-  if (role === "ADMIN") return "/admin/users";
-  return "/my-tickets";
+// Every role now lands on the role-aware Dashboard (ui-spec §3; the /dashboard
+// route renders the Requester or IT Staff dashboard by role). The legacy role
+// homes (/my-tickets, /staff/queue, /admin/users) still work when visited
+// directly — this only changes the default redirect target.
+function roleHome(_role: string): string {
+  return "/dashboard";
 }
 
 // Redirect authenticated users away from /login.
@@ -39,19 +41,21 @@ export function ShellWhenSignedIn({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// Require authentication + correct role.
+// Require authentication + correct role. `role` accepts one role or a list (any
+// match grants access — used by the shared /dashboard route).
 // Unauthenticated → /login; mustChangePassword → /change-password; wrong role → /forbidden.
 export function RequireRole({
   role,
   children,
 }: {
-  role: string;
+  role: string | string[];
   children: ReactNode;
 }) {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
-  if (user.role !== role) return <Navigate to="/forbidden" replace />;
+  const allowed = Array.isArray(role) ? role : [role];
+  if (!allowed.includes(user.role)) return <Navigate to="/forbidden" replace />;
   return <>{children}</>;
 }
