@@ -8,6 +8,7 @@ import devRequestersRouter from "./routes/dev-requesters";
 import relatedSystemsRouter from "./routes/related-systems";
 import ticketsRouter from "./routes/tickets";
 import staffRouter from "./routes/staff";
+import requesterRouter from "./routes/requester";
 import adminRouter from "./routes/admin";
 import authRouter from "./routes/auth";
 import { requireAuth, passwordChangeGate, csrfCheck } from "./middleware/auth";
@@ -33,7 +34,9 @@ export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: 
   { method: "GET",    path: "/api/tickets/:id/comments" },
   { method: "POST",   path: "/api/tickets/:id/comments" },
   { method: "POST",   path: "/api/tickets/:id/resolved-indication" },
+  { method: "GET",    path: "/api/tickets/:id/actions" },
   // Staff routes — Issue #26 (Ticket Queue); detail/operations appended by Issue #27
+  { method: "GET",    path: "/api/staff/dashboard" }, // Lab 4 Issue #53
   { method: "GET",    path: "/api/staff/tickets" },
   { method: "GET",    path: "/api/staff/assignees" },
   { method: "GET",    path: "/api/staff/tickets/:id" },
@@ -46,6 +49,12 @@ export const REGISTERED_PROTECTED_ROUTES: ReadonlyArray<{ method: string; path: 
   { method: "POST",   path: "/api/staff/tickets/:id/comments" },
   { method: "GET",    path: "/api/staff/tickets/:id/notes" },
   { method: "POST",   path: "/api/staff/tickets/:id/notes" },
+  // Actions Taken — Issue #50 (IT_STAFF, ADMIN)
+  { method: "POST",   path: "/api/staff/tickets/:id/actions" },
+  { method: "GET",    path: "/api/staff/tickets/:id/actions" },
+  { method: "PATCH",  path: "/api/staff/tickets/:id/actions/:actionId" },
+  // Requester dashboard — Issue #52 (REQUESTER only)
+  { method: "GET",    path: "/api/requester/dashboard" },
   // Admin routes — Issue #28 (Administrator User Management), ADMIN only
   { method: "GET",    path: "/api/admin/users" },
   { method: "POST",   path: "/api/admin/users" },
@@ -104,6 +113,7 @@ export function createApp() {
   app.use("/api/related-systems", relatedSystemsRouter);
   app.use("/api/tickets", ticketsRouter);
   app.use("/api/staff", staffRouter);
+  app.use("/api/requester", requesterRouter);
   app.use("/api/admin", adminRouter);
 
   // ── 404 for unknown routes ────────────────────────────────────────────────

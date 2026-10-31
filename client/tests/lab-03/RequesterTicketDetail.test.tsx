@@ -42,6 +42,8 @@ const MOCK_COMMENT: api.TicketComment = {
 beforeEach(() => {
   vi.spyOn(api, "fetchTicketDetail").mockResolvedValue(makeTicket());
   vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
+  // Lab 4: the detail screen now embeds a read-only Actions Taken section.
+  vi.spyOn(api, "fetchRequesterActions").mockResolvedValue([]);
 });
 
 afterEach(() => {

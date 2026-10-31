@@ -63,6 +63,8 @@ beforeEach(() => {
     { id: 7, name: "Michael Brown" },
     { id: 8, name: "Sarah Johnson" },
   ]);
+  // Lab 4: the detail screen now embeds the Actions Taken section.
+  vi.spyOn(api, "fetchStaffActions").mockResolvedValue([]);
 });
 
 afterEach(() => {

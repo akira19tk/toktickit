@@ -1,3 +1,4 @@
+import { formatDateTime } from "../lib/formatDate";
 // Create Ticket screen — ui-spec.md §10.3
 // States: loading (fetch categories/systems) → form (idle/submitting) → success / server-error
 import { useEffect, useReducer, useRef } from "react";
@@ -260,7 +261,7 @@ export default function CreateTicket({ onBack }: Props) {
           </div>
           <div className="zen-info-banner">
             <strong>Ticket Date:</strong>{" "}
-            {new Date(t.createdAt).toLocaleString()}
+            {formatDateTime(t.createdAt)}
           </div>
 
           {t.attachmentErrors.length > 0 && (

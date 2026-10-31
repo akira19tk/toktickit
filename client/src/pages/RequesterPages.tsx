@@ -1,13 +1,19 @@
 // Thin wrappers adapting Lab 2 callback-based components to react-router-dom.
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import CreateTicket from "../components/CreateTicket";
 import MyTickets from "../components/MyTickets";
 import TicketDetail from "../components/TicketDetail";
 
 export function MyTicketsPage() {
   const navigate = useNavigate();
+  // Dashboard cards drill down to /tickets?status=… (specification §8.1).
+  const [searchParams] = useSearchParams();
+  const status = searchParams.get("status") ?? undefined;
   return (
     <MyTickets
+      // Re-seed the filter when the drill-down status changes.
+      key={status ?? "all"}
+      initialStatus={status}
       onCreateTicket={() => navigate("/tickets/new")}
       onOpenTicket={(id) => navigate(`/tickets/${id}`)}
     />

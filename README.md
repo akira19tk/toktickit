@@ -1,10 +1,11 @@
-# TokTickIT — Lab 3: Users, Roles, IT Staff Ticketing, and Admin
+# TokTickIT — Lab 4: Actions Taken, Dashboards, and Final Regression
 
-CPE334 Software Engineering (in the Age of AI Coding Agents) — Sprint 3.
+CPE334 Software Engineering (in the Age of AI Coding Agents) — Sprint 4.
 
 Real authentication (server-side sessions, bcrypt), role-based authorization
 (REQUESTER / IT_STAFF / ADMIN), mandatory first-login password change, CSRF
-defense, and CORS allow-list on top of the Lab 2 Requester ticketing MVP.
+defense, and CORS allow-list, plus Actions Taken, backend-enforced ticket resolution,
+Requester/Staff dashboards and regression coverage across Labs 1–4.
 
 ## Repository structure
 
@@ -13,7 +14,7 @@ toktickit/
 ├── client/                   React + TypeScript + Vite frontend
 ├── server/
 │   ├── prisma/
-│   │   ├── migrations/       Prisma migration SQL (Labs 1–3)
+│   │   ├── migrations/       Prisma migration SQL (Labs 1–4)
 │   │   ├── schema.prisma     Canonical data model
 │   │   └── seed.ts           Idempotent seed (local dev only)
 │   ├── scripts/              DB-setup helpers (test and migration test DBs)
@@ -24,15 +25,18 @@ toktickit/
 │   └── tests/
 │       ├── lab-01/           categories, health
 │       ├── lab-02/           ticket and attachment regression (session-auth)
-│       └── lab-03/           auth, authorization, requester regression, migration
-├── docs/lab-03/              specification, tests, api-spec, ui-spec, reviewer, ai-use
+│       ├── lab-03/           auth, authorization, requester regression, migration
+│       └── lab-04/           actions, workflows, dashboards, migration
+├── e2e/                      Lab 3–4 Playwright regression and screenshots
+├── artifacts/lab-04/         screenshots, metrics and test output
+├── docs/lab-04/              specification, tests, api-spec, ui-spec, reviewer, ai-use
 ├── shared/                   password-vectors.json (server + client share)
 └── README.md
 ```
 
 ## Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 24.15+ (24.x LTS) or 26+ and npm; older Node 24 releases do not satisfy jsdom 30.
 - PostgreSQL running locally
 
 ## 1. Backend setup
@@ -48,7 +52,7 @@ Create the development database and apply all migrations:
 
 ```bash
 psql -U postgres -c "CREATE DATABASE toktickit;"
-npx prisma migrate dev
+npx prisma migrate deploy  # apply the committed migrations without generating new ones
 ```
 
 Seed local development data (accounts, sample tickets, comments):
@@ -135,7 +139,7 @@ npm test
 Runs all unit and API tests sequentially (`fileParallelism: false`) against
 `toktickit_test`. No development data is touched.
 
-### Migration tests (MIG-01 – MIG-04)
+### Migration tests (Labs 3–4)
 
 ```bash
 cd server
@@ -143,7 +147,7 @@ npm run test:migration:setup   # build toktickit_migration_test from scratch
 npm run test:migration          # apply Lab 2 fixture → Lab 3 migration → compare
 ```
 
-These tests verify that no Lab 2 data is lost during the Lab 3 schema migration.
+These tests verify Lab 2 → Lab 3 and Lab 3 → Lab 4 data preservation, rollback and idempotent seed behavior.
 
 ### Client tests
 
@@ -219,28 +223,53 @@ whenever you want a clean, deterministically seeded database.
 | Branch | Purpose |
 |---|---|
 | `main` | Stable release branch — never commit directly |
-| `lab3-staging` | Lab 3 integration branch — never commit directly |
+| `lab4-staging` | Lab 3 integration branch — never commit directly |
 | `feature/<N>-<slug>` | One branch per Issue |
 
-Each feature branch is merged into `lab3-staging` via a **peer-reviewed Pull
+Each feature branch is merged into `lab4-staging` via a **peer-reviewed Pull
 Request**. Once all Issues for a sprint are merged, a single release PR merges
-`lab3-staging` → `main`.
+`lab4-staging` → `main`.
 
-Current sprint Issues:
-- **#24** Auth foundation (schema, migration, seed, auth API, authorization) ← *this branch*
-- **#25** Login and Shell UI
-- **#26** Staff Ticket Queue
-- **#27** Staff Ticket Operations
-- **#28** Administrator User Management
+Current hardening exception authorized by the project owner: #56 and #57 share
+`feature/lab4-hardening` and one PR into `lab4-staging`. Feature PRs use merge commits;
+release `lab4-staging` → `main` only after peer review and sprint completion.
 
-## 9. API quick reference (Lab 3)
+## 9. API quick reference (Labs 1–4)
 
 | Area | Endpoints |
 |---|---|
 | Auth | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `POST /api/auth/change-password` |
 | Reference | `GET /api/categories`, `GET /api/related-systems` (authenticated) |
 | Requester | `POST /api/tickets`, `GET /api/tickets`, `GET /api/tickets/:id`, attachments, `GET/POST .../comments`, `POST .../resolved-indication` |
-| Staff | `GET/POST /api/staff/tickets`, claim, owner, it-priority, status, comments, notes, download, assignees *(Issues #26/#27)* |
-| Admin | `GET/POST /api/admin/users`, `PATCH /api/admin/users/:id`, initial-password *(Issue #28)* |
+| Staff | `GET/POST /api/staff/tickets`, claim, owner, it-priority, status, comments, notes, download, assignees |
+| Admin | `GET/POST /api/admin/users`, `PATCH /api/admin/users/:id`, initial-password |
+| Actions Taken | `GET/POST /api/staff/tickets/:id/actions`, `PATCH .../actions/:actionId`; requester read-only `GET /api/tickets/:id/actions` |
+| Dashboards | `GET /api/requester/dashboard`, `GET /api/staff/dashboard` |
 
-Full shapes and error codes: `docs/lab-03/api-spec.md`.
+Full shapes and error codes: `docs/lab-04/api-spec.md` (extends Lab 3).
+
+## 10. Lab 4 demo
+
+1. Migrate and seed the development DB, then start API and client in separate terminals.
+2. Sign in as `michael.brown@example.com`; inspect Dashboard metrics and follow a queue drill-down.
+3. Open a seeded ticket, add/assign an Action, edit it, complete it with a Result, or cancel it.
+4. Try resolving with an OPEN Action: expect a conflict and preserved summary. Complete/cancel all
+   Actions and resolve again; reopen before adding more Actions to a resolved ticket.
+5. Sign in as a second staff member to demonstrate work by multiple staff under one ticket owner.
+6. Sign in as Alice (complete first-login password change if required): dashboard and Actions are
+   scoped to her tickets; Actions are read-only and Internal Notes are private.
+7. Sign in as Admin for staff dashboard/action/status access and user management.
+
+Seed is repeatable, not a destructive reset: it does not erase manually created demo tickets.
+For clean evidence use `npm run e2e:setup` and the isolated E2E accounts instead of resetting dev data.
+
+## 11. Final checks and evidence
+
+Run server API/unit, migration, client, then E2E sequentially; do not run two commands against the same
+DB at once. API files use one worker and every isolated file disconnects its Prisma pool. Client files
+run sequentially to avoid jsdom/typing contention. No automatic retries hide failures.
+
+`artifacts/lab-04/hardening.md` records test outputs, the dependency audit and verification limits.
+Remaining Prisma CLI audit findings require a separate major-version migration; no `--force` used.
+The reviewed hardening PR precedes the final release PR. Passing output from `main` must be captured
+again after release; branch results are not release evidence.

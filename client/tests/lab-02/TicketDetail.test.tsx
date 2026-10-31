@@ -35,6 +35,8 @@ const MOCK_TICKET: api.TicketDetail = {
 beforeEach(() => {
   // fetchTicketComments is required by TicketDetail since the Lab 3 addition of the comments tab.
   vi.spyOn(api, "fetchTicketComments").mockResolvedValue([]);
+  // Lab 4: TicketDetail now embeds a read-only Actions Taken section.
+  vi.spyOn(api, "fetchRequesterActions").mockResolvedValue([]);
 });
 
 afterEach(() => {

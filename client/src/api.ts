@@ -170,6 +170,8 @@ export interface StaffQueueParams {
   priority?: string;
   categoryId?: number;
   owner?: string; // ANY | ME | UNASSIGNED | <userId>
+  actionAssignee?: string; // ME | <userId> — dashboard "My Open Actions" drill-down
+  actionStatus?: string; // OPEN | COMPLETED | CANCELLED
   requesterResolved?: boolean; // true → only Requester-indicated-resolved tickets
   sortBy?: string;
   sortDir?: string;
@@ -228,22 +230,28 @@ export interface TicketComment {
 // ── Error classes ──────────────────────────────────────────────────────────
 
 // Structured error from the API (status + machine code + optional field errors).
+// `details` carries any extra top-level fields from the error body (e.g.
+// OPEN_ACTIONS_EXIST includes `openActions`), so the UI can build its own copy
+// rather than echoing the raw server text.
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly errors: Record<string, string> | undefined;
+  readonly details: Record<string, unknown> | undefined;
 
   constructor(
     status: number,
     code: string,
     message: string,
-    errors?: Record<string, string>
+    errors?: Record<string, string>,
+    details?: Record<string, unknown>
   ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.errors = errors;
+    this.details = details;
   }
 }
 
@@ -406,6 +414,69 @@ export async function fetchTicketDetail(ticketId: number): Promise<TicketDetail>
   return res.json();
 }
 
+// ── Requester dashboard (Issue #52) ──────────────────────────────────────────
+
+export interface RequesterDashboardMetrics {
+  open: number;
+  inProgress: number;
+  waitingForMe: number;
+  resolved: number;
+  closed: number;
+  recentlyResolved: number;
+}
+
+export interface RequesterRecentTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  currentStatus: string;
+  updatedAt: string;
+}
+
+export interface RequesterDashboard {
+  metrics: RequesterDashboardMetrics;
+  myRecentTickets: RequesterRecentTicket[];
+}
+
+export async function fetchRequesterDashboard(): Promise<RequesterDashboard> {
+  const res = await apiFetch(`${API_BASE_URL}/api/requester/dashboard`);
+  if (!res.ok) throw new Error(`Failed to load dashboard: ${res.status}`);
+  return res.json();
+}
+
+// ── IT Staff dashboard (Issue #53) ───────────────────────────────────────────
+
+export interface StaffDashboardMetrics {
+  new: number;
+  open: number;
+  inProgress: number;
+  waitingForRequester: number;
+  myAssigned: number;
+  unassigned: number;
+  myOpenActions: number;
+}
+
+export interface StaffDashboardTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  currentStatus: string;
+  itPriority: string;
+  updatedAt: string;
+}
+
+export interface StaffDashboard {
+  metrics: StaffDashboardMetrics;
+  myRecentTickets: StaffDashboardTicket[];
+  urgentTickets: StaffDashboardTicket[];
+}
+
+export async function fetchStaffDashboard(): Promise<StaffDashboard> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/dashboard`);
+  if (!res.ok) throw new Error(`Failed to load dashboard: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchTicketComments(ticketId: number): Promise<TicketComment[]> {
   const res = await apiFetch(`${API_BASE_URL}/api/tickets/${ticketId}/comments`);
   if (!res.ok) {
@@ -564,7 +635,7 @@ export interface StatusChangeResult {
 async function jsonOrApiError<T>(res: Response, fallback: string): Promise<T> {
   if (res.ok) return res.json() as Promise<T>;
   const body = await res.json().catch(() => ({}));
-  throw new ApiError(res.status, body.code ?? "INTERNAL_ERROR", body.error ?? fallback, body.errors);
+  throw new ApiError(res.status, body.code ?? "INTERNAL_ERROR", body.error ?? fallback, body.errors, body);
 }
 
 const CSRF_JSON = {
@@ -672,6 +743,93 @@ export async function downloadStaffAttachment(
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
+
+// ── Actions Taken (Issue #54) ────────────────────────────────────────────────
+
+export interface ActionUserRef {
+  id: number;
+  name: string;
+}
+
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  actionDate: string;
+  description: string;
+  result: string | null;
+  status: "OPEN" | "COMPLETED" | "CANCELLED";
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  performedBy: ActionUserRef;
+  assignee: ActionUserRef | null;
+  updatedBy: ActionUserRef | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionPayload {
+  actionDate?: string;
+  description: string;
+  result?: string;
+  assigneeId?: number | null;
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+}
+
+export interface PatchActionPayload {
+  description?: string;
+  result?: string;
+  assigneeId?: number | null;
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+  status?: "COMPLETED" | "CANCELLED";
+  expectedUpdatedAt?: string;
+}
+
+// Staff/Admin: list all Actions on a Ticket (newest-first, server-ordered).
+export async function fetchStaffActions(ticketId: number): Promise<ActionTaken[]> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/actions`);
+  const body = await jsonOrApiError<{ actions: ActionTaken[] }>(res, "Failed to load actions");
+  return body.actions;
+}
+
+export async function createStaffAction(
+  ticketId: number,
+  payload: CreateActionPayload
+): Promise<ActionTaken> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/actions`, {
+    method: "POST",
+    headers: CSRF_JSON,
+    body: JSON.stringify(payload),
+  });
+  return jsonOrApiError<ActionTaken>(res, "Failed to create the action");
+}
+
+export async function patchStaffAction(
+  ticketId: number,
+  actionId: number,
+  payload: PatchActionPayload
+): Promise<ActionTaken> {
+  const res = await apiFetch(
+    `${API_BASE_URL}/api/staff/tickets/${ticketId}/actions/${actionId}`,
+    {
+      method: "PATCH",
+      headers: CSRF_JSON,
+      body: JSON.stringify(payload),
+    }
+  );
+  return jsonOrApiError<ActionTaken>(res, "Failed to update the action");
+}
+
+// Requester (owner): read-only list of Actions on their own Ticket.
+export async function fetchRequesterActions(ticketId: number): Promise<ActionTaken[]> {
+  const res = await apiFetch(`${API_BASE_URL}/api/tickets/${ticketId}/actions`);
+  const body = await jsonOrApiError<{ actions: ActionTaken[] }>(res, "Failed to load actions");
+  return body.actions;
 }
 
 export async function createTicket(

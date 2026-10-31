@@ -1,3 +1,4 @@
+import { formatDateTime } from "../lib/formatDate";
 // IT Staff Ticket Queue — ui-spec.md §4.4
 // States: loading → success (table/cards/empty/no-results) | error | forbidden
 // Reuses the shared StatusBadge and PriorityBadge and the My Tickets layout
@@ -20,6 +21,11 @@ import PriorityBadge from "./PriorityBadge";
 
 interface Props {
   onOpenTicket?: (ticketId: number) => void;
+  // Drill-down seed from the URL (specification §8.1). Applied once on mount;
+  // StaffQueuePage remounts via `key` when the params change.
+  initialFilters?: Partial<Filters>;
+  initialActionAssignee?: string; // "ME" | "<userId>" — dashboard "My Open Actions"
+  initialActionStatus?: string; // "OPEN" | "COMPLETED" | "CANCELLED"
 }
 
 interface Filters {
@@ -53,14 +59,21 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "CANCELLED", label: "Cancelled" },
 ];
 
-function hasActiveFilters(f: Filters, resolvedOnly: boolean) {
+function hasActiveFilters(
+  f: Filters,
+  resolvedOnly: boolean,
+  actionAssignee: string,
+  actionStatus: string
+) {
   return !!(
     f.search ||
     f.status !== "ACTIVE" ||
     f.priority ||
     f.categoryId ||
     f.owner ||
-    resolvedOnly
+    resolvedOnly ||
+    actionAssignee ||
+    actionStatus
   );
 }
 
@@ -73,10 +86,19 @@ function pageWindow(current: number, total: number, max = 5) {
   return { start, end };
 }
 
-export default function StaffTicketQueue({ onOpenTicket }: Props) {
+export default function StaffTicketQueue({
+  onOpenTicket,
+  initialFilters,
+  initialActionAssignee,
+  initialActionStatus,
+}: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [assignees, setAssignees] = useState<Assignee[]>([]);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS, ...initialFilters });
+  // Action-assignee / action-status drill-down from the dashboard "My Open
+  // Actions" card. No FilterBar control — set via the URL and clearable below.
+  const [actionAssignee, setActionAssignee] = useState(initialActionAssignee ?? "");
+  const [actionStatus, setActionStatus] = useState(initialActionStatus ?? "");
   // The "Requester says resolved" chip has no server filter (BR-57), so it is a
   // client-side filter over the current result page.
   const [resolvedOnly, setResolvedOnly] = useState(false);
@@ -116,6 +138,8 @@ export default function StaffTicketQueue({ onOpenTicket }: Props) {
       priority: filters.priority || undefined,
       categoryId: filters.categoryId ? Number(filters.categoryId) : undefined,
       owner: filters.owner || undefined,
+      actionAssignee: actionAssignee || undefined,
+      actionStatus: actionStatus || undefined,
       // false → undefined so the param is omitted (fetchStaffTickets drops it)
       requesterResolved: resolvedOnly || undefined,
       sortBy,
@@ -147,6 +171,8 @@ export default function StaffTicketQueue({ onOpenTicket }: Props) {
     filters.priority,
     filters.categoryId,
     filters.owner,
+    actionAssignee,
+    actionStatus,
     resolvedOnly,
     sortBy,
     sortDir,
@@ -161,6 +187,8 @@ export default function StaffTicketQueue({ onOpenTicket }: Props) {
   function clearFilters() {
     setFilters(EMPTY_FILTERS);
     setResolvedOnly(false);
+    setActionAssignee("");
+    setActionStatus("");
     setPage(1);
   }
 
@@ -220,7 +248,8 @@ export default function StaffTicketQueue({ onOpenTicket }: Props) {
 
   // ── Loading / success share the header + filter bar so the filter controls
   //    stay mounted across a reload (keeps typed input and focus) ────────────
-  const active = hasActiveFilters(filters, resolvedOnly);
+  const active = hasActiveFilters(filters, resolvedOnly, actionAssignee, actionStatus);
+  const actionFilterActive = !!(actionAssignee || actionStatus);
   // The "Requester says resolved" chip now filters server-side via
   // requesterResolved=true, so rows match the chip count (no page-local filter).
   const displayed = tickets;
@@ -255,6 +284,27 @@ export default function StaffTicketQueue({ onOpenTicket }: Props) {
         onFilterChange={handleFilterChange}
         onClear={clearFilters}
       />
+
+      {actionFilterActive && (
+        <div
+          className="zen-card sq-action-filter"
+          data-testid="action-filter-banner"
+          style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+        >
+          <span>
+            Showing tickets with actions
+            {actionAssignee === "ME"
+              ? " assigned to me"
+              : actionAssignee
+                ? ` assigned to a specific staffer`
+                : ""}
+            {actionStatus ? ` (${actionStatus.toLowerCase()})` : ""}.
+          </span>
+          <button className="zen-btn zen-btn-secondary" onClick={clearFilters}>
+            Clear
+          </button>
+        </div>
+      )}
 
       {loadState === "loading" ? (
         <div className="zen-card" role="status" aria-live="polite" style={{ marginTop: 16 }}>
@@ -345,7 +395,7 @@ export default function StaffTicketQueue({ onOpenTicket }: Props) {
                     <td><PriorityBadge priority={t.itPriority} /></td>
                     <td><StatusBadge status={t.currentStatus} /></td>
                     <td>{renderOwner(t)}</td>
-                    <td className="sq-hide-tablet">{new Date(t.updatedAt).toLocaleDateString()}</td>
+                    <td className="sq-hide-tablet">{formatDateTime(t.updatedAt)}</td>
                     <td>
                       <button
                         className="zen-btn zen-btn-secondary mt-page-btn"

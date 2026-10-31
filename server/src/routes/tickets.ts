@@ -15,6 +15,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "../prismaClient";
 import { generateTicketNumber } from "../lib/ticketNumber";
 import { requireRole } from "../middleware/auth";
+import { actionView } from "../lib/actions";
 import type { TicketStatus } from "@prisma/client";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "lab-02");
@@ -638,6 +639,35 @@ router.post("/:id/resolved-indication", async (req: Request, res: Response) => {
     data: { requesterResolvedAt: new Date() },
   });
   res.status(200).json({ requesterResolvedAt: updated.requesterResolvedAt });
+});
+
+// ── GET /api/tickets/:id/actions (Issue #50) ─────────────────────────────────
+// Read-only Actions list for the Requester who owns the Ticket. Same Action view
+// as staff (BR-28) — no Internal Note data. A Ticket not owned by the caller is
+// 404 (no existence leak); Requesters have no Action write route.
+
+router.get("/:id/actions", async (req: Request, res: Response) => {
+  const requesterId = req.user!.id;
+  const ticketId = parseInt(String(req.params.id), 10);
+  if (!Number.isInteger(ticketId) || ticketId <= 0) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+  const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
+  if (!ticket) {
+    res.status(404).json({ error: "Ticket not found" });
+    return;
+  }
+  const actions = await prisma.actionTaken.findMany({
+    where: { ticketId },
+    include: {
+      performedBy: { select: { id: true, name: true } },
+      assignee: { select: { id: true, name: true } },
+      updatedBy: { select: { id: true, name: true } },
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+  });
+  res.status(200).json({ actions: actions.map(actionView) });
 });
 
 export default router;

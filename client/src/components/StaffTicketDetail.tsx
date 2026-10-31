@@ -1,3 +1,4 @@
+import { formatDateTime } from "../lib/formatDate";
 // IT Staff Ticket Detail — ui-spec.md §4.5
 // Header strip + read-only facts panel + editable operations panel (Owner,
 // IT Priority, Status) + tabs for Public Comments (green), Internal Notes
@@ -23,6 +24,7 @@ import {
 } from "../api";
 import StatusBadge from "./StatusBadge";
 import PriorityBadge from "./PriorityBadge";
+import ActionsTaken from "./ActionsTaken";
 
 interface Props {
   ticketId: number;
@@ -61,6 +63,15 @@ function errorMessage(err: unknown, field?: string): string {
       case "NO_CHANGE": return "That value is already set — nothing to change.";
       case "TICKET_UNASSIGNED": return "Claim the ticket before changing its status.";
       case "TICKET_CLOSED": return "This ticket is closed or cancelled.";
+      case "OPEN_ACTIONS_EXIST": {
+        const n = Number(err.details?.openActions);
+        if (Number.isFinite(n) && n > 0) {
+          return n === 1
+            ? "This ticket has 1 open action. Complete or cancel it before resolving."
+            : `This ticket has ${n} open actions. Complete or cancel them before resolving.`;
+        }
+        return "This ticket has open actions. Complete or cancel them before resolving.";
+      }
       case "ALREADY_OWNED": return "This ticket already has an owner.";
       default: return err.message;
     }
@@ -374,13 +385,13 @@ export default function StaffTicketDetail({ ticketId, onBack }: Props) {
         <div className="zen-card sd-facts" data-testid="facts-panel">
           <h2 className="zen-section-title" style={{ fontSize: 18 }}>Details</h2>
           <div className="td-fields">
-            <ReadField label="Ticket Date" value={new Date(ticket.createdAt).toLocaleString()} />
+            <ReadField label="Ticket Date" value={formatDateTime(ticket.createdAt)} />
             <ReadField label="Requester" value={`${ticket.requester.name} · ${ticket.requester.email}`} />
             <ReadField label="Category" value={ticket.category} />
             <ReadField label="Related System" value={ticket.relatedSystem} />
             <ReadField label="Requested Priority" value={<PriorityBadge priority={ticket.requestedPriority} />} />
-            {ticket.resolvedAt && <ReadField label="Resolved At" value={new Date(ticket.resolvedAt).toLocaleString()} />}
-            {ticket.closedAt && <ReadField label="Closed At" value={new Date(ticket.closedAt).toLocaleString()} />}
+            {ticket.resolvedAt && <ReadField label="Resolved At" value={formatDateTime(ticket.resolvedAt)} />}
+            {ticket.closedAt && <ReadField label="Closed At" value={formatDateTime(ticket.closedAt)} />}
           </div>
           <div className="zen-field" style={{ marginTop: 16 }}>
             <span className="zen-label">Summary</span>
@@ -669,6 +680,9 @@ export default function StaffTicketDetail({ ticketId, onBack }: Props) {
         )}
       </div>
 
+      {/* Actions Taken (ui-spec §7.1) */}
+      <ActionsTaken ticketId={ticketId} mode="staff" assignees={assignees} onChanged={reload} />
+
       {/* Close / Cancel confirmation dialog */}
       {confirmTarget && (
         <div className="zen-modal-overlay" role="dialog" aria-modal="true" aria-label="Confirm status change">
@@ -749,7 +763,7 @@ function EntryList({
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
             <span style={{ fontWeight: 600, fontSize: 14 }}>{e.author.name}</span>
             <span className={roleBadgeClass(e.author.role)}>{roleLabel(e.author.role)}</span>
-            <span className="zen-muted" style={{ fontSize: 12 }}>{new Date(e.createdAt).toLocaleString()}</span>
+            <span className="zen-muted" style={{ fontSize: 12 }}>{formatDateTime(e.createdAt)}</span>
           </div>
           {/* Rendered as text — React escapes, so <script> never executes. */}
           <div style={{ fontSize: 14 }}>{e.body}</div>
@@ -780,7 +794,7 @@ function StaffAttachmentRow({ attachment: a, ticketId }: { attachment: TicketAtt
   return (
     <li className={`td-attach-item${removed ? " td-attach-removed" : ""}`}>
       <span className="td-attach-name">{a.fileName}</span>
-      <span className="td-attach-meta">{sizeKB} KB · {new Date(a.uploadedAt).toLocaleDateString()}</span>
+      <span className="td-attach-meta">{sizeKB} KB · {formatDateTime(a.uploadedAt)}</span>
       {removed ? (
         <span className="mt-badge" style={{ background: "#5a6b62" }} aria-label="Removed">Removed</span>
       ) : (

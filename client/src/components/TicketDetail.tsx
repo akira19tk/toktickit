@@ -1,3 +1,4 @@
+import { formatDateTime } from "../lib/formatDate";
 // Ticket Detail screen — ui-spec.md §4.3 (Lab 3 additions: status fields, tabs, comments, resolved button)
 import { useEffect, useRef, useState } from "react";
 import {
@@ -15,6 +16,7 @@ import {
 } from "../api";
 import StatusBadge from "./StatusBadge";
 import PriorityBadge from "./PriorityBadge";
+import ActionsTaken from "./ActionsTaken";
 
 interface Props {
   ticketId: number;
@@ -197,7 +199,7 @@ export default function TicketDetail({ ticketId, onBack }: Props) {
         <h2 className="zen-section-title">Ticket Detail</h2>
         <div className="td-fields">
           <ReadField label="Ticket No." value={ticket.ticketNumber} />
-          <ReadField label="Ticket Date" value={new Date(ticket.createdAt).toLocaleString()} />
+          <ReadField label="Ticket Date" value={formatDateTime(ticket.createdAt)} />
           <ReadField label="Category" value={ticket.category} />
           <ReadField label="Related System" value={ticket.relatedSystem} />
           <ReadField
@@ -363,6 +365,9 @@ export default function TicketDetail({ ticketId, onBack }: Props) {
         )}
       </div>
 
+      {/* Actions Taken — read-only for the Requester (ui-spec §7.2) */}
+      <ActionsTaken ticketId={ticketId} mode="requester" />
+
       {/* ── Remove dialog ────────────────────────────────────────────────── */}
       {removeTarget && (
         <RemoveDialog
@@ -403,7 +408,7 @@ function CommentRow({ comment }: { comment: TicketComment }) {
         <span style={{ fontWeight: 600, fontSize: 14 }}>{comment.author.name}</span>
         <span className={roleBadgeClass(comment.author.role)}>{roleLabel(comment.author.role)}</span>
         <span className="zen-muted" style={{ fontSize: 12 }}>
-          {new Date(comment.createdAt).toLocaleString()}
+          {formatDateTime(comment.createdAt)}
         </span>
       </div>
       <div className="td-comment-body" style={{ fontSize: 14 }}>{comment.body}</div>
@@ -439,7 +444,7 @@ function AttachmentRow({ attachment: a, ticketId, onRemoveClick }: AttachmentRow
     <li className={`td-attach-item${removed ? " td-attach-removed" : ""}`}>
       <span className="td-attach-name">{a.fileName}</span>
       <span className="td-attach-meta">
-        {sizeKB} KB · {new Date(a.uploadedAt).toLocaleDateString()}
+        {sizeKB} KB · {formatDateTime(a.uploadedAt)}
       </span>
 
       {removed ? (

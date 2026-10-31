@@ -36,6 +36,14 @@ enum Role {
   ADMIN
 }
 
+// Lab 4: lifecycle of an Action Taken (BR-09). OPEN is the only mutable state;
+// COMPLETED and CANCELLED are terminal, append-only history (no hard delete).
+enum ActionStatus {
+  OPEN
+  COMPLETED
+  CANCELLED
+}
+
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
@@ -60,6 +68,9 @@ model User {
   sessions           Session[]
   publicComments     PublicComment[]
   internalNotes      InternalNote[]
+  performedActions   ActionTaken[]   @relation("ActionPerformedBy")
+  updatedActions     ActionTaken[]   @relation("ActionUpdatedBy")
+  assignedActions    ActionTaken[]   @relation("ActionAssignee")
 
   @@index([role, isActive])
 }
@@ -113,6 +124,7 @@ model Ticket {
   attachments         Attachment[]
   publicComments      PublicComment[]
   internalNotes       InternalNote[]
+  actions             ActionTaken[]
 
   @@index([requesterId])
   @@index([ownerId])
@@ -158,4 +170,30 @@ model InternalNote {
   createdAt DateTime @default(now())
 
   @@index([ticketId, createdAt])
+}
+
+// Lab 4: Actions Taken — a work-log entry under a Ticket (spec §7.1).
+model ActionTaken {
+  id               Int          @id @default(autoincrement())
+  ticketId         Int
+  ticket           Ticket       @relation(fields: [ticketId], references: [id])
+  actionDate       DateTime     @default(now()) // user-editable "work happened at"
+  description      String // 1–2000 chars (app-validated)
+  result           String? // required to COMPLETE (BR-06)
+  performedById    Int // auto = creator, immutable (BR-03)
+  performedBy      User         @relation("ActionPerformedBy", fields: [performedById], references: [id])
+  updatedById      Int? // last editor, any active staff/admin (BR-20)
+  updatedBy        User?        @relation("ActionUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  assigneeId       Int? // active IT_STAFF/ADMIN only (BR-04)
+  assignee         User?        @relation("ActionAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  followUpRequired Boolean      @default(false)
+  followUpNote     String? // required iff followUpRequired (BR-07)
+  attachmentNotes  String? // free text hint (BR-08)
+  status           ActionStatus @default(OPEN)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([ticketId, createdAt]) // list newest-first per Ticket
+  @@index([ticketId, status]) // resolution-gate "any OPEN?" query
+  @@index([assigneeId, status]) // "my open Actions" dashboard metric
 }

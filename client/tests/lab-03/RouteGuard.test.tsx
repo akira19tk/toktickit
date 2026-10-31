@@ -107,12 +107,13 @@ describe("RouteGuard", () => {
               </PublicOnlyRoute>
             }
           />
-          <Route path="/my-tickets" element={<div>My Tickets</div>} />
+          {/* Every role now lands on /dashboard (ui-spec §3). */}
+          <Route path="/dashboard" element={<div>Dashboard Home</div>} />
         </Routes>
       </MemoryRouter>
     );
 
-    expect(screen.getByText("My Tickets")).toBeInTheDocument();
+    expect(screen.getByText("Dashboard Home")).toBeInTheDocument();
     expect(screen.queryByText("Login Page")).not.toBeInTheDocument();
   });
 

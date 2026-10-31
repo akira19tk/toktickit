@@ -17,14 +17,20 @@ export const ADMIN_NAME = "Admin E2E";
 export const ADMIN2_EMAIL = "admin2.e2e@example.com";
 export const STAFF_EMAIL = "staff.e2e@example.com";
 export const STAFF_NAME = "Staff E2E";
+export const STAFF2_EMAIL = "staff2.e2e@example.com";
+export const STAFF2_NAME = "Second Staff E2E";
+export const STAFF_INACTIVE_EMAIL = "staff.inactive.e2e@example.com";
 export const REQUESTER_EMAIL = "requester.e2e@example.com";
+export const REQUESTER2_EMAIL = "requester2.e2e@example.com";
 
 export type Role = "REQUESTER" | "IT_STAFF" | "ADMIN";
 
+// Every role now lands on the role-aware Dashboard (ui-spec §3); both the
+// Requester and IT Staff dashboards render an <h1>Dashboard</h1>.
 const ROLE_HOME: Record<Role, { url: RegExp; heading: string }> = {
-  REQUESTER: { url: /\/my-tickets$/, heading: "My Tickets" },
-  IT_STAFF: { url: /\/staff\/queue$/, heading: "Ticket Queue" },
-  ADMIN: { url: /\/admin\/users$/, heading: "User Management" },
+  REQUESTER: { url: /\/dashboard$/, heading: "Dashboard" },
+  IT_STAFF: { url: /\/dashboard$/, heading: "Dashboard" },
+  ADMIN: { url: /\/dashboard$/, heading: "Dashboard" },
 };
 
 // Fill and submit the login form (does NOT wait for the result).

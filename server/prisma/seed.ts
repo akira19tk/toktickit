@@ -3,8 +3,11 @@
 // Never overwrites an existing passwordHash or mustChangePassword (BR-62).
 // Lab 3: Users, Sessions cleared; Categories and Related Systems unchanged;
 //         ~24 reserved Tickets with all statuses/priorities; PublicComments; InternalNotes.
+// Lab 4: Actions Taken on active-status Tickets — covering Tickets with 0 / 1 / many
+//         Actions, every ActionStatus, assigned & unassigned, follow-up on & off, arranged
+//         so dashboard metrics (e.g. "my open Actions") are both zero and non-zero.
 
-import { PrismaClient, Role, Priority, TicketStatus } from "@prisma/client";
+import { PrismaClient, Role, Priority, TicketStatus, ActionStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -535,6 +538,147 @@ const SEEDED_NOTES: CommentSeed[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Actions Taken seed data (Lab 4)
+// ---------------------------------------------------------------------------
+// Grouped per Ticket so the idempotency guard (skip a Ticket that already has
+// any Action) keeps re-runs safe. All host Tickets are in an active working
+// status (OPEN / IN_PROGRESS) so the invariant "a RESOLVED/CLOSED Ticket has no
+// OPEN Action" holds. Assignees are always active IT_STAFF/ADMIN (BR-04).
+//
+// Coverage this data provides:
+//   • 0 Actions: every other seeded Ticket + all legacy Tickets.
+//   • exactly 1 Action: TKT-2026-900005, TKT-2026-900019.
+//   • many Actions: TKT-2026-900003 (3), TKT-2026-900023 (2).
+//   • every status: OPEN, COMPLETED, CANCELLED.
+//   • assigned and unassigned; follow-up required and not.
+//   • "my open Actions" metric: michael.brown=2, sarah.johnson=1 (non-zero);
+//     david.lee=0, admin=0 (zero) — both cases demonstrable.
+
+type ActionSeed = {
+  performedByEmail: string;
+  assigneeEmail: string | null;
+  updatedByEmail: string | null;
+  actionDateDaysAgo: number;
+  description: string;
+  result: string | null;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  status: ActionStatus;
+};
+
+const SEEDED_ACTIONS: { ticketNumber: string; actions: ActionSeed[] }[] = [
+  {
+    // MANY (3) — all three statuses, assigned & unassigned, follow-up on & off.
+    ticketNumber: "TKT-2026-900003",
+    actions: [
+      {
+        performedByEmail: "michael.brown@example.com",
+        assigneeEmail: "michael.brown@example.com",
+        updatedByEmail: null,
+        actionDateDaysAgo: 2,
+        description: "Reviewed VPN gateway logs and isolated the RADIUS timeout to a stale server entry.",
+        result: null,
+        followUpRequired: true,
+        followUpNote: "Re-test off-campus connection with the requester once the RADIUS entry is corrected.",
+        attachmentNotes: "See the diagnostic notes referenced on this ticket.",
+        status: ActionStatus.OPEN,
+      },
+      {
+        performedByEmail: "sarah.johnson@example.com",
+        assigneeEmail: "sarah.johnson@example.com",
+        updatedByEmail: "sarah.johnson@example.com",
+        actionDateDaysAgo: 1,
+        description: "Corrected the RADIUS server entry and reloaded the authentication service.",
+        result: "Authentication service reloaded; test login from off-campus succeeded without AUTH_TIMEOUT.",
+        followUpRequired: false,
+        followUpNote: null,
+        attachmentNotes: null,
+        status: ActionStatus.COMPLETED,
+      },
+      {
+        performedByEmail: "michael.brown@example.com",
+        assigneeEmail: null,
+        updatedByEmail: "michael.brown@example.com",
+        actionDateDaysAgo: 1,
+        description: "Proposed replacing the VPN concentrator firmware as a precaution.",
+        result: null,
+        followUpRequired: false,
+        followUpNote: null,
+        attachmentNotes: null,
+        status: ActionStatus.CANCELLED,
+      },
+    ],
+  },
+  {
+    // ONE — open, assigned to a different staffer than the owner (BR-02).
+    ticketNumber: "TKT-2026-900005",
+    actions: [
+      {
+        performedByEmail: "michael.brown@example.com",
+        assigneeEmail: "sarah.johnson@example.com",
+        updatedByEmail: null,
+        actionDateDaysAgo: 1,
+        description: "Captured the SIS 500 stack trace and opened a patch branch for the grade-submission endpoint.",
+        result: null,
+        followUpRequired: false,
+        followUpNote: null,
+        attachmentNotes: "Stack trace captured in the attached server log.",
+        status: ActionStatus.OPEN,
+      },
+    ],
+  },
+  {
+    // ONE — completed, assigned to its performer (david.lee has 0 OPEN actions → zero metric).
+    ticketNumber: "TKT-2026-900019",
+    actions: [
+      {
+        performedByEmail: "david.lee@example.com",
+        assigneeEmail: "david.lee@example.com",
+        updatedByEmail: "david.lee@example.com",
+        actionDateDaysAgo: 2,
+        description: "Replaced the failed access-point in the postgraduate lab and re-ran coverage tests.",
+        result: "New access-point online; sustained Wi-Fi coverage confirmed across the lab for 24h.",
+        followUpRequired: false,
+        followUpNote: null,
+        attachmentNotes: null,
+        status: ActionStatus.COMPLETED,
+      },
+    ],
+  },
+  {
+    // MANY (2) — both open: one assigned to michael.brown, one unassigned + follow-up.
+    ticketNumber: "TKT-2026-900023",
+    actions: [
+      {
+        performedByEmail: "michael.brown@example.com",
+        assigneeEmail: "michael.brown@example.com",
+        updatedByEmail: null,
+        actionDateDaysAgo: 1,
+        description: "Reproduced the weighted-average miscalculation in a staging copy of the gradebook.",
+        result: null,
+        followUpRequired: false,
+        followUpNote: null,
+        attachmentNotes: null,
+        status: ActionStatus.OPEN,
+      },
+      {
+        performedByEmail: "michael.brown@example.com",
+        assigneeEmail: null,
+        updatedByEmail: null,
+        actionDateDaysAgo: 1,
+        description: "Logged the weighting rounding bug for the vendor and drafted a temporary recalculation script.",
+        result: null,
+        followUpRequired: true,
+        followUpNote: "Confirm corrected averages with the affected instructors before closing.",
+        attachmentNotes: null,
+        status: ActionStatus.OPEN,
+      },
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -758,6 +902,57 @@ async function main() {
     }
   }
   console.log(`Seeded ${notesCreated} internal notes.`);
+
+  // --- Actions Taken (only for seeded tickets with no actions yet; idempotent) ---
+  // Skip gracefully on a pre-Lab-4 schema (e.g. during migration-test pass 1,
+  // before the Lab 4 migration creates the table).
+  const actionTableRows = await prisma.$queryRawUnsafe<{ present: boolean }[]>(
+    `SELECT EXISTS (
+       SELECT 1 FROM information_schema.tables WHERE table_name = 'ActionTaken'
+     ) AS present`
+  );
+  if (!actionTableRows[0]?.present) {
+    console.log("Skipped actions taken (ActionTaken table not present on this schema).");
+    return;
+  }
+
+  let actionsCreated = 0;
+  for (const group of SEEDED_ACTIONS) {
+    const ticketId = ticketByNumber.get(group.ticketNumber);
+    if (!ticketId) continue;
+
+    // Idempotency: seed a Ticket's Actions only if it currently has none.
+    const existing = await prisma.actionTaken.count({ where: { ticketId } });
+    if (existing > 0) continue;
+
+    for (const a of group.actions) {
+      const performedById = userByEmail.get(a.performedByEmail);
+      if (!performedById) {
+        console.warn(`  Skipping action on ${group.ticketNumber}: unknown performer ${a.performedByEmail}.`);
+        continue;
+      }
+      const assigneeId = a.assigneeEmail ? userByEmail.get(a.assigneeEmail) ?? null : null;
+      const updatedById = a.updatedByEmail ? userByEmail.get(a.updatedByEmail) ?? null : null;
+
+      await prisma.actionTaken.create({
+        data: {
+          ticketId,
+          performedById,
+          assigneeId,
+          updatedById,
+          actionDate: PAST(a.actionDateDaysAgo),
+          description: a.description,
+          result: a.result,
+          followUpRequired: a.followUpRequired,
+          followUpNote: a.followUpNote,
+          attachmentNotes: a.attachmentNotes,
+          status: a.status,
+        },
+      });
+      actionsCreated++;
+    }
+  }
+  console.log(`Seeded ${actionsCreated} actions taken.`);
 }
 
 main()

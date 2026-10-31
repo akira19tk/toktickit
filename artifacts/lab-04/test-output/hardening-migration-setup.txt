@@ -1,0 +1,136 @@
+
+> server@1.0.0 test:migration:setup
+> tsx scripts/setup-migration-db.ts
+
+◇ injected env (10) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+
+=== Setting up migration test database: toktickit_migration_test ===
+
+Dropping database (if exists)...
+DROP DATABASE
+Creating database...
+CREATE DATABASE
+
+Applying 3 Lab 1-2 migrations...
+  20260816000000_init_category
+CREATE TABLE
+CREATE INDEX
+  20260906160412_lab02_dev_requester_related_system
+ALTER TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+  20260906163402_lab03_ticket_attachment
+CREATE TYPE
+CREATE TYPE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+
+Loading Lab 2 fixture...
+INSERT 0 4
+INSERT 0 7
+INSERT 0 5
+INSERT 0 5
+INSERT 0 2
+INSERT 0 1
+Lab 2 fixture loaded.
+Pre-migration counts: { tickets: 5, attachments: 2, categories: 4, relatedSystems: 7 }
+
+Applying Lab 3 migration: 20261004160000_lab03_users_auth
+CREATE TYPE
+ALTER TABLE
+ALTER TABLE
+ALTER INDEX
+ALTER SEQUENCE
+UPDATE 5
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+UPDATE 5
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TYPE
+ALTER TYPE
+ALTER TYPE
+ALTER TYPE
+ALTER TYPE
+ALTER TYPE
+ALTER TYPE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+Lab 3 migration applied.
+After Lab 3 migration (before seed): 5 users, 5 with null hash.
+
+Running seed (pass 1)...
+Seeded 4 categories.
+Seeded 7 related systems.
+Requesters: 0 created, 5 passwords assigned (0 already had passwords).
+Seeded 4 IT staff accounts (4 new).
+Seeded admin account (new).
+Seeded 24 new reserved tickets (0 already existed).
+Seeded 6 public comments.
+Seeded 6 internal notes.
+Skipped actions taken (ActionTaken table not present on this schema).
+Seed pass 1 completed.
+Pre-Lab4 counts: {
+  userCount: 10,
+  ticketCount: 29,
+  attachmentCount: 2,
+  categoryCount: 4,
+  relatedSystemCount: 7,
+  publicCommentCount: 6,
+  internalNoteCount: 6
+}
+
+Applying post-Lab-3 migration: 20261030000000_lab4_actions_taken
+CREATE TYPE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+
+Running seed (pass 2 — Actions)...
+Seeded 4 categories.
+Seeded 7 related systems.
+Requesters: 0 created, 0 passwords assigned (5 already had passwords).
+Seeded 4 IT staff accounts (0 new).
+Seeded admin account (already existed).
+Seeded 0 new reserved tickets (24 already existed).
+Seeded 0 public comments.
+Seeded 0 internal notes.
+Seeded 7 actions taken.
+Seed pass 2 completed.
+
+Snapshot written to /Users/thanyagorn/Projects/toktickit/server/.migration-snapshot.json
+
+=== toktickit_migration_test is ready. ===
+Run: cd server && npm run test:migration
+

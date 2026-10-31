@@ -1,3 +1,4 @@
+import { formatDateTime } from "../lib/formatDate";
 // My Tickets screen — ui-spec.md §10.4
 // States: loading → success (table/cards/empty/no-results) | error
 // Always shows FilterRow once data has loaded (avoids hiding the search input).
@@ -15,6 +16,8 @@ import PriorityBadge from "./PriorityBadge";
 interface Props {
   onCreateTicket: () => void;
   onOpenTicket?: (ticketId: number) => void;
+  // Seeds the status filter from a dashboard drill-down (specification §8.1).
+  initialStatus?: string;
 }
 
 interface Filters {
@@ -25,6 +28,18 @@ interface Filters {
 }
 
 const EMPTY_FILTERS: Filters = { search: "", categoryId: "", priority: "", status: "" };
+
+// Statuses a Requester can filter by (matches the workflow + drill-down targets).
+const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "NEW", label: "New" },
+  { value: "OPEN", label: "Open" },
+  { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "WAITING_FOR_REQUESTER", label: "Waiting for Requester" },
+  { value: "RESOLVED", label: "Resolved" },
+  { value: "CLOSED", label: "Closed" },
+  { value: "REOPENED", label: "Reopened" },
+  { value: "CANCELLED", label: "Cancelled" },
+];
 
 function hasActiveFilters(f: Filters) {
   return !!(f.search || f.categoryId || f.priority || f.status);
@@ -42,9 +57,11 @@ function pageWindow(current: number, total: number, max = 5) {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export default function MyTickets({ onCreateTicket, onOpenTicket }: Props) {
+export default function MyTickets({ onCreateTicket, onOpenTicket, initialStatus }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>(
+    initialStatus ? { ...EMPTY_FILTERS, status: initialStatus } : EMPTY_FILTERS
+  );
   const [sortBy, setSortBy] = useState<"createdAt" | "ticketNumber">("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
@@ -247,12 +264,12 @@ export default function MyTickets({ onCreateTicket, onOpenTicket }: Props) {
                     aria-label={onOpenTicket ? `Open ticket ${t.ticketNumber}` : undefined}
                   >
                     <td className="mt-ticket-no">{t.ticketNumber}</td>
-                    <td>{new Date(t.createdAt).toLocaleDateString()}</td>
+                    <td>{formatDateTime(t.createdAt)}</td>
                     <td className="mt-summary" data-testid={`summary-${t.id}`}>{t.summary}</td>
                     <td>{t.category}</td>
                     <td><PriorityBadge priority={t.requestedPriority} /></td>
                     <td><StatusBadge status={t.currentStatus} /></td>
-                    <td>{new Date(t.updatedAt).toLocaleDateString()}</td>
+                    <td>{formatDateTime(t.updatedAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -260,11 +277,20 @@ export default function MyTickets({ onCreateTicket, onOpenTicket }: Props) {
           </div>
 
           {/* Mobile card list (visually shown via CSS, hidden on desktop) */}
-          <div className="mt-cards" aria-hidden="true">
+          <div className="mt-cards">
             {tickets.map((t) => (
               <div
                 key={t.id}
                 className="mt-card zen-card mt-row-clickable"
+                role={onOpenTicket ? "button" : undefined}
+                tabIndex={onOpenTicket ? 0 : undefined}
+                aria-label={onOpenTicket ? `Open ticket ${t.ticketNumber}` : undefined}
+                onKeyDown={(e) => {
+                  if (onOpenTicket && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    onOpenTicket(t.id);
+                  }
+                }}
                 onClick={() => onOpenTicket?.(t.id)}
               >
                 <div className="mt-card-row">
@@ -289,7 +315,7 @@ export default function MyTickets({ onCreateTicket, onOpenTicket }: Props) {
                 </div>
                 <div className="mt-card-row">
                   <span className="mt-card-label">Created</span>
-                  <span>{new Date(t.createdAt).toLocaleDateString()}</span>
+                  <span>{formatDateTime(t.createdAt)}</span>
                 </div>
               </div>
             ))}
@@ -429,7 +455,11 @@ function FilterRow({ filters, categories, onFilterChange, onClear }: FilterRowPr
         onChange={(e) => onFilterChange("status", e.target.value)}
       >
         <option value="">All Statuses</option>
-        <option value="NEW">New</option>
+        {STATUS_OPTIONS.map((s) => (
+          <option key={s.value} value={s.value}>
+            {s.label}
+          </option>
+        ))}
       </select>
       <button className="zen-btn zen-btn-secondary" onClick={onClear}>
         Clear Filters

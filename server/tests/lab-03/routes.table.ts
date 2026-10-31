@@ -45,8 +45,12 @@ export const routes: RouteEntry[] = [
   { method: "GET",  path: "/api/tickets/:id/comments",            allowedRoles: ["REQUESTER"], requesterOwnership: true },
   { method: "POST", path: "/api/tickets/:id/comments",            allowedRoles: ["REQUESTER"], requesterOwnership: true },
   { method: "POST", path: "/api/tickets/:id/resolved-indication", allowedRoles: ["REQUESTER"], requesterOwnership: true },
+  // Lab 4 Issue #50 — Requester read-only Actions on their own Ticket.
+  { method: "GET",  path: "/api/tickets/:id/actions",              allowedRoles: ["REQUESTER"], requesterOwnership: true },
 
   // ── Staff routes (IT_STAFF only, some also ADMIN read-only) ───────────────
+  // Lab 4 Issue #53 — IT Staff dashboard. IT_STAFF/ADMIN; Requester → 403.
+  { method: "GET",  path: "/api/staff/dashboard", allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
   // Issue #26 (Staff Queue) — detail/operations appended by Issue #27.
   { method: "GET",  path: "/api/staff/tickets",   allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
   { method: "GET",  path: "/api/staff/assignees", allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
@@ -56,7 +60,9 @@ export const routes: RouteEntry[] = [
   { method: "POST",  path: "/api/staff/tickets/:id/claim",                               allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
   { method: "PATCH", path: "/api/staff/tickets/:id/owner",                               allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
   { method: "PATCH", path: "/api/staff/tickets/:id/it-priority",                         allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
-  { method: "PATCH", path: "/api/staff/tickets/:id/status",                              allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  // Lab 4 Issue #51 — ADMIN gains status-write access (spec §11.4); every other
+  // staff mutation (claim/owner/it-priority/comments/notes) stays IT_STAFF only.
+  { method: "PATCH", path: "/api/staff/tickets/:id/status",                              allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
   { method: "GET",   path: "/api/staff/tickets/:id/attachments/:attachmentId/download",  allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
   // Issue #27 Stage 2 — staff Public Comments and Internal Notes. GET allows
   // ADMIN read-only; POST is IT_STAFF only (a Requester is refused at the gate).
@@ -64,6 +70,14 @@ export const routes: RouteEntry[] = [
   { method: "POST",  path: "/api/staff/tickets/:id/comments",                            allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
   { method: "GET",   path: "/api/staff/tickets/:id/notes",                               allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
   { method: "POST",  path: "/api/staff/tickets/:id/notes",                               allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  // Lab 4 Issue #50 — Actions Taken. ADMIN now has write access alongside IT_STAFF.
+  { method: "POST",  path: "/api/staff/tickets/:id/actions",                              allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
+  { method: "GET",   path: "/api/staff/tickets/:id/actions",                              allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
+  { method: "PATCH", path: "/api/staff/tickets/:id/actions/:actionId",                    allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
+
+  // ── Requester dashboard (REQUESTER only) ──────────────────────────────────
+  // Issue #52. REQUESTER only; IT_STAFF/ADMIN get 403 (they use /staff/dashboard).
+  { method: "GET",   path: "/api/requester/dashboard",                 allowedRoles: ["REQUESTER"], requesterOwnership: false },
 
   // ── Admin routes (ADMIN only) ─────────────────────────────────────────────
   // Issue #28 (Administrator User Management). ADMIN only; every other
