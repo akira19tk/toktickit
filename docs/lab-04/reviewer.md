@@ -1,7 +1,6 @@
 # Lab 4 Peer Review Evidence — Actions Taken, Workflow, Dashboards, Final Regression
 
-Every `feature/lab4-*` PR into `lab4-staging`, and the release PR `lab4-staging → main`, is reviewed and
-approved before merge. Each review's comments, responses, and follow-up commits are recorded below.
+This record covers Lab 4 feature PRs into `lab4-staging`, release PR #66 into `main`, and AI-use documentation PR #67 into `main`. Current approval and merge metadata were checked against GitHub on 2026-11-01 (Asia/Bangkok). Historical feedback and responses below are retained; the final status is recorded separately from the earlier review stages.
 
 ## Reviewer Information
 
@@ -14,7 +13,11 @@ approved before merge. Each review's comments, responses, and follow-up commits 
 
 ### PR #47 — docs(lab-04): Sprint 4 engineering contract (Issue #48)
 **Link:** https://github.com/akira19tk/toktickit/pull/47
-**Status:** Changes requested → addressed → re-review requested
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/47#pullrequestreview-5715139418), 2026-10-30 23:09 ICT, reviewed commit `8f0c17d`.
+
+**Merge:** 2026-10-30 23:10 ICT, merge commit `35f3a9c`.
 
 **Review received:**
 > 1. Ensure the resolution gate handles concurrent updates correctly to prevent tickets from being resolved while actions are still open.
@@ -56,7 +59,11 @@ approved before merge. Each review's comments, responses, and follow-up commits 
 
 ### PR #58 — feat(lab-04): Actions Taken DB migration, model, seed (Issue #49)
 **Link:** https://github.com/akira19tk/toktickit/pull/58
-**Status:** Changes requested → addressed → re-review requested
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/58#pullrequestreview-5716474866), 2026-10-31 00:57 ICT, reviewed commit `e2bc3de`.
+
+**Merge:** 2026-10-31 01:00 ICT, merge commit `f8fd0f4`.
 
 **Review received:**
 > 1. Ensure the foreign key constraints and delete restrictions behave correctly, especially for performedBy and assignee.
@@ -94,7 +101,11 @@ approved before merge. Each review's comments, responses, and follow-up commits 
 
 ### PR #59 — feat(lab-04): Actions Taken API + authorization (Issue #50)
 **Link:** https://github.com/akira19tk/toktickit/pull/59
-**Status:** Changes requested → addressed → re-review requested
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/59#pullrequestreview-5717248914), 2026-10-31 01:55 ICT, reviewed commit `dcb46f8`.
+
+**Merge:** 2026-10-31 01:55 ICT, merge commit `4c4b6e3`.
 
 **Review received:**
 > 1. Error handling: Ensure the validation and error response order matches the API specification, especially for invalid action transitions and closed tickets.
@@ -144,7 +155,11 @@ E2E **15**. API-L4 test count 34 → 38.
 
 ### PR #60 — feat(lab-04): Ticket workflow — resolution gate, Admin status writes, concurrency (Issue #51)
 **Link:** https://github.com/akira19tk/toktickit/pull/60
-**Status:** Changes requested → addressed → re-review requested
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/60#pullrequestreview-5721377977), 2026-10-31 12:00 ICT, reviewed commit `e95fee5`.
+
+**Merge:** 2026-10-31 13:26 ICT, merge commit `3f77c0d`.
 
 **Review received:**
 > 1. Concurrency: Ensure serialization failures and retry exhaustion consistently return the expected 409 response without leaving partial updates.
@@ -196,7 +211,11 @@ E2E **15/15**.
 
 ### PR #62 — feat(lab-04): Actions Taken UI + ticket workflow feedback on Ticket Detail (Issue #54)
 **Link:** https://github.com/akira19tk/toktickit/pull/62
-**Status:** Changes requested → addressed → re-review requested
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/62#pullrequestreview-5722224179), 2026-10-31 16:46 ICT, reviewed commit `24702b2`.
+
+**Merge:** 2026-10-31 16:46 ICT, merge commit `af447c2`.
 
 **Review received:**
 > 1. Form validation: Ensure required fields, follow-up notes, and completion results are validated correctly, including edge cases such as empty or whitespace-only input.
@@ -255,7 +274,11 @@ Issue #55.
 
 ### PR #63 — feat(lab-04): Staff dashboard API + UI + queue filters (Issue #53)
 **Link:** https://github.com/akira19tk/toktickit/pull/63
-**Status:** Changes requested → addressed → re-review requested
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/63#pullrequestreview-5723525051), 2026-10-31 22:20 ICT, reviewed commit `db25b1e`.
+
+**Merge:** 2026-10-31 22:20 ICT, merge commit `093abad`.
 
 **Review received:**
 > 1. Dashboard metrics: Verify that ticket counts correctly exclude CLOSED/CANCELLED tickets where required, and that My Open Actions only includes OPEN actions assigned to the authenticated user.
@@ -286,10 +309,17 @@ Issue #55.
 
 ### PR #65 — Accessibility and regression hardening (Issues #56 / #57)
 
-**Link:** https://github.com/akira19tk/toktickit/pull/65  
-**Reviewer:** Thannaporn (@daisysia)  
-**Review:** https://github.com/akira19tk/toktickit/pull/65#pullrequestreview-5724909297  
-**Status:** Approved on commit `d31a3ec` (2026-11-01, Asia/Bangkok); awaiting merge into `lab4-staging`.
+**Link:** https://github.com/akira19tk/toktickit/pull/65
+
+**Reviewer:** Thannaporn (@daisysia)
+
+**Review:** https://github.com/akira19tk/toktickit/pull/65#pullrequestreview-5724909297
+
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/65#pullrequestreview-5724909297), 2026-11-01 04:03 ICT, reviewed commit `d31a3ec`.
+
+**Merge:** 2026-11-01 04:16 ICT, merge commit `f9d9428`.
 
 **Review summary and evidence:**
 
@@ -302,24 +332,90 @@ Issue #55.
    release/main verification were acknowledged and remain documented in `artifacts/lab-04/hardening.md`.
 
 **Response/disposition:** No changes requested; no implementation changes required for this approval.
-This documentation-only update records the review. No additional tests run for the review record.
-Approval applies to `d31a3ec`; this subsequent documentation commit does not represent a new peer approval.
-No review response has been posted on behalf of the student.
+The documentation-only commit `2488ef2` recorded the review; no tests were rerun for that record.
+Approval applies to `d31a3ec`; the subsequent documentation commit does not represent a new peer approval.
+No separate response was posted for this approval-only review.
+
+---
+
+## Part 2 — Additional Review and Release Records
+
+### PR #61 — Requester dashboard (Issue #52)
+
+**Link:** https://github.com/akira19tk/toktickit/pull/61
+
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/61#pullrequestreview-5721386161), 2026-10-31 12:03 ICT, reviewed commit `d5b39ce`.
+
+**Merge:** 2026-10-31 13:29 ICT, merge commit `f27b7ea`.
+
+**Review and disposition:** The repository author posted a response linking commit `c992f3f`: Recently Resolved card, whole-card accessible drill-down links, decorative SVG icons, responsive grid, locale-stable recent-ticket timestamps and consistent button styling. The response reports client 99 and E2E 15 passing at that stage. These are historical results, not the final release counts.
+
+**Evidence caveat:** The formal approval body discusses workflow serialization, ADMIN permissions and the transition matrix rather than Requester Dashboard changes. The approval is attached to PR #61, but its wording does not establish a dashboard-specific review. The dashboard response and approval are recorded separately without rewriting the reviewer's words.
+
+**Existing author response:** [GitHub comment](https://github.com/akira19tk/toktickit/pull/61#issuecomment-6539085829).
+
+### PR #64 — E2E suites, screenshots and metrics evidence (Issue #55)
+
+**Link:** https://github.com/akira19tk/toktickit/pull/64
+
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/64#pullrequestreview-5724600084), 2026-11-01 02:38 ICT, reviewed commit `bb38c53`.
+
+**Merge:** 2026-11-01 02:40 ICT, merge commit `cbc6cc7`.
+
+**Review and disposition:** The reviewer approved Actions Taken lifecycle, resolution flow, metrics, role restrictions and responsive screenshots. The author posted a point-by-point response linking E2E-L4-01/02/03, screenshot paths, direct database comparisons and responsive coverage.
+
+**Count clarification:** The review body cites 34 E2E tests. The final recorded historical #55 output reports 36, and final-main validation also reports 36. The review's count is retained as historical wording, not substituted for actual test output.
+
+**Existing author response:** [GitHub comment](https://github.com/akira19tk/toktickit/pull/64#issuecomment-6548219772).
+
+### PR #66 — Lab 4 release: lab4-staging → main
+
+**Link:** https://github.com/akira19tk/toktickit/pull/66
+
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/66#pullrequestreview-5724973214), 2026-11-01 04:20 ICT, reviewed commit `f9d9428`.
+
+**Merge:** 2026-11-01 04:23 ICT, merge commit `a92fa7d`.
+
+**Review and disposition:** The reviewer approved integration of Actions Taken, resolution safeguards, dashboards, accessibility and regression hardening, citing server 544 / migration 46 / client 127 / E2E 36. Prisma advisories, manual accessibility review and post-merge validation were acknowledged as follow-ups. No implementation changes or separate response were requested.
+
+**Post-merge validation:** At release commit `a92fa7d`, server 544, migration 46 and client 127 passed with builds/lint; the student local Terminal E2E run passed all 36 in 41.1s. This distinguishes release validation from the pre-merge branch results.
+
+### PR #67 — AI-use report and English My Reflection
+
+**Link:** https://github.com/akira19tk/toktickit/pull/67
+
+**Status:** Approved → Merged.
+
+**Approval:** [@daisysia review](https://github.com/akira19tk/toktickit/pull/67#pullrequestreview-5725040569), 2026-11-01 04:43 ICT, reviewed commit `0c801e9`.
+
+**Merge:** 2026-11-01 04:44 ICT, merge commit `b6456de`.
+
+**Review and disposition:** The reviewer approved tool attribution, six selected prompts, limitations/corrections and the student's reflection. The review explicitly accepts not rerunning tests for this documentation-only change. No implementation changes or separate response were requested. Application validation remains tied to the previously tested release commit; this PR changes documentation only.
 
 ---
 
 ## Summary
 
-| PR | Issue | Scope | Reviewer | Status | Merged into |
+Times above use Asia/Bangkok. All rows below were verified as MERGED; approvals are linked in the individual records. Feature branches are retained as grading evidence.
+
+| PR | Issue | Scope | Reviewer | Final status | Merged into |
 |---|---|---|---|---|---|
-| #47 | #48 | Sprint 4 engineering contract (specification/api/ui/tests) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
-| #58 | #49 | Actions Taken DB foundation (migration, model, seed) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
-| #59 | #50 | Actions Taken API + authorization | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
-| #60 | #51 | Ticket workflow (resolution gate, Admin write, Lab 3 auth test updates) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
-| #__ | #52 | Requester dashboard (API + UI) | | | lab4-staging |
-| #63 | #53 | Staff dashboard (API + UI + queue filters) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
-| #62 | #54 | Actions Taken UI | | Changes requested → fixed, re-review | lab4-staging |
-| #__ | #55 | E2E + screenshots | | | lab4-staging |
-| #65 | #56 | Accessibility & visual consistency | Thannaporn (daisysia) | Approved; awaiting merge | lab4-staging |
-| #65 | #57 | Final hardening | Thannaporn (daisysia) | Approved; awaiting merge | lab4-staging |
-| #__ | — | Release PR | | | main |
+| [#47](https://github.com/akira19tk/toktickit/pull/47) | #48 | Engineering contract | Thannaporn (@daisysia) | Approved → Merged | lab4-staging |
+| [#58](https://github.com/akira19tk/toktickit/pull/58) | #49 | Actions Taken data/migration | Thannaporn (@daisysia) | Approved → Merged | lab4-staging |
+| [#59](https://github.com/akira19tk/toktickit/pull/59) | #50 | Actions Taken API | Thannaporn (@daisysia) | Approved → Merged | lab4-staging |
+| [#60](https://github.com/akira19tk/toktickit/pull/60) | #51 | Ticket workflow | Thannaporn (@daisysia) | Approved → Merged | lab4-staging |
+| [#61](https://github.com/akira19tk/toktickit/pull/61) | #52 | Requester dashboard | Thannaporn (@daisysia) | Approved → Merged (review wording caveat above) | lab4-staging |
+| [#62](https://github.com/akira19tk/toktickit/pull/62) | #54 | Actions Taken UI | Thannaporn (@daisysia) | Approved → Merged | lab4-staging |
+| [#63](https://github.com/akira19tk/toktickit/pull/63) | #53 | Staff dashboard and queue filters | Thannaporn (@daisysia) | Approved → Merged | lab4-staging |
+| [#64](https://github.com/akira19tk/toktickit/pull/64) | #55 | E2E and screenshot evidence | Thannaporn (@daisysia) | Approved → Merged | lab4-staging |
+| [#65](https://github.com/akira19tk/toktickit/pull/65) | #56, #57; #39–42 | Accessibility and hardening | Thannaporn (@daisysia) | Approved → Merged | lab4-staging |
+| [#66](https://github.com/akira19tk/toktickit/pull/66) | — | Lab 4 release | Thannaporn (@daisysia) | Approved → Merged | main |
+| [#67](https://github.com/akira19tk/toktickit/pull/67) | — | AI-use report and reflection | Thannaporn (@daisysia) | Approved → Merged | main |
+
+No new review comments were posted by the agent while reconciling this record. Historical responses are preserved or linked rather than fabricated.
