@@ -190,6 +190,13 @@ body {
   transition: border-color 0.15s, outline 0.15s;
 }
 
+.zen-select {
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%235a6b62' stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
 .zen-select:focus,
 .zen-input:focus {
   outline: 2px solid var(--color-secondary);
@@ -598,6 +605,20 @@ body {
   white-space: nowrap;
 }
 
+/* Fixed columns allow long summaries/categories to wrap without widening the table. */
+.mt-table { table-layout: fixed; }
+.mt-table th, .mt-table td { padding: 12px 8px; overflow-wrap: anywhere; }
+.mt-table th:first-child { width: 16%; }
+.mt-table th:nth-child(2), .mt-table th:last-child { width: 15%; }
+.mt-table th:nth-child(3) { width: 19%; }
+.mt-table th:nth-child(4) { width: 13%; }
+.mt-table th:nth-child(5) { width: 9%; }
+.mt-table th:nth-child(6) { width: 13%; }
+.mt-table .mt-summary { white-space: normal; }
+.mt-table .mt-ticket-no { white-space: normal; }
+.mt-table .mt-sort-btn, .mt-table .zen-status-badge { white-space: normal; }
+.mt-card-row > span { min-width: 0; overflow-wrap: anywhere; }
+
 /* Badge */
 .mt-badge {
   display: inline-block;
@@ -789,12 +810,12 @@ body {
 
 .zen-status-badge--new          { background: #E8EEF3; color: #374151; }
 .zen-status-badge--open         { background: var(--color-pale); color: var(--color-primary); }
-.zen-status-badge--in-progress  { background: var(--color-secondary); color: #fff; }
+.zen-status-badge--in-progress  { background: #FEF3C7; color: #92400E; }
 .zen-status-badge--waiting      { background: var(--color-warning-bg); color: #92400E; }
 .zen-status-badge--resolved     { background: var(--color-primary); color: #fff; }
 .zen-status-badge--closed       { background: #6B7280; color: #fff; }
 .zen-status-badge--reopened     { background: transparent; color: var(--color-internal-border); border: 1px solid var(--color-internal-border); }
-.zen-status-badge--cancelled    { background: #F3F4F6; color: #9CA3AF; text-decoration: line-through; }
+.zen-status-badge--cancelled    { background: #F3F4F6; color: #374151; }
 
 /* Resolved carries a check icon (decorative; the visible label stays "Resolved") */
 .zen-status-badge--resolved::before {
@@ -1363,20 +1384,7 @@ body {
 .at-assign { display: flex; align-items: flex-end; gap: 6px; flex-wrap: wrap; }
 .at-assign-field { display: flex; flex-direction: column; gap: 2px; }
 
-/* The shared .zen-select sets appearance:none (no native arrow); add a chevron
-   so it reads as a dropdown rather than a button. */
-.at-select-wrap { position: relative; display: inline-block; }
-.at-select-wrap::after {
-  content: "▾";
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: var(--color-muted);
-  font-size: 12px;
-}
-.at-select-wrap .zen-select { padding-right: 28px; }
+.at-select-wrap { display: inline-block; }
 
 .at-row-edit { display: flex; flex-direction: column; gap: 8px; }
 
@@ -1419,3 +1427,6 @@ body {
   .at-assign { flex-wrap: wrap; }
   .at-date { margin-left: 0; }
 }
+
+/* Cancelled remains readable, with a non-color cancellation cue. */
+.zen-status-badge--cancelled::before { content: "✕"; font-weight: 700; }

@@ -1,3 +1,4 @@
+import { formatDateTime } from "../lib/formatDate";
 // IT Staff Ticket Queue — ui-spec.md §4.4
 // States: loading → success (table/cards/empty/no-results) | error | forbidden
 // Reuses the shared StatusBadge and PriorityBadge and the My Tickets layout
@@ -394,7 +395,7 @@ export default function StaffTicketQueue({
                     <td><PriorityBadge priority={t.itPriority} /></td>
                     <td><StatusBadge status={t.currentStatus} /></td>
                     <td>{renderOwner(t)}</td>
-                    <td className="sq-hide-tablet">{new Date(t.updatedAt).toLocaleDateString()}</td>
+                    <td className="sq-hide-tablet">{formatDateTime(t.updatedAt)}</td>
                     <td>
                       <button
                         className="zen-btn zen-btn-secondary mt-page-btn"

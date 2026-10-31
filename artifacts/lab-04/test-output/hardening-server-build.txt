@@ -1,0 +1,6 @@
+
+> server@1.0.0 build
+> tsc
+
+tests/lab-04/lib.unit.test.ts(123,27): error TS1470: The 'import.meta' meta-property is not allowed in files which will build into CommonJS output.
+tests/setup.ts(12,35): error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean '../src/prismaClient.js'?

@@ -1,0 +1,68 @@
+[
+  {
+    "step": "server-db-setup",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-server-db-setup.txt"
+  },
+  {
+    "step": "server",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-server.txt"
+  },
+  {
+    "step": "migration-setup",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-migration-setup.txt"
+  },
+  {
+    "step": "migration",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-migration.txt"
+  },
+  {
+    "step": "client",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-client.txt"
+  },
+  {
+    "step": "client-build",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-client-build.txt"
+  },
+  {
+    "step": "client-lint",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-client-lint.txt"
+  },
+  {
+    "step": "server-build",
+    "exitCode": 2,
+    "log": "artifacts/lab-04/test-output/hardening-server-build.txt"
+  },
+  {
+    "step": "server-build-fixed",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-server-build-fixed.txt"
+  },
+  {
+    "step": "server-final",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-server-final.txt"
+  },
+  {
+    "step": "e2e-setup",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-e2e-setup.txt"
+  },
+  {
+    "step": "e2e",
+    "exitCode": 1,
+    "log": "artifacts/lab-04/test-output/hardening-e2e.txt"
+  },
+  {
+    "step": "e2e-local-terminal",
+    "exitCode": 0,
+    "log": "artifacts/lab-04/test-output/hardening-e2e-local-terminal.txt",
+    "source": "Student-supplied transcript: 36 passed (46.2s). Local Playwright last-run status passed, failedTests empty. No agent rerun."
+  }
+]
