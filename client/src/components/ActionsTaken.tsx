@@ -17,6 +17,7 @@ import {
   type PatchActionPayload,
 } from "../api";
 import { formatDateTime } from "../lib/formatDate";
+import Dialog from "./Dialog";
 
 interface Props {
   ticketId: number;
@@ -376,6 +377,7 @@ function ActionRow({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [assignTarget, setAssignTarget] = useState<string>(action.assignee ? String(action.assignee.id) : "");
 
   // Edit drafts
@@ -385,8 +387,8 @@ function ActionRow({
   const [followUpNoteDraft, setFollowUpNoteDraft] = useState(action.followUpNote ?? "");
   const [attachDraft, setAttachDraft] = useState(action.attachmentNotes ?? "");
 
-  async function run(payload: PatchActionPayload) {
-    if (busy) return;
+  async function run(payload: PatchActionPayload): Promise<boolean> {
+    if (busy) return false;
     setBusy(true);
     setError(null);
     try {
@@ -396,11 +398,20 @@ function ActionRow({
       });
       setEditing(false);
       onChanged();
+      return true;
     } catch (err) {
       setError(actionErrorMessage(err));
+      return false;
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleConfirmCancel() {
+    const ok = await run({ status: "CANCELLED" });
+    // On success the list refreshes and this row re-renders as Cancelled; only
+    // close the dialog then, so a failure stays visible inside it.
+    if (ok) setConfirmCancel(false);
   }
 
   function handleComplete() {
@@ -526,13 +537,13 @@ function ActionRow({
           </div>
           {action.followUpRequired && action.followUpNote && (
             <div className="at-field">
-              <span className="zen-label at-field-label">Note</span>
+              <span className="zen-label at-field-label">Follow-up note</span>
               <span className="at-field-value">{action.followUpNote}</span>
             </div>
           )}
           {action.attachmentNotes && (
             <div className="at-field">
-              <span className="zen-label at-field-label">Attachments</span>
+              <span className="zen-label at-field-label">Attachment notes</span>
               <span className="at-field-value">{action.attachmentNotes}</span>
             </div>
           )}
@@ -542,18 +553,24 @@ function ActionRow({
       {editable && !editing && (
         <div className="at-row-actions">
           <div className="at-assign">
-            <label htmlFor={`at-assign-${action.id}`} className="zen-sr-only">Assign to</label>
-            <select
-              id={`at-assign-${action.id}`}
-              className="zen-select"
-              value={assignTarget}
-              onChange={(e) => setAssignTarget(e.target.value)}
-            >
-              <option value="">Unassigned</option>
-              {assignees.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
+            <div className="at-assign-field">
+              <label htmlFor={`at-assign-${action.id}`} className="zen-label at-field-label">
+                Reassign to
+              </label>
+              <div className="at-select-wrap">
+                <select
+                  id={`at-assign-${action.id}`}
+                  className="zen-select"
+                  value={assignTarget}
+                  onChange={(e) => setAssignTarget(e.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {assignees.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             <button
               className="zen-btn zen-btn-secondary"
               onClick={() => run({ assigneeId: assignTarget ? Number(assignTarget) : null })}
@@ -568,13 +585,51 @@ function ActionRow({
           <button className="zen-btn zen-btn-primary" onClick={handleComplete} disabled={busy} aria-busy={busy}>
             Complete
           </button>
-          <button className="zen-btn zen-btn-destructive" onClick={() => run({ status: "CANCELLED" })} disabled={busy}>
+          <button
+            className="zen-btn zen-btn-destructive"
+            onClick={() => { setError(null); setConfirmCancel(true); }}
+            disabled={busy}
+          >
             Cancel action
           </button>
         </div>
       )}
 
-      {error && !editing && <span className="zen-field-error" role="alert">{error}</span>}
+      {error && !editing && !confirmCancel && (
+        <span className="zen-field-error" role="alert">{error}</span>
+      )}
+
+      {/* Cancelling is irreversible, so confirm first. Dialog traps focus,
+          closes on Esc, and returns focus to the trigger (ui-spec §5). */}
+      {confirmCancel && (
+        <Dialog
+          title="Cancel this action?"
+          locked={busy}
+          onClose={() => { setConfirmCancel(false); setError(null); }}
+        >
+          <p className="zen-muted" style={{ marginBottom: 16 }}>
+            This marks the action as cancelled. It cannot be undone.
+          </p>
+          {error && <p className="zen-field-error" role="alert">{error}</p>}
+          <div className="zen-btn-row">
+            <button
+              className="zen-btn zen-btn-secondary"
+              onClick={() => { setConfirmCancel(false); setError(null); }}
+              disabled={busy}
+            >
+              Keep action
+            </button>
+            <button
+              className="zen-btn zen-btn-destructive"
+              onClick={handleConfirmCancel}
+              disabled={busy}
+              aria-busy={busy}
+            >
+              {busy ? "Cancelling…" : "Yes, cancel action"}
+            </button>
+          </div>
+        </Dialog>
+      )}
     </li>
   );
 }

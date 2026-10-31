@@ -1343,7 +1343,23 @@ body {
   padding-top: 12px;
   border-top: 1px solid var(--color-border);
 }
-.at-assign { display: flex; align-items: center; gap: 6px; }
+.at-assign { display: flex; align-items: flex-end; gap: 6px; flex-wrap: wrap; }
+.at-assign-field { display: flex; flex-direction: column; gap: 2px; }
+
+/* The shared .zen-select sets appearance:none (no native arrow); add a chevron
+   so it reads as a dropdown rather than a button. */
+.at-select-wrap { position: relative; display: inline-block; }
+.at-select-wrap::after {
+  content: "▾";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.at-select-wrap .zen-select { padding-right: 28px; }
 
 .at-row-edit { display: flex; flex-direction: column; gap: 8px; }
 

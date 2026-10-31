@@ -124,8 +124,23 @@ describe("UI-L4-06: ActionsTaken complete/cancel; read-only terminal rows", () =
 
     patchSpy.mockClear();
 
-    // Cancelling an OPEN action sends the CANCELLED transition.
+    // Cancelling is irreversible, so it is guarded by a confirm dialog — the
+    // trigger alone sends nothing.
+    const cancelTrigger = within(row1).getByRole("button", { name: /cancel action/i });
+    await user.click(cancelTrigger);
+    await screen.findByRole("dialog", { name: /cancel this action/i });
+    expect(patchSpy).not.toHaveBeenCalled();
+
+    // Esc closes the dialog without sending, and focus returns to the trigger.
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(patchSpy).not.toHaveBeenCalled();
+    expect(within(row1).getByRole("button", { name: /cancel action/i })).toHaveFocus();
+
+    // Reopening and confirming sends the CANCELLED transition.
     await user.click(within(row1).getByRole("button", { name: /cancel action/i }));
+    const dialog = await screen.findByRole("dialog", { name: /cancel this action/i });
+    await user.click(within(dialog).getByRole("button", { name: /yes, cancel action/i }));
     await waitFor(() =>
       expect(patchSpy).toHaveBeenCalledWith(5, 1, expect.objectContaining({ status: "CANCELLED" }))
     );
@@ -154,7 +169,11 @@ describe("UI-L4-07: ActionsTaken read-only for the Requester", () => {
     expect(screen.getByText(/dana lee/i)).toBeInTheDocument();
     expect(screen.getByText(/michael chen/i)).toBeInTheDocument();
     expect(screen.getByText(/see diagnostic-report\.pdf/i)).toBeInTheDocument();
-    expect(screen.getByText(/follow-up/i)).toBeInTheDocument();
+    // The amber chip is exactly "Follow-up"; the field label is "Follow-up note".
+    expect(screen.getByText("Follow-up")).toBeInTheDocument();
+    // Field labels match the handout wording (not "Note" / "Attachments").
+    expect(screen.getByText("Follow-up note")).toBeInTheDocument();
+    expect(screen.getByText("Attachment notes")).toBeInTheDocument();
 
     // Timestamps use the shared formatDateTime helper → a Gregorian date
     // ("28 Oct 2026, …"), never the Buddhist year (2569) toLocaleString gave
