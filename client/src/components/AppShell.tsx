@@ -43,6 +43,14 @@ export default function AppShell({ children }: Props) {
               {user?.role === "REQUESTER" && (
                 <>
                   <NavLink
+                    to="/dashboard"
+                    className={({ isActive }) =>
+                      `zen-nav-link${isActive ? " zen-nav-link--active" : ""}`
+                    }
+                  >
+                    Dashboard
+                  </NavLink>
+                  <NavLink
                     to="/my-tickets"
                     className={({ isActive }) =>
                       `zen-nav-link${isActive ? " zen-nav-link--active" : ""}`

@@ -406,6 +406,36 @@ export async function fetchTicketDetail(ticketId: number): Promise<TicketDetail>
   return res.json();
 }
 
+// ── Requester dashboard (Issue #52) ──────────────────────────────────────────
+
+export interface RequesterDashboardMetrics {
+  open: number;
+  inProgress: number;
+  waitingForMe: number;
+  resolved: number;
+  closed: number;
+  recentlyResolved: number;
+}
+
+export interface RequesterRecentTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  currentStatus: string;
+  updatedAt: string;
+}
+
+export interface RequesterDashboard {
+  metrics: RequesterDashboardMetrics;
+  myRecentTickets: RequesterRecentTicket[];
+}
+
+export async function fetchRequesterDashboard(): Promise<RequesterDashboard> {
+  const res = await apiFetch(`${API_BASE_URL}/api/requester/dashboard`);
+  if (!res.ok) throw new Error(`Failed to load dashboard: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchTicketComments(ticketId: number): Promise<TicketComment[]> {
   const res = await apiFetch(`${API_BASE_URL}/api/tickets/${ticketId}/comments`);
   if (!res.ok) {

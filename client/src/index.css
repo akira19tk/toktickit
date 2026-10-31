@@ -1160,3 +1160,91 @@ body {
   border-bottom-color: var(--color-internal-border);
   background: var(--color-internal-bg);
 }
+
+/* ── Requester Dashboard (Issue #52) ─────────────────────────────── */
+.zen-dash {
+  max-width: 1140px;
+  margin: 0 auto;
+  width: 100%;
+}
+.zen-dash-header {
+  margin-bottom: 16px;
+}
+.zen-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.zen-dash-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--color-text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.zen-dash-card:hover {
+  border-color: var(--color-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.zen-dash-card:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+.zen-dash-card-icon { font-size: 20px; }
+.zen-dash-card-count {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-primary);
+}
+.zen-dash-card-label {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+.zen-dash-card--attention {
+  border-left: 4px solid var(--color-warning);
+  background: var(--color-warning-bg);
+}
+.zen-dash-card--attention .zen-dash-card-count { color: var(--color-warning); }
+.zen-dash-attention {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-warning);
+}
+.zen-dash-note { margin: 12px 0 0; }
+.zen-dash-recent-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.zen-dash-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--color-border);
+  text-decoration: none;
+  color: var(--color-text);
+  flex-wrap: wrap;
+}
+.zen-dash-recent-row:hover { background: var(--color-pale); }
+.zen-dash-recent-row:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: -2px;
+}
+.zen-dash-recent-no {
+  font-weight: 600;
+  color: var(--color-primary);
+  min-width: 150px;
+}
+.zen-dash-recent-summary { flex: 1 1 160px; min-width: 0; }
+.zen-dash-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}

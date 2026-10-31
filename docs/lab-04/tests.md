@@ -53,10 +53,10 @@ prove no lost update and no duplicate write.
 | API-L4-18 | API | AC-13 | Status PATCH with stale expectedUpdatedAt | 409 STALE_UPDATE | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
 | API-L4-19 | API | AC-18 | Admin changes status (allowed); admin claim/owner/priority/comment/note | status 200; others 403 (Lab 3 preserved) | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
 | API-L4-20 | API | AC-21 | Double-submitted status transition / Action create | No duplicate, consistent state | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| API-L4-21 | API | AC-15 | Requester dashboard scope + counts | Only own data; open/inProgress/resolved/closed correct | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
-| API-L4-22 | API | AC-25 | Waiting for Me metric | Equals count(WAITING_FOR_REQUESTER) for me | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
-| API-L4-23 | API | AC-26 | Recently Resolved uses Asia/Bangkok boundary | Count flips correctly across UTC+7 midnight | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
-| API-L4-24 | API | AC-15 | Requester dashboard requested by IT Staff/Admin | 403 | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
+| API-L4-21 | API | AC-15 | Requester dashboard scope + counts | Only own data; open/inProgress/resolved/closed correct | server/tests/lab-04/requester-dashboard.api.test.ts | Pass |
+| API-L4-22 | API | AC-25 | Waiting for Me metric | Equals count(WAITING_FOR_REQUESTER) for me | server/tests/lab-04/requester-dashboard.api.test.ts | Pass |
+| API-L4-23 | API | AC-26 | Recently Resolved uses Asia/Bangkok boundary | Count flips correctly across UTC+7 midnight | server/tests/lab-04/requester-dashboard.api.test.ts | Pass |
+| API-L4-24 | API | AC-15 | Requester dashboard requested by IT Staff/Admin | 403 | server/tests/lab-04/requester-dashboard.api.test.ts | Pass |
 | API-L4-25 | API | AC-16 | Staff dashboard counts match direct DB queries | new/open/inProgress/waiting/myAssigned/unassigned exact | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
 | API-L4-26 | API | AC-23 | My Open Actions count | Equals count(assigneeId=me AND status=OPEN) | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
 | API-L4-27 | API | AC-24 | Urgent list contents/order | Exactly HIGH & not Closed/Cancelled, newest-first, ≤5 | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
@@ -73,8 +73,8 @@ prove no lost update and no duplicate write.
 | API-L4-38 | API | AC-02, AC-03 | PATCH assignee semantics | Active→200; inactive→422 ASSIGNEE_INACTIVE (unchanged); requester/unknown→422 INVALID_ASSIGNEE; Requester PATCH→403 | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | UI-L4-01 | UI | AC-16, AC-24 | StaffDashboard renders cards, My Open Actions, urgent list | Values and labels shown; non-color cues | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-02 | UI | AC-17 | StaffDashboard card/row drill-down navigation | Navigates to correct queue/detail route+params | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
-| UI-L4-03 | UI | AC-15, AC-25 | RequesterDashboard own metrics + Waiting for Me cue | Correct cards; attention cue present | client/src/pages/__tests__/RequesterDashboard.test.tsx | Planned |
-| UI-L4-04 | UI | AC-17 | RequesterDashboard drill-down + empty state | Links to /tickets?status=…; empty renders 0/message | client/src/pages/__tests__/RequesterDashboard.test.tsx | Planned |
+| UI-L4-03 | UI | AC-15, AC-25 | RequesterDashboard own metrics + Waiting for Me cue | Correct cards; attention cue present | client/tests/lab-04/RequesterDashboard.test.tsx | Pass |
+| UI-L4-04 | UI | AC-17 | RequesterDashboard drill-down + empty state | Links to /tickets?status=…; empty renders 0/message | client/tests/lab-04/RequesterDashboard.test.tsx | Pass |
 | UI-L4-05 | UI | AC-01, AC-07 | ActionsTaken create form + follow-up validation | Required errors inline; follow-up note gated | client/src/components/__tests__/ActionsTaken.test.tsx | Planned |
 | UI-L4-06 | UI | AC-04, AC-05, AC-06 | ActionsTaken complete/cancel; read-only terminal | Controls show when permitted; terminal read-only | client/src/components/__tests__/ActionsTaken.test.tsx | Planned |
 | UI-L4-07 | UI | AC-08 | ActionsTaken read-only for Requester | All fields shown; no create/edit controls | client/src/components/__tests__/ActionsTaken.test.tsx | Planned |
