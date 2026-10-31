@@ -1,13 +1,24 @@
 // Lab 4 unit tests for pure Action helpers.
 // Issue #49 implements UNIT-L4-02 (Action lifecycle validator) and
-// UNIT-L4-03 (follow-up note rule). UNIT-L4-01 (ticket matrix) and
-// UNIT-L4-04 (Asia/Bangkok boundary) are added by later issues.
+// UNIT-L4-03 (follow-up note rule); UNIT-L4-01 covers the ticket matrix.
+// Hardening #57 completes UNIT-L4-04 (Asia/Bangkok boundaries).
 
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import type { ActionStatus, TicketStatus } from "@prisma/client";
+import { bangkokRecentCutoff } from "../../src/lib/timezone";
+
+describe("UNIT-L4-04: Bangkok seven-calendar-day boundary", () => {
+  it.each([
+    ["2026-10-31T16:59:59.999Z", "2026-10-24T17:00:00.000Z"],
+    ["2026-10-31T17:00:00.000Z", "2026-10-25T17:00:00.000Z"],
+    ["2026-01-01T00:00:00.000Z", "2025-12-25T17:00:00.000Z"],
+    ["2024-03-01T00:00:00.000Z", "2024-02-23T17:00:00.000Z"],
+  ])("%s has inclusive cutoff %s", (now, cutoff) => {
+    expect(bangkokRecentCutoff(new Date(now)).toISOString()).toBe(cutoff);
+  });
+});
 import {
   ACTION_TRANSITIONS,
   allowedActionTransitions,
@@ -108,7 +119,7 @@ describe("UNIT-L4-01: ticket transition matrix", () => {
 // map from each source status to its allowed-target set.
 function parseBr14Matrix(): Record<TicketStatus, Set<TicketStatus>> {
   const specPath = join(
-    dirname(fileURLToPath(import.meta.url)),
+    __dirname,
     "../../../docs/lab-04/specification.md"
   );
   const lines = readFileSync(specPath, "utf8").split("\n");

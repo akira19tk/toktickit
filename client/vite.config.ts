@@ -8,7 +8,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    pool: "vmForks",
+    pool: "forks",
+    // Avoid CPU contention from many jsdom workers and typing-driven tests (#39/#41).
+    fileParallelism: false,
     setupFiles: "./tests/setup.ts",
     include: ["tests/**/*.test.tsx"],
   },

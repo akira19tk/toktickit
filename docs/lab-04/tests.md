@@ -27,12 +27,12 @@ prove no lost update and no duplicate write.
 
 ## 2. Planned Tests
 
-| Test ID | Type | AC | What It Tests | Expected Result | Automated Test File | Status |
+| Test ID | Type | AC | What It Tests | Expected Result | Automated Test File | Final |
 |---|---|---|---|---|---|---|
 | UNIT-L4-01 | Unit | AC-11 | Ticket transition matrix incl. CANCELLED terminal | Allowed/blocked pairs match BR-14 | server/tests/lab-04/lib.unit.test.ts | Pass |
 | UNIT-L4-02 | Unit | AC-04, AC-05 | Action lifecycle validator (OPEN→COMPLETED/CANCELLED only; complete needs result) | Legal transitions pass, others rejected | server/tests/lab-04/lib.unit.test.ts | Pass |
 | UNIT-L4-03 | Unit | AC-07 | Follow-up note rule (required iff followUpRequired) | Mismatches rejected | server/tests/lab-04/lib.unit.test.ts | Pass |
-| UNIT-L4-04 | Unit | AC-26 | Asia/Bangkok "last 7 days" / day-boundary helper | Boundary computed in UTC+7, not UTC | server/tests/lab-04/lib.unit.test.ts | Planned |
+| UNIT-L4-04 | Unit | AC-26 | Asia/Bangkok "last 7 days" / day-boundary helper | Boundary computed in UTC+7, not UTC | server/tests/lab-04/lib.unit.test.ts | Pass |
 | API-L4-01 | API | AC-01 | Create a valid Action | 201; under correct Ticket; performedBy=creator; status OPEN; updatedBy null | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-02 | API | AC-02 | Assign to active vs inactive staff/admin | Active → set; inactive → 422 ASSIGNEE_INACTIVE, unchanged | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-03 | API | AC-03 | Assign to a Requester / unknown id | 422 INVALID_ASSIGNEE | server/tests/lab-04/actions-taken.api.test.ts | Pass |
@@ -89,7 +89,8 @@ prove no lost update and no duplicate write.
 | UI-L4-12 | UI | AC-01, AC-04 | Successful create/complete refresh the Actions list and Ticket summary | List re-fetched; onChanged (summary reload) fires once | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
 | UI-L4-13 | UI | AC-17 | Dashboard routing + legacy-route gating (PR #63 review) | Each role → /dashboard; /dashboard role-branches; legacy routes render for permitted role, forbid others | client/tests/lab-04/DashboardRouting.test.tsx | Pass |
 | UI-L4-14 | UI | AC-17, AC-20 | StaffDashboard loading/error states are accessible (PR #63 review) | Loading = status region + accessible label; error = role=alert + retry button | client/tests/lab-04/StaffDashboard.test.tsx | Pass |
-| RESP-L4-01 | Responsive/Style | AC-20 | Dashboards + Actions table reflow (desktop/tablet/mobile) | 2-up/1-up grid; Actions table → stacked cards; no horizontal overflow | client/tests/lab-04/StaffDashboard.test.tsx | Pass |
+| UI-L4-15 | UI | AC-20 | Gregorian dates under Thai locale and keyboard-operable mobile My Tickets card | No Buddhist year; date/time shown; Enter opens ticket | client/tests/lab-04/Hardening.test.tsx | Pass |
+| RESP-L4-01 | Responsive/Style | AC-20 | Dashboard responsive grid structure (component-level) | Metric cards share responsive grid; actual pixel overflow is not asserted | client/tests/lab-04/StaffDashboard.test.tsx | Pass |
 | MIG-L4-01 | Migration | AC-20 | Apply Lab 4 migration on a Lab 3 DB | All Lab 1–3 rows preserved; ActionTaken + enum created | server/tests/lab-04/migration.test.ts | Pass |
 | MIG-L4-02 | Migration | AC-10, AC-20 | Legacy Ticket (zero Actions) resolvable after migration | Resolution gate passes; no backfill needed | server/tests/lab-04/migration.test.ts | Pass |
 | MIG-L4-03 | Migration | AC-20 | Rollback drops ActionTaken/enum only | Lab 1–3 data intact | server/tests/lab-04/migration.test.ts | Pass |
@@ -97,10 +98,10 @@ prove no lost update and no duplicate write.
 | MIG-L4-05 | Migration | AC-20 | ActionTaken FK deletes are RESTRICT (User as performedBy/assignee/updatedBy; Ticket with Actions) | Each delete rejected; referenced rows intact | server/tests/lab-04/migration.test.ts | Pass |
 | MIG-L4-06 | Migration | AC-20 | Seed on a partially populated DB (some Tickets have Actions, some don't) | Missing Actions filled, already-populated untouched, no duplicates, idempotent | server/tests/lab-04/migration.test.ts | Pass |
 | REG-L4-01 | Regression | AC-20 | Full Lab 1–3 server suites still green | All prior API/unit tests pass | server/tests/lab-01..03/* | Pass |
-| E2E-L4-01 | E2E | AC-01,AC-02,AC-04,AC-05,AC-22 | Actions Taken flow: create→assign→complete / cancel, multiple on one Ticket | Visible, persisted, role-restricted | e2e/lab-04/actions-taken-flow.spec.ts | Pass |
-| E2E-L4-02 | E2E | AC-10, AC-11 | Ticket resolution: blocked by open Action, then resolve, reopen | Gate enforced end-to-end | e2e/lab-04/ticket-resolution.spec.ts | Pass |
-| E2E-L4-03 | E2E | AC-15,AC-16,AC-17 | Dashboards: staff + requester metrics and drill-down | Counts match; navigation correct | e2e/lab-04/dashboards.spec.ts | Pass |
-| E2E-L4-04 | E2E | AC-20 | Representative Lab 1–3 regression (auth, My Tickets, detail, attachments, comments, notes, admin) | All prior flows pass | e2e/lab-03/*.spec.ts + e2e/lab-04/dashboards.spec.ts | Pass |
+| E2E-L4-01 | E2E | AC-01,AC-02,AC-04,AC-05,AC-22 | Actions Taken flow: create→assign→complete / cancel, multiple on one Ticket | Visible, persisted, role-restricted | e2e/lab-04/actions-taken-flow.spec.ts | Blocked (Chromium startup permission) |
+| E2E-L4-02 | E2E | AC-10, AC-11 | Ticket resolution: blocked by open Action, then resolve, reopen | Gate enforced end-to-end | e2e/lab-04/ticket-resolution.spec.ts | Blocked (Chromium startup permission) |
+| E2E-L4-03 | E2E | AC-15,AC-16,AC-17 | Dashboards: staff + requester metrics and drill-down | Counts match; navigation correct | e2e/lab-04/dashboards.spec.ts | Blocked (Chromium startup permission) |
+| E2E-L4-04 | E2E | AC-20 | Representative Lab 1–3 regression (auth, My Tickets, detail, attachments, comments, notes, admin) | All prior flows pass | e2e/lab-03/*.spec.ts + e2e/lab-04/dashboards.spec.ts | Blocked (Chromium startup permission) |
 
 ## 2.1 Error / edge-case coverage audit
 
@@ -155,7 +156,7 @@ Every error class across the Lab 4 endpoints has at least one explicit test:
 
 ## 4. Planned totals
 
-66 tests — Unit 4, API 38, UI 12, Responsive/Style 1, Migration 6, Regression 1, E2E 4.
+The table is the canonical test-plan inventory (one row can map to multiple executable assertions).
 (Migration count grew from 4 to 6: **MIG-L4-05** and **MIG-L4-06** were added in response to the PR #58
 review — FK delete restrictions and partial-DB seed idempotency.)
 (UI count grew from 9 to 12: **UI-L4-10**–**UI-L4-12** were added in response to the PR #62 review —
@@ -164,7 +165,7 @@ ticket-summary refresh.)
 (API count grew from 34 to 38: **API-L4-35**–**API-L4-38** were added in response to the PR #59
 review — PATCH error-ordering, nested-user-field whitelist, parallel-PATCH stale-update, and PATCH
 assignee semantics; the PATCH stale check was also made an atomic guarded UPDATE.)
-Final per-test status and the full passing output from `main` are recorded here once implemented.
+Final column describes the hardening branch run, not `main`. Passing release output from `main` is still required after merge.
 
 **Issue #55 run (full Labs 1–4 suite, feature/lab4-e2e).** All suites green; raw output in
 `artifacts/lab-04/test-output/`:
@@ -175,13 +176,26 @@ Final per-test status and the full passing output from `main` are recorded here 
 - E2E (`npm run e2e`): **36 passed** — Lab 4 **E2E-L4-01…04**, the dashboard loading/error screenshot
   captures, the Lab 1–3 regression specs and smoke.
 
-**UNIT-L4-04** remains `Planned`: the Asia/Bangkok boundary unit is scheduled for a later issue (see the
-header note in `server/tests/lab-04/lib.unit.test.ts`); Issue #55 does not add it. The dashboard
-Asia/Bangkok boundary is still exercised end-to-end via the `recentlyResolved` metric (E2E-L4-03) and
-documented in `artifacts/lab-04/metrics-evidence.md`.
+**Hardening #57** completes UNIT-L4-04 with explicit Bangkok midnight, year rollover and leap-year
+boundaries. Final results for this branch and verification limitations are recorded in
+`artifacts/lab-04/hardening.md`; release/main results remain pending peer review and release.
 
 (Client test path: the planned `client/src/**/__tests__/*.test.tsx` paths were normalized to the
 repository's established `client/tests/lab-04/*.test.tsx` convention — the Vitest config only includes
 `tests/**/*.test.tsx`, and every Lab 1–3 client suite already lives under `client/tests/lab-0N/`. The
 UI-L4-08/09 **TicketWorkflow** tests drive the status control through `StaffTicketDetail`, where it lives,
 rather than a standalone component — no GitHub Issue owned this UI, so it was built under #54.)
+
+
+## 5. Final hardening branch run (#56/#57)
+
+2026-11-01 (Asia/Bangkok), Node 24.22.1. Server **544 passed**; migration **46 passed**;
+client **127 passed**; client build/lint and server build pass. Logs and step exit codes:
+`artifacts/lab-04/test-output/hardening-results.json`.
+
+E2E was invoked **once**: **3 passed / 33 failed at browser launch**, because macOS denied Chromium's
+MachPortRendezvous bootstrap registration. The Final column marks browser-dependent E2E rows
+**Blocked**, not Pass. Prior Issue #55 green output above is historical and does not certify this branch.
+RESP-L4-01 only validates component structure; browser overflow checks and fresh screenshots were blocked.
+Review `artifacts/lab-04/hardening.md` for the exact error and remaining security limitations.
+Release/main validation and manual visual verification remain outstanding.

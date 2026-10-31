@@ -1,0 +1,55 @@
+
+> toktickit-e2e@0.0.0 e2e:setup
+> npm --prefix server run test:e2e:setup && npm --prefix server run prisma:seed:e2e
+
+
+> server@1.0.0 test:e2e:setup
+> tsx scripts/setup-e2e-db.ts
+
+◇ injected env (10) from .env // tip: ⌘ suppress logs { quiet: true }
+Setting up E2E database: toktickit_e2e
+Dropping database (if exists)...
+DROP DATABASE
+Creating database...
+CREATE DATABASE
+Applying migrations...
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "toktickit_e2e", schema "public" at "localhost:5432"
+
+5 migrations found in prisma/migrations
+
+Applying migration `20260816000000_init_category`
+Applying migration `20260906160412_lab02_dev_requester_related_system`
+Applying migration `20260906163402_lab03_ticket_attachment`
+Applying migration `20261004160000_lab03_users_auth`
+Applying migration `20261030000000_lab4_actions_taken`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260816000000_init_category/
+    └─ migration.sql
+  └─ 20260906160412_lab02_dev_requester_related_system/
+    └─ migration.sql
+  └─ 20260906163402_lab03_ticket_attachment/
+    └─ migration.sql
+  └─ 20261004160000_lab03_users_auth/
+    └─ migration.sql
+  └─ 20261030000000_lab4_actions_taken/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+Seeded 4 categories.
+Seeded 7 related systems.
+
+E2E database "toktickit_e2e" is ready. Run `npm run prisma:seed:e2e` to load accounts and tickets.
+
+> server@1.0.0 prisma:seed:e2e
+> tsx prisma/seed-e2e.ts
+
+Seeded 8 E2E users.
+Seeded 2 E2E tickets. E2E database "toktickit_e2e" is ready.

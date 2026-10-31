@@ -6,7 +6,7 @@ force. Lab 4 screens must look like part of the same application; no new design 
 
 ## 1. Tokens
 
-No new color tokens. The Action status badge and dashboard metric cards reuse existing tokens
+No new color tokens. Hardening (#56/#57) reuses the existing amber and neutral palette. The Action status badge and dashboard metric cards reuse existing tokens
 (`#006B3C`, `#0B7A46`, `#EAF6EF`, `#F5F7F6`, `#1F2A25`, warning `#FEF3C7`/`#92400E`, grey `#6B7280`).
 
 ## 2. Badges (text always accompanies color)
@@ -17,10 +17,16 @@ No new color tokens. The Action status badge and dashboard metric cards reuse ex
 |---|---|
 | Open | Pale green `#EAF6EF`, `#006B3C` text |
 | Completed | `#006B3C` background, white text, check icon |
-| Cancelled | Grey `#6B7280`, white text, strike-through label |
+| Cancelled | Muted green-grey `#5a6b62`, white text, ✕ icon; no strike-through |
 
 **Follow-up** marker: an amber chip "Follow-up" (`#FEF3C7` / `#92400E`) shown on Actions with
-`followUpRequired = true`. Ticket status / priority badges are unchanged from Lab 3.
+`followUpRequired = true`. Ticket priorities remain unchanged. Ticket In Progress now uses amber `#FEF3C7` / `#92400E`,
+visually distinct from green Resolved (`#006B3C` / white, ✓). Ticket Cancelled uses
+`#F3F4F6` / `#374151` (9.37:1), with ✕ and no strike-through. Labels always accompany color.
+All `.zen-select` controls show one shared decorative chevron, with reserved right padding.
+All displayed timestamps use `formatDateTime` (en-GB Gregorian, viewer timezone); native datetime-local
+editing and ISO API payloads keep their normal format. My Tickets uses fixed column widths with wrapping
+on desktop and accessible keyboard-operable cards on mobile.
 
 ## 3. Routes and Navigation
 
@@ -114,3 +120,24 @@ without horizontal overflow; the Actions table collapses to stacked cards on mob
 Actions Taken create/edit vs read-only; validation placement; visible keyboard focus and full keyboard
 operation; non-color status cues; no clipped content, overlap, inaccessible modals, or horizontal page
 scrolling; no console errors, broken links, placeholder text, or unfinished controls.
+
+
+### Final visual and accessibility checklist (#56/#57)
+
+Evidence method: source review, component tests, and the single final E2E run recorded in
+`artifacts/lab-04/hardening.md`. No additional browser or manual visual verification was performed.
+
+| Check | Result / evidence |
+|---|---|
+| Shared design and controls | Reviewed: existing Zen Green components; shared chevron; no duplicate Actions chevron. |
+| Dashboard cards, labels, drill-downs and feedback | Component tests pass; final E2E browser startup blocked, see run report. |
+| Actions editable vs requester read-only, validation and safe failure | ActionsTaken component tests pass; Actions flow E2E blocked at browser startup. |
+| Keyboard focus and semantic labels | Existing Dialog focus trap, Escape and focus restoration reviewed; A11y tests. Mobile My Tickets cards now accept Enter/Space and are exposed to assistive technology. |
+| Non-color status cues and contrast | Cancelled has ✕ and readable neutral text; Resolved has ✓; every status retains its label. Contrast calculated from CSS colors. |
+| Desktop table overflow / wrapping | Fixed table layout, wrapping summary/category/status/date columns; static review only, no measured browser-width assertion. |
+| Tablet/mobile clipping and overlap | Existing responsive CSS reviewed; E2E attempted once but Chromium startup was blocked; no new screenshot evidence obtained. |
+| Dates | Gregorian date/time helper used on all displayed ticket, comment and attachment dates; UI-L4-15 covers a Thai-locale regression. |
+| Console errors / unfinished UI / links | Source scan found no client debug logging, TODO controls or unfinished routes. Backend error logging retained for diagnostics. Expected mocked HTTP failures are test fixtures. Runtime console cleanliness not manually verified. |
+
+Manual visual inspection remains unverified under the requested no-browser-verification constraint;
+this checklist does not claim a manual accessibility certification.

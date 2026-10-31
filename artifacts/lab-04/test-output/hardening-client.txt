@@ -1,0 +1,13 @@
+
+> client@0.0.0 test
+> vitest run
+
+
+ RUN  v4.1.12 /Users/thanyagorn/Projects/toktickit/client
+
+
+ Test Files  21 passed (21)
+      Tests  127 passed (127)
+   Start at  03:44:32
+   Duration  18.38s (transform 315ms, setup 803ms, import 1.34s, tests 7.71s, environment 6.82s)
+

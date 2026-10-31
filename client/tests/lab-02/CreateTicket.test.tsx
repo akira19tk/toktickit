@@ -2,7 +2,7 @@
 // UI-03: double-click Submit → button stays disabled, createTicket called once (AC-04)
 // UI-04: server 400 → form values retained (AC-05)
 // UI-05: successful creation → ticket number shown in success panel (AC-01)
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import CreateTicket from "../../src/components/CreateTicket";
@@ -117,7 +117,8 @@ describe("CreateTicket", () => {
     expect(api.createTicket).toHaveBeenCalledTimes(1);
 
     // Clean up the pending promise
-    resolveCreate(MOCK_TICKET);
+    await act(async () => { resolveCreate(MOCK_TICKET); });
+    expect(await screen.findByText(MOCK_TICKET.ticketNumber)).toBeInTheDocument();
   });
 
   it("UI-04: after server 400 response, previously entered form values remain", async () => {

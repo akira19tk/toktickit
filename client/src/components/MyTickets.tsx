@@ -1,3 +1,4 @@
+import { formatDateTime } from "../lib/formatDate";
 // My Tickets screen — ui-spec.md §10.4
 // States: loading → success (table/cards/empty/no-results) | error
 // Always shows FilterRow once data has loaded (avoids hiding the search input).
@@ -263,12 +264,12 @@ export default function MyTickets({ onCreateTicket, onOpenTicket, initialStatus 
                     aria-label={onOpenTicket ? `Open ticket ${t.ticketNumber}` : undefined}
                   >
                     <td className="mt-ticket-no">{t.ticketNumber}</td>
-                    <td>{new Date(t.createdAt).toLocaleDateString()}</td>
+                    <td>{formatDateTime(t.createdAt)}</td>
                     <td className="mt-summary" data-testid={`summary-${t.id}`}>{t.summary}</td>
                     <td>{t.category}</td>
                     <td><PriorityBadge priority={t.requestedPriority} /></td>
                     <td><StatusBadge status={t.currentStatus} /></td>
-                    <td>{new Date(t.updatedAt).toLocaleDateString()}</td>
+                    <td>{formatDateTime(t.updatedAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -276,11 +277,20 @@ export default function MyTickets({ onCreateTicket, onOpenTicket, initialStatus 
           </div>
 
           {/* Mobile card list (visually shown via CSS, hidden on desktop) */}
-          <div className="mt-cards" aria-hidden="true">
+          <div className="mt-cards">
             {tickets.map((t) => (
               <div
                 key={t.id}
                 className="mt-card zen-card mt-row-clickable"
+                role={onOpenTicket ? "button" : undefined}
+                tabIndex={onOpenTicket ? 0 : undefined}
+                aria-label={onOpenTicket ? `Open ticket ${t.ticketNumber}` : undefined}
+                onKeyDown={(e) => {
+                  if (onOpenTicket && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    onOpenTicket(t.id);
+                  }
+                }}
                 onClick={() => onOpenTicket?.(t.id)}
               >
                 <div className="mt-card-row">
@@ -305,7 +315,7 @@ export default function MyTickets({ onCreateTicket, onOpenTicket, initialStatus 
                 </div>
                 <div className="mt-card-row">
                   <span className="mt-card-label">Created</span>
-                  <span>{new Date(t.createdAt).toLocaleDateString()}</span>
+                  <span>{formatDateTime(t.createdAt)}</span>
                 </div>
               </div>
             ))}
