@@ -172,7 +172,8 @@ Final per-test status and the full passing output from `main` are recorded here 
 - Server unit/API (`cd server && npm test`): **540 passed** (22 files) — satisfies **REG-L4-01**.
 - Migration (`npm run test:migration`): **46 passed** (2 files).
 - Client (`cd client && npm test`): **126 passed** (20 files).
-- E2E (`npm run e2e`): **34 passed** — Lab 4 **E2E-L4-01…04** plus the Lab 1–3 regression specs and smoke.
+- E2E (`npm run e2e`): **36 passed** — Lab 4 **E2E-L4-01…04**, the dashboard loading/error screenshot
+  captures, the Lab 1–3 regression specs and smoke.
 
 **UNIT-L4-04** remains `Planned`: the Asia/Bangkok boundary unit is scheduled for a later issue (see the
 header note in `server/tests/lab-04/lib.unit.test.ts`); Issue #55 does not add it. The dashboard

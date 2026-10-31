@@ -53,6 +53,61 @@ async function forEachViewport(
   }
 }
 
+// Loading and error states are captured at desktop + mobile only (per Issue #55
+// follow-up), with the dashboard API mocked via page.route so the states are
+// deterministic and independent of the seed.
+const EDGE_VIEWPORTS = [
+  { name: "desktop", width: 1440, height: 900 },
+  { name: "mobile", width: 375, height: 812 },
+] as const;
+
+// Capture a dashboard's loading state (the API never resolves within the capture
+// window) and error state (500) at each edge viewport. `okStub` is a valid
+// response shape so the held request, if it ever settles, does not flash an error.
+async function captureLoadingAndError(
+  page: Page,
+  folder: string,
+  apiGlob: string,
+  okStub: unknown
+): Promise<void> {
+  for (const vp of EDGE_VIEWPORTS) {
+    await page.setViewportSize({ width: vp.width, height: vp.height });
+
+    // Loading: hold the response open, screenshot the spinner card, then release.
+    await page.route(apiGlob, async (route) => {
+      await new Promise((r) => setTimeout(r, 5000));
+      try {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(okStub) });
+      } catch {
+        /* navigation aborted the held request — nothing to fulfill */
+      }
+    });
+    await page.goto("/dashboard");
+    await expect(page.locator(".zen-spinner")).toBeVisible();
+    await page.screenshot({ path: shot(folder, "loading", vp.name) });
+    await page.unroute(apiGlob);
+
+    // Error: a 500 drives the safe-failure card with a retry control.
+    await page.route(apiGlob, (route) =>
+      route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "Simulated server error" }) })
+    );
+    await page.goto("/dashboard");
+    await expect(page.getByText("Unable to Load Dashboard")).toBeVisible();
+    await page.screenshot({ path: shot(folder, "error", vp.name) });
+    await page.unroute(apiGlob);
+  }
+}
+
+const STAFF_DASH_STUB = {
+  metrics: { new: 0, open: 0, inProgress: 0, waitingForRequester: 0, myAssigned: 0, unassigned: 0, myOpenActions: 0 },
+  myRecentTickets: [],
+  urgentTickets: [],
+};
+const REQUESTER_DASH_STUB = {
+  metrics: { open: 0, inProgress: 0, waitingForMe: 0, resolved: 0, closed: 0, recentlyResolved: 0 },
+  myRecentTickets: [],
+};
+
 async function setHighPriority(request: APIRequestContext, ticketId: number): Promise<void> {
   await apiLogin(request, STAFF_EMAIL);
   const res = await request.patch(`${API}/api/staff/tickets/${ticketId}/it-priority`, {
@@ -108,6 +163,16 @@ test("screenshots: requester dashboard (desktop/tablet/mobile)", async ({ page, 
   await forEachViewport(page, async (vp) => {
     await page.screenshot({ path: shot("requester-dashboard", "dashboard", vp.name) });
   });
+});
+
+test("screenshots: IT staff dashboard loading + error states (desktop/mobile)", async ({ page }) => {
+  await loginAs(page, STAFF_EMAIL, SEED_PASSWORD, "IT_STAFF");
+  await captureLoadingAndError(page, "staff-dashboard", "**/api/staff/dashboard", STAFF_DASH_STUB);
+});
+
+test("screenshots: requester dashboard loading + error states (desktop/mobile)", async ({ page }) => {
+  await loginAs(page, REQUESTER_EMAIL, SEED_PASSWORD, "REQUESTER");
+  await captureLoadingAndError(page, "requester-dashboard", "**/api/requester/dashboard", REQUESTER_DASH_STUB);
 });
 
 test("screenshots: Actions Taken — list, create form, validation, edit, cancel dialog", async ({
