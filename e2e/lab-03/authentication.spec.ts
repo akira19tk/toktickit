@@ -72,11 +72,11 @@ test("E2E-01: first login with an initial password forces a password change befo
   await expect(page.getByText("Passwords do not match.")).toBeVisible();
   await expect(page).toHaveURL(/\/change-password$/); // not submitted
 
-  // A valid change continues to the role's home (AC-17, AC-77).
+  // A valid change continues to the role's home — now the Dashboard (AC-17, AC-77).
   await page.getByRole("textbox", { name: "Confirm new password", exact: true }).fill(newPassword);
   await page.getByRole("button", { name: "Change password" }).click();
-  await expect(page).toHaveURL(/\/my-tickets$/);
-  await expect(page.getByRole("heading", { name: "My Tickets" })).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
 
   // The new password works and the old one no longer does (AC-17).
   await logout(page);

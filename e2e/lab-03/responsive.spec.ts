@@ -129,6 +129,7 @@ test("RESP-01: Login and Change Password have no overflow at 375/850/1440", asyn
 test("RESP-02: Requester screens have no overflow and My Tickets becomes cards on mobile", async ({ page, request }) => {
   await createTicketViaApi(request); // ensure My Tickets is non-empty
   await loginAs(page, REQUESTER_EMAIL, SEED_PASSWORD, "REQUESTER");
+  await page.goto("/my-tickets"); // role home is now the Dashboard (ui-spec §3)
   await expect(page.getByRole("table", { name: "My Tickets" })).toBeVisible(); // data loaded
 
   await forEachViewport(page, async (vp) => {
@@ -148,6 +149,7 @@ test("RESP-02: Requester screens have no overflow and My Tickets becomes cards o
 test("RESP-03: Staff queue has no overflow and the table becomes cards on mobile", async ({ page, request }) => {
   await seedClaimedHighTicket(request); // non-empty queue with Open/High rows
   await loginAs(page, STAFF_EMAIL, SEED_PASSWORD, "IT_STAFF");
+  await page.goto("/staff/queue"); // role home is now the Dashboard (ui-spec §3)
   await expect(page.getByRole("table", { name: "Ticket Queue" })).toBeVisible(); // data loaded
 
   await forEachViewport(page, async (vp) => {
@@ -178,6 +180,7 @@ test("RESP-04: Staff ticket detail has no overflow and its panels/tabs stack", a
 
 test("RESP-05: User Management has no overflow, becomes cards on mobile, and dialogs fit the viewport", async ({ page }) => {
   await loginAs(page, ADMIN_EMAIL, SEED_PASSWORD, "ADMIN");
+  await page.goto("/admin/users"); // role home is now the Dashboard (ui-spec §3)
   await expect(usersTable(page)).toBeVisible(); // data loaded
 
   await forEachViewport(page, async (vp) => {
@@ -221,6 +224,7 @@ test("STYLE-01: status, priority and role badges render identical computed colou
 
   // Queue (staff): read Open status and High priority badge colours.
   await loginAs(page, STAFF_EMAIL, SEED_PASSWORD, "IT_STAFF");
+  await page.goto("/staff/queue"); // role home is now the Dashboard (ui-spec §3)
   await expect(page.getByRole("table", { name: "Ticket Queue" })).toBeVisible();
   const statusQueue = await colorsOf(page.locator('[aria-label="Status: Open"]'));
   const priorityQueue = await colorsOf(page.locator('[aria-label="Priority: High"]'));
@@ -240,6 +244,7 @@ test("STYLE-01: status, priority and role badges render identical computed colou
   // shell's IT Staff badge computed colours.
   await logout(page);
   await loginAs(page, ADMIN_EMAIL, SEED_PASSWORD, "ADMIN");
+  await page.goto("/admin/users"); // role home is now the Dashboard (ui-spec §3)
   await expect(page.getByRole("table", { name: "Users" })).toBeVisible();
   const roleStaffTable = await colorsOf(page.getByRole("table", { name: "Users" }).locator(".zen-role-badge--staff"));
 
