@@ -98,10 +98,10 @@ prove no lost update and no duplicate write.
 | MIG-L4-05 | Migration | AC-20 | ActionTaken FK deletes are RESTRICT (User as performedBy/assignee/updatedBy; Ticket with Actions) | Each delete rejected; referenced rows intact | server/tests/lab-04/migration.test.ts | Pass |
 | MIG-L4-06 | Migration | AC-20 | Seed on a partially populated DB (some Tickets have Actions, some don't) | Missing Actions filled, already-populated untouched, no duplicates, idempotent | server/tests/lab-04/migration.test.ts | Pass |
 | REG-L4-01 | Regression | AC-20 | Full Lab 1–3 server suites still green | All prior API/unit tests pass | server/tests/lab-01..03/* | Pass |
-| E2E-L4-01 | E2E | AC-01,AC-02,AC-04,AC-05,AC-22 | Actions Taken flow: create→assign→complete / cancel, multiple on one Ticket | Visible, persisted, role-restricted | e2e/lab-04/actions-taken-flow.spec.ts | Blocked (Chromium startup permission) |
-| E2E-L4-02 | E2E | AC-10, AC-11 | Ticket resolution: blocked by open Action, then resolve, reopen | Gate enforced end-to-end | e2e/lab-04/ticket-resolution.spec.ts | Blocked (Chromium startup permission) |
-| E2E-L4-03 | E2E | AC-15,AC-16,AC-17 | Dashboards: staff + requester metrics and drill-down | Counts match; navigation correct | e2e/lab-04/dashboards.spec.ts | Blocked (Chromium startup permission) |
-| E2E-L4-04 | E2E | AC-20 | Representative Lab 1–3 regression (auth, My Tickets, detail, attachments, comments, notes, admin) | All prior flows pass | e2e/lab-03/*.spec.ts + e2e/lab-04/dashboards.spec.ts | Blocked (Chromium startup permission) |
+| E2E-L4-01 | E2E | AC-01,AC-02,AC-04,AC-05,AC-22 | Actions Taken flow: create→assign→complete / cancel, multiple on one Ticket | Visible, persisted, role-restricted | e2e/lab-04/actions-taken-flow.spec.ts | Pass |
+| E2E-L4-02 | E2E | AC-10, AC-11 | Ticket resolution: blocked by open Action, then resolve, reopen | Gate enforced end-to-end | e2e/lab-04/ticket-resolution.spec.ts | Pass |
+| E2E-L4-03 | E2E | AC-15,AC-16,AC-17 | Dashboards: staff + requester metrics and drill-down | Counts match; navigation correct | e2e/lab-04/dashboards.spec.ts | Pass |
+| E2E-L4-04 | E2E | AC-20 | Representative Lab 1–3 regression (auth, My Tickets, detail, attachments, comments, notes, admin) | All prior flows pass | e2e/lab-03/*.spec.ts + e2e/lab-04/dashboards.spec.ts | Pass |
 
 ## 2.1 Error / edge-case coverage audit
 
@@ -193,9 +193,13 @@ rather than a standalone component — no GitHub Issue owned this UI, so it was 
 client **127 passed**; client build/lint and server build pass. Logs and step exit codes:
 `artifacts/lab-04/test-output/hardening-results.json`.
 
-E2E was invoked **once**: **3 passed / 33 failed at browser launch**, because macOS denied Chromium's
-MachPortRendezvous bootstrap registration. The Final column marks browser-dependent E2E rows
-**Blocked**, not Pass. Prior Issue #55 green output above is historical and does not certify this branch.
-RESP-L4-01 only validates component structure; browser overflow checks and fresh screenshots were blocked.
-Review `artifacts/lab-04/hardening.md` for the exact error and remaining security limitations.
-Release/main validation and manual visual verification remain outstanding.
+The agent's E2E attempt was blocked at Chromium startup. The student then ran
+`npm run e2e:setup && npm run e2e` in local Terminal: **36 passed (46.2s)**, including responsive
+overflow, style consistency and screenshot capture. Sanitized supplied output:
+`artifacts/lab-04/test-output/hardening-e2e-local-terminal.txt`. Local Playwright last-run status
+also reports passed with no failed tests. The agent did not rerun E2E. Final columns now reflect
+the successful run; refreshed generated screenshots are included.
+
+RESP-L4-01 is a component structure check; measured browser overflow is covered by passing Lab 3
+responsive E2E cases at 375/850/1440. Release/main validation and a full manual visual/accessibility
+review remain outstanding. Dependency audit limitations remain in `artifacts/lab-04/hardening.md`.

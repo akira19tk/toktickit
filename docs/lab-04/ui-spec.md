@@ -125,17 +125,17 @@ scrolling; no console errors, broken links, placeholder text, or unfinished cont
 ### Final visual and accessibility checklist (#56/#57)
 
 Evidence method: source review, component tests, and the single final E2E run recorded in
-`artifacts/lab-04/hardening.md`. No additional browser or manual visual verification was performed.
+`artifacts/lab-04/hardening.md`. Student local Terminal E2E passed all 36 cases; no agent browser verification was performed.
 
 | Check | Result / evidence |
 |---|---|
 | Shared design and controls | Reviewed: existing Zen Green components; shared chevron; no duplicate Actions chevron. |
-| Dashboard cards, labels, drill-downs and feedback | Component tests pass; final E2E browser startup blocked, see run report. |
-| Actions editable vs requester read-only, validation and safe failure | ActionsTaken component tests pass; Actions flow E2E blocked at browser startup. |
+| Dashboard cards, labels, drill-downs and feedback | Component tests and student local Terminal E2E pass. |
+| Actions editable vs requester read-only, validation and safe failure | ActionsTaken component tests and local Terminal Actions flow E2E pass. |
 | Keyboard focus and semantic labels | Existing Dialog focus trap, Escape and focus restoration reviewed; A11y tests. Mobile My Tickets cards now accept Enter/Space and are exposed to assistive technology. |
 | Non-color status cues and contrast | Cancelled has ✕ and readable neutral text; Resolved has ✓; every status retains its label. Contrast calculated from CSS colors. |
-| Desktop table overflow / wrapping | Fixed table layout, wrapping summary/category/status/date columns; static review only, no measured browser-width assertion. |
-| Tablet/mobile clipping and overlap | Existing responsive CSS reviewed; E2E attempted once but Chromium startup was blocked; no new screenshot evidence obtained. |
+| Desktop table overflow / wrapping | Fixed columns and wrapping; student local Terminal RESP-02 passes requester no-overflow at 375/850/1440. |
+| Tablet/mobile clipping and overlap | Existing responsive CSS reviewed; Student local Terminal E2E passes responsive checks and refreshes screenshots. No full manual visual audit. |
 | Dates | Gregorian date/time helper used on all displayed ticket, comment and attachment dates; UI-L4-15 covers a Thai-locale regression. |
 | Console errors / unfinished UI / links | Source scan found no client debug logging, TODO controls or unfinished routes. Backend error logging retained for diagnostics. Expected mocked HTTP failures are test fixtures. Runtime console cleanliness not manually verified. |
 

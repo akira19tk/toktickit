@@ -1,0 +1,130 @@
+Student-provided local Terminal test output (personal shell prompt removed).
+
+> toktickit-e2e@0.0.0 e2e:setup
+> npm --prefix server run test:e2e:setup && npm --prefix server run prisma:seed:e2e
+
+
+> server@1.0.0 test:e2e:setup
+> tsx scripts/setup-e2e-db.ts
+
+◇ injected env (10) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Setting up E2E database: toktickit_e2e
+Dropping database (if exists)...
+DROP DATABASE
+Creating database...
+CREATE DATABASE
+Applying migrations...
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "toktickit_e2e", schema "public" at "localhost:5432"
+
+5 migrations found in prisma/migrations
+
+Applying migration `20260816000000_init_category`
+Applying migration `20260906160412_lab02_dev_requester_related_system`
+Applying migration `20260906163402_lab03_ticket_attachment`
+Applying migration `20261004160000_lab03_users_auth`
+Applying migration `20261030000000_lab4_actions_taken`
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20260816000000_init_category/
+    └─ migration.sql
+  └─ 20260906160412_lab02_dev_requester_related_system/
+    └─ migration.sql
+  └─ 20260906163402_lab03_ticket_attachment/
+    └─ migration.sql
+  └─ 20261004160000_lab03_users_auth/
+    └─ migration.sql
+  └─ 20261030000000_lab4_actions_taken/
+    └─ migration.sql
+      
+All migrations have been successfully applied.
+Seeded 4 categories.
+Seeded 7 related systems.
+
+E2E database "toktickit_e2e" is ready. Run `npm run prisma:seed:e2e` to load accounts and tickets.
+
+> server@1.0.0 prisma:seed:e2e
+> tsx prisma/seed-e2e.ts
+
+Seeded 8 E2E users.
+Seeded 2 E2E tickets. E2E database "toktickit_e2e" is ready.
+
+> toktickit-e2e@0.0.0 e2e
+> playwright test
+
+[WebServer] 
+[WebServer] > server@1.0.0 dev
+[WebServer] > tsx watch src/index.ts
+[WebServer] 
+[WebServer] TokTickIT API listening on http://localhost:4100
+[WebServer] 
+[WebServer] > client@0.0.0 build
+[WebServer] > tsc -b && vite build
+[WebServer] 
+[WebServer] vite v8.3.5 building client environment for production...
+[WebServer] transforming...
+[WebServer] ✓ 51 modules transformed.
+[WebServer] rendering chunks...
+[WebServer] computing gzip size...
+[WebServer] dist/index.html                   0.45 kB │ gzip:  0.29 kB
+[WebServer] dist/assets/index-B0sL_5yh.css  250.33 kB │ gzip: 35.13 kB
+[WebServer] dist/assets/index-B-egmu0-.js   359.27 kB │ gzip: 99.17 kB
+[WebServer] 
+[WebServer] ✓ built in 198ms
+[WebServer] 
+[WebServer] > client@0.0.0 preview
+[WebServer] > vite preview --port 4173 --strictPort
+[WebServer] 
+[WebServer]   ➜  Local:   http://localhost:4173/
+[WebServer]   ➜  Network: use --host to expose
+
+Running 36 tests using 1 worker
+
+  ✓   1 …pec.ts:49:5 › E2E-01: first login with an initial password forces a password change before the app opens (3.0s)
+  ✓   2 …ec.ts:87:5 › E2E-02: login failures show a safe message, and after logout protected data is unreachable (763ms)
+  ✓   3 …tication.spec.ts:111:5 › E2E-07: each role lands on its home and wrong-role or unknown URLs are blocked (848ms)
+  ✓   4 …e/lab-03/responsive.spec.ts:103:5 › RESP-01: Login and Change Password have no overflow at 375/850/1440 (571ms)
+  ✓   5 …sive.spec.ts:129:5 › RESP-02: Requester screens have no overflow and My Tickets becomes cards on mobile (505ms)
+  ✓   6 …3/responsive.spec.ts:149:5 › RESP-03: Staff queue has no overflow and the table becomes cards on mobile (608ms)
+  ✓   7 …ab-03/responsive.spec.ts:164:5 › RESP-04: Staff ticket detail has no overflow and its panels/tabs stack (594ms)
+  ✓   8 …181:5 › RESP-05: User Management has no overflow, becomes cards on mobile, and dialogs fit the viewport (899ms)
+  ✓   9 ….ts:222:5 › STYLE-01: status, priority and role badges render identical computed colours across screens (824ms)
+  ✓  10 ….ts:39:5 › E2E-03: a requester signs in, creates a ticket, comments, and marks it as appearing resolved (758ms)
+  ✓  11 …m, prioritise, progress a ticket and add a comment and note; requester sees the comment but not the note (2.7s)
+  ✓  12 …E2E-05: admin creates a user, rejects a duplicate email, edits the user, and resets the initial password (3.4s)
+  ✓  13 …n.spec.ts:161:5 › E2E-06: non-admins are blocked; admin cannot self-deactivate; last-admin rule enforced (1.4s)
+  ✓  14 …› E2E-L4-01: two different IT staff add actions on one ticket; a non-author completes the other's action (2.1s)
+  ✓  15 …-L4-01: create-form inline validation, complete-without-result blocked then completed, cancel via dialog (1.5s)
+  ✓  16 …ken-flow.spec.ts:171:5 › E2E-L4-01: an OPEN action can be assigned to an active staff member via the UI (628ms)
+  ✓  17 …ons-taken-flow.spec.ts:192:5 › E2E-L4-01: requester sees every action read-only, with no write controls (678ms)
+  ✓  18 …-flow.spec.ts:235:5 › E2E-L4-01: assigning an inactive staff member is rejected (422 ASSIGNEE_INACTIVE) (239ms)
+  ✓  19 …aken-flow.spec.ts:267:5 › E2E-L4-01: a stale action edit surfaces STALE_UPDATE conflict feedback inline (656ms)
+  ✓  20 … E2E-L4-03: IT staff dashboard counts equal direct DB queries and every card drills into the right queue (1.2s)
+  ✓  21 …ts:121:5 › E2E-L4-03: requester dashboard counts equal direct DB queries and cards drill into My Tickets (1.0s)
+  ✓  22 …s.spec.ts:147:5 › E2E-L4-03: a requester with no tickets sees an all-zero dashboard and the empty state (267ms)
+  ✓  23 …:159:5 › E2E-L4-03: a requester is forbidden from the staff area (UI) and the staff dashboard API (403) (328ms)
+  ✓  24 …omium] › e2e/lab-04/screenshots.spec.ts:135:5 › screenshots: IT staff dashboard (desktop/tablet/mobile) (770ms)
+  ✓  25 …mium] › e2e/lab-04/screenshots.spec.ts:155:5 › screenshots: requester dashboard (desktop/tablet/mobile) (611ms)
+  ✓  26 …-04/screenshots.spec.ts:168:5 › screenshots: IT staff dashboard loading + error states (desktop/mobile) (497ms)
+  ✓  27 …04/screenshots.spec.ts:173:5 › screenshots: requester dashboard loading + error states (desktop/mobile) (496ms)
+  ✓  28 …eenshots.spec.ts:178:5 › screenshots: Actions Taken — list, create form, validation, edit, cancel dialog (2.6s)
+  ✓  29 …hromium] › e2e/lab-04/screenshots.spec.ts:253:5 › screenshots: Actions Taken — requester read-only view (759ms)
+  ✓  30 [chromium] › e2e/lab-04/screenshots.spec.ts:270:5 › screenshots: resolve-blocked message and empty state (5.3s)
+  ✓  31 [chromium] › e2e/lab-04/screenshots.spec.ts:300:5 › screenshots: forbidden page (373ms)
+  ✓  32 …L4-02: only permitted transitions are offered; resolve is gated by an open action, then reopen and close (3.6s)
+  ✓  33 …on.spec.ts:111:5 › E2E-L4-02: a requester's 'appears resolved' signal does not change the ticket status (588ms)
+  ✓  34 …04/ticket-resolution.spec.ts:132:5 › E2E-L4-02: a stale status update is rejected with 409 STALE_UPDATE (359ms)
+  ✓  35 [chromium] › e2e/smoke.spec.ts:12:5 › SMOKE: API health endpoint responds ok (2ms)
+  ✓  36 [chromium] › e2e/smoke.spec.ts:18:5 › SMOKE: client renders the Login screen (98ms)
+
+  36 passed (46.2s)
+
+To open last HTML report run:
+
+  npx playwright show-report
