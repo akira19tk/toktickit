@@ -76,6 +76,7 @@ const USERS: UserSeed[] = [
   { email: "admin.e2e@example.com", name: "Admin E2E", role: Role.ADMIN, isActive: true, mustChangePassword: false },
   { email: "admin2.e2e@example.com", name: "Second Admin E2E", role: Role.ADMIN, isActive: true, mustChangePassword: false },
   { email: "staff.e2e@example.com", name: "Staff E2E", role: Role.IT_STAFF, isActive: true, mustChangePassword: false },
+  { email: "staff2.e2e@example.com", name: "Second Staff E2E", role: Role.IT_STAFF, isActive: true, mustChangePassword: false },
   { email: "staff.inactive.e2e@example.com", name: "Inactive Staff E2E", role: Role.IT_STAFF, isActive: false, mustChangePassword: false },
   { email: "requester.e2e@example.com", name: "Requester E2E", role: Role.REQUESTER, isActive: true, mustChangePassword: false },
   { email: "requester2.e2e@example.com", name: "Second Requester E2E", role: Role.REQUESTER, isActive: true, mustChangePassword: false },
