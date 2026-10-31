@@ -1,0 +1,25 @@
+{
+  "database": "toktickit_e2e",
+  "ticket": {
+    "id": 28,
+    "ticketNumber": "TKT-2026-265251",
+    "currentStatus": "RESOLVED",
+    "actions": [
+      {
+        "status": "COMPLETED",
+        "description": "Diagnosed the connection failure",
+        "performedBy": {
+          "name": "Staff E2E"
+        }
+      },
+      {
+        "status": "COMPLETED",
+        "description": "Verified connectivity after the repair",
+        "performedBy": {
+          "name": "Second Staff E2E"
+        }
+      }
+    ]
+  },
+  "assigneeRestoredActive": true
+}

@@ -55,26 +55,26 @@ existing Queue / My Tickets / Ticket Detail screens — every card and row drill
 
 ## 5. IT Staff Dashboard (`/dashboard`)
 
-Header: "Welcome back, {name}!" + Refresh. Layout:
+Header: "Dashboard" with a welcome line naming the signed-in user. No Refresh button is implemented. Layout:
 
-- **Metric cards** (responsive grid): New, Open, In Progress, Waiting for Requester, My Assigned, and
-  **My Open Actions**. Each card shows a label + value and is an accessible drill-down button:
+- **Metric cards** (responsive grid): New, Open, In Progress, Waiting for Requester, My Assigned, Unassigned, and
+  **My Open Actions** (seven cards). Each card shows a label + value and is an accessible drill-down button:
   New/Open/In Progress/Waiting → `/staff/queue?status=…`; My Assigned → `/staff/queue?owner=ME`;
   My Open Actions → `/staff/queue?actionAssignee=ME&actionStatus=OPEN`.
 - **My Recent Tickets:** up to 5 Tickets owned by me, newest-updated first, each a row (ticket number,
   summary, status badge, updated time) linking to Ticket Detail; "View all" → `/staff/queue?owner=ME`.
 - **Urgent Tickets:** up to 5 HIGH IT-priority Tickets not Closed/Cancelled, newest-updated first, linking to
   Ticket Detail; "View all" → `/staff/queue?itPriority=HIGH`. (HIGH is the top priority tier.)
-- **Quick Actions:** Create Ticket, Search Tickets, My Queue.
+- **Quick Actions:** Open Ticket Queue and Unassigned Tickets (links to existing queue views).
 
 All counts come from `GET /staff/dashboard` and must match the queue when drilled into. ADMIN sees the same
 dashboard.
 
 ## 6. Requester Dashboard (`/dashboard` / `/`)
 
-Header: "Welcome, {name}!". Summarizes only the Requester's own Tickets.
+Header: "Dashboard" with a welcome line. Summarizes only the Requester's own Tickets.
 
-- **Metric cards:** My Open, In Progress, **Waiting for Me**, Resolved, Closed. Each is a drill-down to
+- **Metric cards:** My Open, In Progress, **Waiting for Me**, Resolved, Closed, and Recently Resolved (six cards). Each is a drill-down to
   `/tickets?status=…` (Waiting for Me → `status=WAITING_FOR_REQUESTER`). "Waiting for Me" carries an
   attention cue (amber accent + non-color label) since it needs the Requester's action.
 - **My Recent Tickets:** up to 5 own Tickets, newest-updated first, each linking to Ticket Detail;
@@ -113,7 +113,7 @@ Successful transitions refresh the Ticket summary status badge.
 
 ## 9. Responsive & Accessibility
 
-Same requirements as Labs 2–3. Metric-card grid reflows to 2-up (tablet) and 1-up (mobile); lists stack
+Same requirements as Labs 2–3. Metric-card grid uses six columns at >=1024px, three at 640-1023px, and two below 640px. Seven staff cards wrap the final card onto a new row; six requester cards fill one desktop row. Lists stack
 without horizontal overflow; the Actions table collapses to stacked cards on mobile.
 
 **Final checklist (completed in Part 9 evidence):** design consistency; dashboard cards and drill-downs;
@@ -125,7 +125,7 @@ scrolling; no console errors, broken links, placeholder text, or unfinished cont
 ### Final visual and accessibility checklist (#56/#57)
 
 Evidence method: source review, component tests, and the single final E2E run recorded in
-`artifacts/lab-04/hardening.md`. Student local Terminal E2E passed all 36 cases; no agent browser verification was performed.
+`artifacts/lab-04/hardening.md`. Student local Terminal E2E passed all 36 cases; the original agent run did not include browser verification. Supplemental submission captures now exercise selected UI paths in the isolated E2E environment.
 
 | Check | Result / evidence |
 |---|---|
@@ -139,5 +139,4 @@ Evidence method: source review, component tests, and the single final E2E run re
 | Dates | Gregorian date/time helper used on all displayed ticket, comment and attachment dates; UI-L4-15 covers a Thai-locale regression. |
 | Console errors / unfinished UI / links | Source scan found no client debug logging, TODO controls or unfinished routes. Backend error logging retained for diagnostics. Expected mocked HTTP failures are test fixtures. Runtime console cleanliness not manually verified. |
 
-Manual visual inspection remains unverified under the requested no-browser-verification constraint;
-this checklist does not claim a manual accessibility certification.
+Supplemental browser captures verify selected Actions Taken, assignee rejection, drill-down and resolution paths. A full keyboard/screen-reader and manual accessibility audit is still unverified; this checklist does not claim certification.

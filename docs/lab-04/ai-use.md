@@ -14,7 +14,7 @@ Stack: TypeScript, Express 5, Prisma 6/PostgreSQL, React 19/Vite, Vitest, Playwr
 
 ## 2. Selected prompts
 
-The following six prompts were supplied by the student for this report. The bracketed reviewer-comments field in prompt 6 represents the review text supplied at that stage.
+The following six prompts were supplied by the student for this report. The reviewer-feedback text in prompt 6 is a concise summary supplied for the report, rather than a verbatim transcript of the original review.
 
 ### 1. Setup (Coding agent)
 
@@ -44,7 +44,7 @@ The following six prompts were supplied by the student for this report. The brac
 ### 6. Respond to peer review (Coding agent)
 
 **Instructions:**
-> PR #59 got this review: [reviewer comments]. Respond with evidence, adding tests only where coverage is missing. Add a test firing two PATCHes with the same expectedUpdatedAt in parallel: exactly one 200 and one 409. Post a point-by-point reply with commit hashes and record the review in reviewer.md.
+> PR #59 got this review: "1. Error handling order; 2. Requester access and data exposure; 3. Concurrency: stale updates and concurrent requests handled safely; 4. Test coverage for PATCH edge cases.". Respond with evidence, adding tests only where coverage is missing. Add a test firing two PATCHes with the same expectedUpdatedAt in parallel: exactly one 200 and one 409. Post a point-by-point reply with commit hashes and record the review in reviewer.md.
 
 
 ## 3. Limitations and corrections made during AI-assisted work
@@ -63,5 +63,7 @@ Release [PR #66](https://github.com/akira19tk/toktickit/pull/66) merged as `a92f
 In this project, AI helped me most with writing tests and organizing submission evidence. It made reviewing test coverage and collecting results more systematic. Having a specification and acceptance criteria also helped me check whether the AI-generated tests covered the required behavior.
 
 My main responsibility was running the tests and checking the results reported by AI. For example, the E2E tests could not run through the agent because the environment blocked Chromium from starting. I ran them in my local Terminal and confirmed that all 36 tests passed. I also ran them again after merging into main so that the evidence matched the submitted branch. This experience showed me that AI summaries need to be supported by actual test results.
+
+Peer review also mattered. On PR #59, review follow-up added a parallel-PATCH test and changed the action update to an atomic guarded write, so two edits using the same timestamp cannot both succeed. The specification also needed reconciliation when BR-14 omitted NEW -> IN_PROGRESS. These examples showed me why I should check AI output against explicit rules and review evidence, rather than rely only on an earlier passing test summary.
 
 For my next project, I will define the specification and acceptance criteria clearly before asking AI to write code. This will provide a shared basis for implementation and review. AI can save considerable time, but I remain responsible for verifying its work and deciding whether the results are acceptable.

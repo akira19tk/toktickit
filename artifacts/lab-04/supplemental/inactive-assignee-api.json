@@ -1,0 +1,7 @@
+{
+  "status": 422,
+  "body": {
+    "error": "The selected assignee is no longer an active IT Staff or Administrator.",
+    "code": "ASSIGNEE_INACTIVE"
+  }
+}

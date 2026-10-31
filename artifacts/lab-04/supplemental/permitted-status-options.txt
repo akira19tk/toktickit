@@ -1,0 +1,96 @@
+Browser tab: 4, Title: "TokTickIT", URL: "http://localhost:4173/staff/tickets/28".
+1 AXWebArea TokTickIT, URL: localhost:4173/staff/tickets/28
+	2 container root
+		3 container
+			4 link Description: TokTickIT, Value: localhost:4173/dashboard
+			5 container Main navigation
+				6 link Description: Dashboard, Value: localhost:4173/dashboard
+				7 link Description: Ticket Queue, Value: localhost:4173/staff/queue
+			8 text Staff E2E IT Staff
+			9 link Description: Change Password, Value: localhost:4173/change-password
+			10 button Logout
+		11 container main-content
+			12 heading TKT-2026-265251, Value: 1
+				13 text TKT-2026-265251
+			14 container Status: In Progress
+				15 text In Progress
+			16 text IT Priority: 
+			17 container Priority: Medium
+				18 text Medium
+			19 button ← Back to Queue
+			20 heading Details, Value: 2
+				21 text Details
+			22 text Ticket Date 1 Nov 2026, 05:21 Requester Requester E2E · requester.e2e@example.com Category Account and Access Related System Email Requested Priority
+			23 container Priority: Medium
+				24 text Medium
+			25 text Summary
+			26 text Evidence: two staff restore network access
+			27 text Description
+			28 text Separate investigation and verification actions by two IT staff members.
+			29 heading Operations, Value: 2
+				30 text Operations
+			31 text Ticket Owner
+			32 text Staff E2E
+			33 container
+				34 pop up button (collapsed, settable) Description: Reassign owner, Value: Reassign to…, Secondary Actions: Expand
+					35 menu
+						36 (selected) Reassign to…
+						37 E2E User 1793481936937 Renamed
+						38 Second Staff E2E
+						39 Staff E2E
+				40 button (disabled) Reassign
+			41 text IT Priority
+			42 container
+				43 pop up button (collapsed, settable) IT Priority, Value: Medium, ID: sd-priority, Secondary Actions: Expand
+					44 menu
+						45 Low
+						46 (selected) Medium
+						47 High
+				48 button (disabled) Apply IT Priority
+			49 text Status
+			50 container
+				51 pop up button (expanded, settable) Status, Value: Change status…, ID: sd-status, Secondary Actions: Collapse
+					52 menu
+						53 (selected) Change status…
+						54 Open
+						55 Waiting for Requester
+						56 Resolved
+						57 Cancelled
+				58 button (disabled) Apply status change
+			59 tab group Ticket detail sections
+				60 tab (selected, settable, boolean) Public Comments (0), Value: 1
+Public Comments (
+0
+)
+				61 tab (selectable, settable, boolean) Internal Notes (0), Value: 0
+Internal Notes (
+0
+)
+				62 tab (selectable, settable, boolean) Attachments (0), Value: 0
+Attachments (
+0
+)
+			63 container
+				64 text Visible to the Requester No comments yet.
+				65 text Post a public comment
+				66 text entry area (settable) Post a public comment, ID: sd-comment
+				67 container sd-comment-counter
+					68 text 0 /2000
+				69 button (disabled) Post Public Comment
+			70 container Actions Taken
+				71 heading Actions Taken, Value: 2, ID: at-heading
+					72 text Actions Taken
+				73 button Add Action
+				74 content list
+					75 container
+						76 container Status: Completed
+							77 text ✓
+							78 text Completed
+						79 text 1 Nov 2026, 05:21 Description Verified connectivity after the repair Result Requester connectivity restored and verified. Performed by Second Staff E2E Assignee Unassigned
+					80 container
+						81 container Status: Completed
+							82 text ✓
+							83 text Completed
+						84 text 1 Nov 2026, 05:21 Description Diagnosed the connection failure Result Fault located in the access configuration. Performed by Staff E2E Assignee Unassigned
+
+The focused UI element is 51 pop up button (expanded, settable) Status, Value: Change status…, ID: sd-status, Secondary Actions: Collapse
