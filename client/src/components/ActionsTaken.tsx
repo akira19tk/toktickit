@@ -16,6 +16,7 @@ import {
   type CreateActionPayload,
   type PatchActionPayload,
 } from "../api";
+import { formatDateTime } from "../lib/formatDate";
 
 interface Props {
   ticketId: number;
@@ -129,23 +130,15 @@ export default function ActionsTaken({ ticketId, mode, assignees = [], onChanged
   );
 }
 
-// ── Status badge (non-color cues: pale tint / check icon / strike-through) ──────
+// ── Status badge ────────────────────────────────────────────────────────────
+// Non-colour cue is a decorative ::before icon (✓ / ✕) added in CSS, matching the
+// shared StatusBadge; the visible label text stays clean for screen readers.
 function ActionStatusBadge({ status }: { status: ActionTaken["status"] }) {
-  if (status === "COMPLETED") {
-    return (
-      <span className="at-badge at-badge--done">
-        <span aria-hidden="true">✓ </span>Completed
-      </span>
-    );
-  }
-  if (status === "CANCELLED") {
-    return (
-      <span className="at-badge at-badge--cancelled">
-        <s>Cancelled</s>
-      </span>
-    );
-  }
-  return <span className="at-badge at-badge--open">Open</span>;
+  if (status === "COMPLETED")
+    return <span className="at-badge at-badge--done" aria-label="Status: Completed">Completed</span>;
+  if (status === "CANCELLED")
+    return <span className="at-badge at-badge--cancelled" aria-label="Status: Cancelled">Cancelled</span>;
+  return <span className="at-badge at-badge--open" aria-label="Status: Open">Open</span>;
 }
 
 // ── Create form (staff, collapsible) ────────────────────────────────────────────
@@ -441,7 +434,7 @@ function ActionRow({
         <ActionStatusBadge status={action.status} />
         {action.followUpRequired && <span className="at-chip">Follow-up</span>}
         <time className="zen-muted at-date" dateTime={action.actionDate}>
-          {new Date(action.actionDate).toLocaleString()}
+          {formatDateTime(action.actionDate)}
         </time>
       </div>
 

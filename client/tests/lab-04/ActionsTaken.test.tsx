@@ -105,8 +105,11 @@ describe("UI-L4-06: ActionsTaken complete/cancel; read-only terminal rows", () =
       expect(within(row).queryByRole("button", { name: /cancel action/i })).toBeNull();
       expect(within(row).queryByRole("button", { name: /^edit$/i })).toBeNull();
     }
-    expect(within(row3).getByText(/completed/i)).toBeInTheDocument();
-    expect(within(row4).getByText(/cancelled/i)).toBeInTheDocument();
+    // Terminal badge labels are plain text — the ✓ / ✕ cue is a decorative CSS
+    // ::before and Cancelled is no longer struck through (readability / AA).
+    expect(within(row3).getByText("Completed")).toBeInTheDocument();
+    expect(within(row4).getByText("Cancelled")).toBeInTheDocument();
+    expect(row4.querySelector("s")).toBeNull();
 
     // Completing an OPEN action without a result is blocked inline, no API call.
     await user.click(within(row1).getByRole("button", { name: /complete/i }));
@@ -152,6 +155,12 @@ describe("UI-L4-07: ActionsTaken read-only for the Requester", () => {
     expect(screen.getByText(/michael chen/i)).toBeInTheDocument();
     expect(screen.getByText(/see diagnostic-report\.pdf/i)).toBeInTheDocument();
     expect(screen.getByText(/follow-up/i)).toBeInTheDocument();
+
+    // Timestamps use the shared formatDateTime helper → a Gregorian date
+    // ("28 Oct 2026, …"), never the Buddhist year (2569) toLocaleString gave
+    // under a th-TH locale.
+    expect(screen.getByText(/Oct 2026/)).toBeInTheDocument();
+    expect(screen.queryByText(/2569/)).toBeNull();
 
     // No write controls anywhere.
     expect(screen.queryByRole("button", { name: /add action/i })).toBeNull();
