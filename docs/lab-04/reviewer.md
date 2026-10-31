@@ -142,6 +142,58 @@ E2E **15**. API-L4 test count 34 → 38.
 
 **Follow-up Issues opened:** none — all four points resolved within PR #59.
 
+### PR #60 — feat(lab-04): Ticket workflow — resolution gate, Admin status writes, concurrency (Issue #51)
+**Link:** https://github.com/akira19tk/toktickit/pull/60
+**Status:** Changes requested → addressed → re-review requested
+
+**Review received:**
+> 1. Concurrency: Ensure serialization failures and retry exhaustion consistently return the expected 409 response without leaving partial updates.
+> 2. Resolution Gate: Confirm that concurrent Action creation and Ticket resolution cannot violate the OPEN Actions invariant.
+> 3. Authorization: Verify that ADMIN status-write access remains limited to the intended endpoint without affecting other restricted operations.
+> 4. Regression Tests: Double-check that the updated Lab 3 tests preserve existing behavior and that the corrected transition matrix matches the specification.
+
+**My responses and fixes:**
+
+1. **Serialization failure / retry exhaustion → 409, no partial update** — `2029af5`.
+   The RESOLVED path runs in a `Serializable` transaction that retries once on a Postgres
+   `40001` / Prisma `P2034` conflict (`runSerializable`, `staff.ts`); a second conflict is
+   caught and mapped to `409 STALE_UPDATE` — never a 500. This was asserted indirectly before;
+   new **API-L4-18** now proves it directly by injecting **two** consecutive serialization
+   failures (exhausting the retry): it asserts `409 STALE_UPDATE`, that `$transaction` was
+   called exactly twice, and that `currentStatus`, `updatedAt`, `resolvedAt`, and
+   `resolutionSummary` are all left untouched (no partial write).
+
+2. **Concurrent create + resolve cannot break the OPEN-Actions invariant** — `2029af5`.
+   **API-L4-30** already fired the resolve + Action-create race once; it now **loops 10 fresh
+   tickets** and re-asserts after **each** iteration that no `RESOLVED` ticket holds an `OPEN`
+   Action (and that each request lands in exactly one legal outcome — resolve wins and create →
+   `409 TICKET_CLOSED`, or create wins and resolve → `409 OPEN_ACTIONS_EXIST`/`STALE_UPDATE`).
+   The invariant holds across repeated interleavings, not just one lucky pass.
+
+3. **ADMIN status-write scoped to `…/status` only** — cited (no new test needed).
+   **API-L4-19** already asserts ADMIN gets `200` on `PATCH …/status` **and** `403` on all five
+   other staff writes — claim, owner, it-priority, Public Comment, and Internal Note — plus a
+   Requester `403` on status. The route-level authorization matrix is independently enforced by
+   the Lab 3 `authorization.api.test.ts` table (`routes.table.ts`), where only `…/status` gained
+   `ADMIN`; every other `/api/staff/*` mutation stays `IT_STAFF`-only.
+
+4. **Lab 3 regressions + matrix ↔ spec** — `2029af5` + cited.
+   Exactly **two** Lab 3 files changed, and only the Admin-status expectations within them:
+   - `comments-notes.api.test.ts` **API-36**: "Admin cannot change status → 403" → "Admin **CAN**
+     change status → 200", and `allowedTransitions` for Admin "empty" → "populated" (current-state
+     matrix). The owner/it-priority/comment/note `403` assertions in the same block are unchanged.
+   - `routes.table.ts`: `/api/staff/tickets/:id/status` `allowedRoles` `["IT_STAFF"]` →
+     `["IT_STAFF","ADMIN"]`; no other row touched.
+   For the corrected matrix, new **UNIT-L4-01** parses the **BR-14 table out of
+   `specification.md`** and compares it to the code matrix **edge by edge**, failing on any single
+   `(from → to)` disagreement — so the restored `NEW → IN_PROGRESS` edge (BR-14 doc transcription
+   fix) and every other edge are now pinned to the spec, not a hand-copied expectation.
+
+**Verification:** full Lab 1–4 suite green — server **510**, migration **46**, client **90**,
+E2E **15/15**.
+
+**Follow-up Issues opened:** none — all four points resolved within PR #60.
+
 <!-- Add further feature-PR reviews below as the sprint proceeds. -->
 
 ---
@@ -153,7 +205,7 @@ E2E **15**. API-L4 test count 34 → 38.
 | #47 | #48 | Sprint 4 engineering contract (specification/api/ui/tests) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #58 | #49 | Actions Taken DB foundation (migration, model, seed) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #59 | #50 | Actions Taken API + authorization | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
-| #__ | #51 | Ticket workflow (resolution gate, Admin write, Lab 3 auth test updates) | | | lab4-staging |
+| #60 | #51 | Ticket workflow (resolution gate, Admin write, Lab 3 auth test updates) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #__ | #52 | Requester dashboard (API + UI) | | | lab4-staging |
 | #__ | #53 | Staff dashboard (API + UI + queue filters) | | | lab4-staging |
 | #__ | #54 | Actions Taken UI | | | lab4-staging |
