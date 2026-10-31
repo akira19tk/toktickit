@@ -1,0 +1,16 @@
+
+> server@1.0.0 test
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.12 <USER_HOME>/Projects/toktickit/server
+
+◇ injected env (10) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+ Test Files  22 passed (22)
+      Tests  544 passed (544)
+   Start at  04:23:33
+   Duration  27.03s (transform 188ms, setup 72ms, import 1.55s, tests 24.05s, environment 1ms)
