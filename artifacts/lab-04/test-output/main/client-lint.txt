@@ -1,0 +1,9 @@
+
+> client@0.0.0 lint
+> oxlint
+
+src/context/AuthContext.tsx:146:17: warning react(only-export-components): Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components.
+tests/lab-03/SessionLifecycle.test.tsx:10:36: warning eslint(no-unused-vars): Identifier 'beforeEach' is imported but never used. help: Consider removing this import.
+tests/lab-03/AppShell.test.tsx:5:47: warning eslint(no-unused-vars): Identifier 'beforeEach' is imported but never used. help: Consider removing this import.
+tests/lab-03/StaffTicketDetail.test.tsx:6:34: warning eslint(no-unused-vars): Identifier 'waitFor' is imported but never used. help: Consider removing this import.
+tests/lab-03/ChangePassword.test.tsx:57:35: warning eslint(no-unused-vars): Variable 'reason' is declared but never used. Unused variables should start with a '_'. help: Consider removing this declaration.

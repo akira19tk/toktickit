@@ -67,3 +67,12 @@ Refreshed Lab 3/4 screenshots come from isolated E2E fixtures. Screenshot code c
 and action-form images were inspected for sensitive content before publication. This privacy check
 was not a manual UI/accessibility certification; no browser verification was performed by the agent.
 Passing responsive tests measure no-overflow at 375/850/1440. Release/main validation follows review.
+
+
+## Release-main evidence update
+
+Release commit `a92fa7d` was validated after PR #66 merged: server 544, migration 46, client 127,
+student local Terminal E2E 36 (41.1s), and builds/lint passed. Logs and provenance are in
+`test-output/main/`; `docs/lab-04/tests.md` section 6 is the submission index. This supersedes earlier
+statements that main validation was pending; historical branch results above remain labeled separately.
+Application/test/dependency files are unchanged through documentation merge `17b2ce1`.

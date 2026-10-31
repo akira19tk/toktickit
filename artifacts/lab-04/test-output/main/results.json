@@ -1,0 +1,46 @@
+{
+  "commit": "a92fa7d3ae75ec6885857096ee9e81005dbabafd",
+  "checks": [
+    {
+      "check": "server-db-setup",
+      "exitCode": 0
+    },
+    {
+      "check": "server",
+      "exitCode": 0
+    },
+    {
+      "check": "migration-setup",
+      "exitCode": 0
+    },
+    {
+      "check": "migration",
+      "exitCode": 0
+    },
+    {
+      "check": "client",
+      "exitCode": 0
+    },
+    {
+      "check": "server-build",
+      "exitCode": 0
+    },
+    {
+      "check": "client-build",
+      "exitCode": 0
+    },
+    {
+      "check": "client-lint",
+      "exitCode": 0
+    },
+    {
+      "check": "e2e",
+      "status": "passed",
+      "testsPassed": 36,
+      "durationSeconds": 41.1,
+      "log": "e2e.txt",
+      "provenance": "Student local Terminal on release main; transcript saved via tee and local Playwright last-run status passed. Shell exit code was not separately captured."
+    }
+  ],
+  "scope": "Release main commit a92fa7d; later main commits through 17b2ce1 change documentation only. No application or test changes in this evidence PR; no rerun performed."
+}

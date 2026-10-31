@@ -10,7 +10,7 @@ test below.
 **Naming rule (traceability).** Every automated test title starts with its Test ID, e.g.
 `it("API-L4-03: create a valid Action", …)`, so the Status column can be verified mechanically from output.
 
-**Status rule.** The Status column stays `Planned` until the test runs green on `main`. It becomes `Pass`
+**Status rule.** The Final column stays `Planned` until the test runs green on `main`. It becomes `Pass`
 only from real test output, never from an agent's claim. Not-implemented, skipped, or failing tests are never
 marked `Pass`. (This document is committed at spec time with all rows `Planned`.)
 
@@ -201,5 +201,27 @@ also reports passed with no failed tests. The agent did not rerun E2E. Final col
 the successful run; refreshed generated screenshots are included.
 
 RESP-L4-01 is a component structure check; measured browser overflow is covered by passing Lab 3
-responsive E2E cases at 375/850/1440. Release/main validation and a full manual visual/accessibility
-review remain outstanding. Dependency audit limitations remain in `artifacts/lab-04/hardening.md`.
+responsive E2E cases at 375/850/1440. The release-main validation below supersedes the earlier branch-only limitation. A full manual visual/accessibility
+review remains outstanding. Dependency audit limitations remain in `artifacts/lab-04/hardening.md`.
+
+
+## 6. Final release-main validation
+
+**Tested commit:** `a92fa7d3ae75ec6885857096ee9e81005dbabafd` (merge of release PR #66).
+**Date:** 2026-11-01, Asia/Bangkok. Subsequent merged PRs #67/#68 update documentation only;
+application code, tests and dependency files are unchanged from the tested release commit.
+
+| Check | Actual result | Saved output |
+|---|---|---|
+| Server unit/API, Labs 1–4 | 544 passed | artifacts/lab-04/test-output/main/server.txt |
+| Migration, Labs 3–4 | 46 passed | artifacts/lab-04/test-output/main/migration.txt |
+| Client, Labs 1–4 | 127 passed | artifacts/lab-04/test-output/main/client.txt |
+| E2E, Labs 3–4 + smoke | 36 passed (41.1s) | artifacts/lab-04/test-output/main/e2e.txt |
+| Server build | Exit 0 | artifacts/lab-04/test-output/main/server-build.txt |
+| Client build / lint | Exit 0 / Exit 0 | artifacts/lab-04/test-output/main/client-build.txt; client-lint.txt in the same folder |
+
+`artifacts/lab-04/test-output/main/results.json` records the tested commit, captured command exit codes
+and provenance. The agent ran server/migration/client/build/lint; the student ran E2E in local Terminal.
+No tests were rerun to assemble these records. Personal home paths and any connection URLs are removed
+from saved logs; test results are unchanged. The Final column now has release-main evidence for the
+mapped test suites. A full manual accessibility audit remains unverified and is not inferred from tests.
