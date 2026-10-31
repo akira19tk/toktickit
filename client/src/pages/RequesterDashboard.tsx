@@ -1,23 +1,57 @@
-// Requester Dashboard — ui-spec.md §6, specification §8.1 (Issue #52).
+// Requester Dashboard — ui-spec.md §6, specification §8.1, handout §4.6 (Issue #52).
 // Backend-computed summary of ONLY the authenticated Requester's tickets.
 // States: loading → success (cards + recent list, with empty cues) | error.
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { fetchRequesterDashboard, type RequesterDashboard } from "../api";
+import { formatDateTime } from "../lib/formatDate";
 import StatusBadge from "../components/StatusBadge";
 
-// Metric card definitions — count key, label, drill-down (specification §8.1).
+type MetricKey = keyof RequesterDashboard["metrics"];
+
+// Consistent inline SVG icons (stroke-based, 24×24, aria-hidden). No emoji.
+function Icon({ name }: { name: MetricKey }) {
+  const paths: Record<MetricKey, ReactNode> = {
+    open: <path d="M3 13h4l2 3h6l2-3h4M5 6l-2 7v6h18v-6l-2-7H5z" />,
+    inProgress: <><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></>,
+    waitingForMe: <><circle cx="12" cy="12" r="8" /><path d="M12 7v5l4 2" /></>,
+    resolved: <><circle cx="12" cy="12" r="8" /><path d="M8.5 12.5l2.5 2.5 4.5-5" /></>,
+    closed: <><rect x="4" y="7" width="16" height="13" rx="1" /><path d="M3 4h18v3H3zM9 11h6" /></>,
+    recentlyResolved: <><path d="M3.5 12a8 8 0 1 0 2.5-5.8M4 3v4h4" /><path d="M9 12l2.2 2.2L15 10" /></>,
+  };
+  return (
+    <svg
+      className="zen-dash-card-icon"
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {paths[name]}
+    </svg>
+  );
+}
+
+// Metric card definitions — count key, label, drill-down (specification §8.1),
+// and the accessible "View all …" phrasing for the whole-card link.
 const CARDS: Array<{
-  key: keyof RequesterDashboard["metrics"];
+  key: MetricKey;
   label: string;
-  icon: string;
+  viewAll: string;
   to: string;
 }> = [
-  { key: "open",         label: "My Open",      icon: "📥", to: "/tickets?status=OPEN" },
-  { key: "inProgress",   label: "In Progress",  icon: "🔧", to: "/tickets?status=IN_PROGRESS" },
-  { key: "waitingForMe", label: "Waiting for Me", icon: "⏳", to: "/tickets?status=WAITING_FOR_REQUESTER" },
-  { key: "resolved",     label: "Resolved",     icon: "✅", to: "/tickets?status=RESOLVED" },
-  { key: "closed",       label: "Closed",       icon: "📦", to: "/tickets?status=CLOSED" },
+  { key: "open",             label: "My Open",           viewAll: "View all open tickets",            to: "/tickets?status=OPEN" },
+  { key: "inProgress",       label: "In Progress",       viewAll: "View all in-progress tickets",     to: "/tickets?status=IN_PROGRESS" },
+  { key: "waitingForMe",     label: "Waiting for Me",    viewAll: "View all tickets waiting for you", to: "/tickets?status=WAITING_FOR_REQUESTER" },
+  { key: "resolved",         label: "Resolved",          viewAll: "View all resolved tickets",        to: "/tickets?status=RESOLVED" },
+  { key: "closed",           label: "Closed",            viewAll: "View all closed tickets",          to: "/tickets?status=CLOSED" },
+  { key: "recentlyResolved", label: "Recently Resolved", viewAll: "View all recently resolved tickets", to: "/tickets?status=RESOLVED" },
 ];
 
 export default function RequesterDashboard() {
@@ -90,27 +124,21 @@ export default function RequesterDashboard() {
               to={card.to}
               className={`zen-card zen-dash-card${attention ? " zen-dash-card--attention" : ""}`}
               data-testid={`metric-${card.key}`}
-              aria-label={`${card.label}: ${count} ticket${count === 1 ? "" : "s"}`}
+              aria-label={`${card.viewAll}, ${count} ticket${count === 1 ? "" : "s"}`}
             >
-              <span className="zen-dash-card-icon" aria-hidden="true">{card.icon}</span>
+              <Icon name={card.key} />
               <span className="zen-dash-card-count">{count}</span>
               <span className="zen-dash-card-label">{card.label}</span>
               {attention && (
                 <span className="zen-dash-attention" data-testid="waiting-attention">
-                  ⚠ Needs your attention
+                  Needs your attention
                 </span>
               )}
+              <span className="zen-dash-card-viewall" aria-hidden="true">View all →</span>
             </Link>
           );
         })}
       </section>
-
-      {/* Recently resolved is a supporting cue, not a drill-down card. */}
-      {metrics.recentlyResolved > 0 && (
-        <p className="zen-muted zen-dash-note" data-testid="recently-resolved">
-          ✅ {metrics.recentlyResolved} ticket{metrics.recentlyResolved === 1 ? "" : "s"} resolved in the last 7 days.
-        </p>
-      )}
 
       {/* ── My Recent Tickets ────────────────────────────────────────────── */}
       <section aria-label="My recent tickets" className="zen-card zen-dash-recent" style={{ marginTop: 16 }}>
@@ -127,6 +155,9 @@ export default function RequesterDashboard() {
                   <span className="zen-dash-recent-no">{t.ticketNumber}</span>
                   <span className="zen-dash-recent-summary">{t.summary}</span>
                   <StatusBadge status={t.currentStatus} />
+                  <span className="zen-dash-recent-updated">
+                    Updated {formatDateTime(t.updatedAt)}
+                  </span>
                 </Link>
               </li>
             ))}

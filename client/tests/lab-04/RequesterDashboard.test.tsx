@@ -6,6 +6,7 @@ import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import RequesterDashboard from "../../src/pages/RequesterDashboard";
+import { formatDateTime } from "../../src/lib/formatDate";
 import * as api from "../../src/api";
 
 function makeDashboard(
@@ -43,7 +44,7 @@ afterEach(() => {
 // ── UI-L4-03 ─────────────────────────────────────────────────────────────
 
 describe("UI-L4-03: own metrics + Waiting for Me cue (AC-15, AC-25)", () => {
-  it("UI-L4-03: renders all five metric cards with their counts and the recent list", async () => {
+  it("UI-L4-03: renders all six metric cards (incl. Recently Resolved) with counts and labels", async () => {
     vi.spyOn(api, "fetchRequesterDashboard").mockResolvedValue(makeDashboard());
     renderDash();
 
@@ -59,14 +60,40 @@ describe("UI-L4-03: own metrics + Waiting for Me cue (AC-15, AC-25)", () => {
     expect(within(waiting).getByText(/waiting for me/i)).toBeInTheDocument();
     const resolved = screen.getByTestId("metric-resolved");
     expect(within(resolved).getByText("3")).toBeInTheDocument();
-    expect(within(resolved).getByText(/resolved/i)).toBeInTheDocument();
+    expect(within(resolved).getByText(/^resolved$/i)).toBeInTheDocument();
     const closed = screen.getByTestId("metric-closed");
     expect(within(closed).getByText("5")).toBeInTheDocument();
     expect(within(closed).getByText(/closed/i)).toBeInTheDocument();
 
-    // Recent tickets list.
-    expect(screen.getByText("TKT-2026-000101")).toBeInTheDocument();
-    expect(screen.getByText("VPN keeps dropping")).toBeInTheDocument();
+    // Recently Resolved (last 7 days, Asia/Bangkok) — handout §4.6.
+    const recently = screen.getByTestId("metric-recentlyResolved");
+    expect(within(recently).getByText("2")).toBeInTheDocument();
+    expect(within(recently).getByText(/recently resolved/i)).toBeInTheDocument();
+  });
+
+  it("UI-L4-03: cards use inline SVG icons (aria-hidden), not emoji", async () => {
+    vi.spyOn(api, "fetchRequesterDashboard").mockResolvedValue(makeDashboard());
+    renderDash();
+    const open = await screen.findByTestId("metric-open");
+    const svg = open.querySelector("svg");
+    expect(svg).toBeTruthy();
+    expect(svg).toHaveAttribute("aria-hidden", "true");
+    // No legacy emoji glyphs in the card text.
+    for (const glyph of ["📥", "🔧", "⏳", "✅", "📦", "⚠"]) {
+      expect(open.textContent ?? "").not.toContain(glyph);
+    }
+  });
+
+  it("UI-L4-03: recent rows show the last-updated date/time in a locale-stable format", async () => {
+    vi.spyOn(api, "fetchRequesterDashboard").mockResolvedValue(makeDashboard());
+    renderDash();
+    const row = await screen.findByRole("link", { name: /TKT-2026-000101/ });
+    // The component formats in the local zone; mirror that here for the assertion.
+    expect(within(row).getByText(new RegExp(`Updated ${formatDateTime("2026-10-30T10:00:00.000Z")}`))).toBeInTheDocument();
+  });
+
+  it("UI-L4-03: formatDateTime renders Gregorian '31 Oct 2026, 11:30' regardless of locale", () => {
+    expect(formatDateTime("2026-10-31T04:30:00.000Z", "Asia/Bangkok")).toBe("31 Oct 2026, 11:30");
   });
 
   it("UI-L4-03: shows a non-color attention cue on Waiting for Me when > 0, hidden when 0", async () => {
@@ -96,7 +123,7 @@ describe("UI-L4-03: own metrics + Waiting for Me cue (AC-15, AC-25)", () => {
 // ── UI-L4-04 ─────────────────────────────────────────────────────────────
 
 describe("UI-L4-04: drill-down + empty state (AC-17)", () => {
-  it("UI-L4-04: metric cards drill down to /tickets?status=… and recent rows to /tickets/:id", async () => {
+  it("UI-L4-04: each card is a focusable 'View all' link drilling to its filtered list", async () => {
     vi.spyOn(api, "fetchRequesterDashboard").mockResolvedValue(makeDashboard());
     renderDash();
 
@@ -105,6 +132,14 @@ describe("UI-L4-04: drill-down + empty state (AC-17)", () => {
     expect(screen.getByTestId("metric-waitingForMe")).toHaveAttribute("href", "/tickets?status=WAITING_FOR_REQUESTER");
     expect(screen.getByTestId("metric-resolved")).toHaveAttribute("href", "/tickets?status=RESOLVED");
     expect(screen.getByTestId("metric-closed")).toHaveAttribute("href", "/tickets?status=CLOSED");
+    expect(screen.getByTestId("metric-recentlyResolved")).toHaveAttribute("href", "/tickets?status=RESOLVED");
+
+    // Each card is a link with an accessible "View all …" name (keyboard-focusable).
+    const viewAllOpen = screen.getByRole("link", { name: /view all open tickets/i });
+    expect(viewAllOpen).toBe(screen.getByTestId("metric-open"));
+    expect(screen.getByRole("link", { name: /view all in-progress tickets/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /view all tickets waiting for you/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /view all recently resolved tickets/i })).toBeInTheDocument();
 
     // Recent row links to the Ticket Detail route.
     const row = screen.getByRole("link", { name: /TKT-2026-000101/ });
@@ -123,6 +158,7 @@ describe("UI-L4-04: drill-down + empty state (AC-17)", () => {
     const open = await screen.findByTestId("metric-open");
     expect(within(open).getByText("0")).toBeInTheDocument();
     expect(within(screen.getByTestId("metric-closed")).getByText("0")).toBeInTheDocument();
+    expect(within(screen.getByTestId("metric-recentlyResolved")).getByText("0")).toBeInTheDocument();
     expect(screen.getByTestId("recent-empty")).toBeInTheDocument();
   });
 

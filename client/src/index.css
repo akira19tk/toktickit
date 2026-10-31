@@ -212,6 +212,9 @@ body {
   transition: opacity 0.15s, background 0.15s;
   border: 2px solid transparent;
   min-height: 44px;
+  /* When rendered as a link (react-router <Link>), suppress the anchor underline
+     so button-styled links match real <button> elements. */
+  text-decoration: none;
 }
 
 .zen-btn:disabled,
@@ -1170,10 +1173,18 @@ body {
 .zen-dash-header {
   margin-bottom: 16px;
 }
+/* Responsive grid: 2 across on mobile, 3 on tablet, 6 on desktop — cards fill
+   the row (1fr tracks) with no horizontal scroll. */
 .zen-dash-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+}
+@media (min-width: 640px) {
+  .zen-dash-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 1024px) {
+  .zen-dash-grid { grid-template-columns: repeat(6, 1fr); }
 }
 .zen-dash-card {
   display: flex;
@@ -1183,16 +1194,22 @@ body {
   text-decoration: none;
   color: var(--color-text);
   transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 0;
 }
 .zen-dash-card:hover {
   border-color: var(--color-secondary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
+.zen-dash-card:hover .zen-dash-card-viewall { text-decoration: underline; }
 .zen-dash-card:focus-visible {
   outline: 2px solid var(--color-secondary);
   outline-offset: 2px;
 }
-.zen-dash-card-icon { font-size: 20px; }
+.zen-dash-card-icon {
+  color: var(--color-secondary);
+  width: 24px;
+  height: 24px;
+}
 .zen-dash-card-count {
   font-size: 32px;
   font-weight: 700;
@@ -1203,17 +1220,23 @@ body {
   font-size: 14px;
   color: var(--color-muted);
 }
+.zen-dash-card-viewall {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-secondary);
+}
 .zen-dash-card--attention {
   border-left: 4px solid var(--color-warning);
   background: var(--color-warning-bg);
 }
 .zen-dash-card--attention .zen-dash-card-count { color: var(--color-warning); }
+.zen-dash-card--attention .zen-dash-card-icon { color: var(--color-warning); }
 .zen-dash-attention {
   font-size: 12px;
   font-weight: 600;
   color: var(--color-warning);
 }
-.zen-dash-note { margin: 12px 0 0; }
 .zen-dash-recent-list {
   list-style: none;
   margin: 12px 0 0;
@@ -1242,6 +1265,11 @@ body {
   min-width: 150px;
 }
 .zen-dash-recent-summary { flex: 1 1 160px; min-width: 0; }
+.zen-dash-recent-updated {
+  font-size: 12px;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
 .zen-dash-actions {
   display: flex;
   gap: 12px;
