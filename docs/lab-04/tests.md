@@ -29,7 +29,7 @@ prove no lost update and no duplicate write.
 
 | Test ID | Type | AC | What It Tests | Expected Result | Automated Test File | Status |
 |---|---|---|---|---|---|---|
-| UNIT-L4-01 | Unit | AC-11 | Ticket transition matrix incl. CANCELLED terminal | Allowed/blocked pairs match BR-14 | server/tests/lab-04/lib.unit.test.ts | Planned |
+| UNIT-L4-01 | Unit | AC-11 | Ticket transition matrix incl. CANCELLED terminal | Allowed/blocked pairs match BR-14 | server/tests/lab-04/lib.unit.test.ts | Pass |
 | UNIT-L4-02 | Unit | AC-04, AC-05 | Action lifecycle validator (OPEN→COMPLETED/CANCELLED only; complete needs result) | Legal transitions pass, others rejected | server/tests/lab-04/lib.unit.test.ts | Pass |
 | UNIT-L4-03 | Unit | AC-07 | Follow-up note rule (required iff followUpRequired) | Mismatches rejected | server/tests/lab-04/lib.unit.test.ts | Pass |
 | UNIT-L4-04 | Unit | AC-26 | Asia/Bangkok "last 7 days" / day-boundary helper | Boundary computed in UTC+7, not UTC | server/tests/lab-04/lib.unit.test.ts | Planned |
@@ -47,12 +47,12 @@ prove no lost update and no duplicate write.
 | API-L4-12 | API | AC-08 | Requester reads own Ticket Actions; non-owned | 200 all fields newest-first; non-owned 404 | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-13 | API | AC-09 | Requester attempts Action write under /staff/* | 403 | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-14 | API | AC-18 | Admin creates/updates Action | 201/200 (Lab 4 change) | server/tests/lab-04/actions-taken.api.test.ts | Pass |
-| API-L4-15 | API | AC-10 | Resolve with an OPEN Action; then all COMPLETED/CANCELLED; zero-Action Ticket | 409 OPEN_ACTIONS_EXIST; then resolves; zero-Action resolves | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| API-L4-16 | API | AC-11 | Transition matrix over the API | Allowed succeed; others 409 INVALID_TRANSITION w/ targets | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| API-L4-17 | API | AC-12 | RESOLVED request violating several rules at once | First applicable error (…→OPEN_ACTIONS_EXIST→400 summary) | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| API-L4-18 | API | AC-13 | Status PATCH with stale expectedUpdatedAt | 409 STALE_UPDATE | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| API-L4-19 | API | AC-18 | Admin changes status (allowed); admin claim/owner/priority/comment/note | status 200; others 403 (Lab 3 preserved) | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
-| API-L4-20 | API | AC-21 | Double-submitted status transition / Action create | No duplicate, consistent state | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
+| API-L4-15 | API | AC-10 | Resolve with an OPEN Action; then all COMPLETED/CANCELLED; zero-Action Ticket | 409 OPEN_ACTIONS_EXIST; then resolves; zero-Action resolves | server/tests/lab-04/ticket-workflow.api.test.ts | Pass |
+| API-L4-16 | API | AC-11 | Transition matrix over the API | Allowed succeed; others 409 INVALID_TRANSITION w/ targets | server/tests/lab-04/ticket-workflow.api.test.ts | Pass |
+| API-L4-17 | API | AC-12 | RESOLVED request violating several rules at once | First applicable error (…→OPEN_ACTIONS_EXIST→400 summary) | server/tests/lab-04/ticket-workflow.api.test.ts | Pass |
+| API-L4-18 | API | AC-13 | Status PATCH with stale expectedUpdatedAt | 409 STALE_UPDATE | server/tests/lab-04/ticket-workflow.api.test.ts | Pass |
+| API-L4-19 | API | AC-18 | Admin changes status (allowed); admin claim/owner/priority/comment/note | status 200; others 403 (Lab 3 preserved) | server/tests/lab-04/ticket-workflow.api.test.ts | Pass |
+| API-L4-20 | API | AC-21 | Double-submitted status transition / Action create | No duplicate, consistent state | server/tests/lab-04/ticket-workflow.api.test.ts | Pass |
 | API-L4-21 | API | AC-15 | Requester dashboard scope + counts | Only own data; open/inProgress/resolved/closed correct | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
 | API-L4-22 | API | AC-25 | Waiting for Me metric | Equals count(WAITING_FOR_REQUESTER) for me | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
 | API-L4-23 | API | AC-26 | Recently Resolved uses Asia/Bangkok boundary | Count flips correctly across UTC+7 midnight | server/tests/lab-04/requester-dashboard.api.test.ts | Planned |
@@ -62,7 +62,7 @@ prove no lost update and no duplicate write.
 | API-L4-27 | API | AC-24 | Urgent list contents/order | Exactly HIGH & not Closed/Cancelled, newest-first, ≤5 | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
 | API-L4-28 | API | AC-17 | Dashboards with empty scope | Zeros / empty lists, 200 (no 404) | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
 | API-L4-29 | API | AC-18 | Staff dashboard requested by Requester | 403 | server/tests/lab-04/staff-dashboard.api.test.ts | Planned |
-| API-L4-30 | API | AC-27 | Concurrent resolve + new-Action-create on an all-completed Ticket (Promise.all) | Invariant holds: resolve commits & create 409 TICKET_CLOSED, OR create commits & resolve 409 OPEN_ACTIONS_EXIST; never RESOLVED with an OPEN Action | server/tests/lab-04/ticket-workflow.api.test.ts | Planned |
+| API-L4-30 | API | AC-27 | Concurrent resolve + new-Action-create on an all-completed Ticket (Promise.all) | Invariant holds: resolve commits & create 409 TICKET_CLOSED, OR create commits & resolve 409 OPEN_ACTIONS_EXIST; never RESOLVED with an OPEN Action | server/tests/lab-04/ticket-workflow.api.test.ts | Pass |
 | API-L4-31 | API | AC-14 | Create Action on a RESOLVED Ticket; then reopen (→REOPENED) and create | 409 TICKET_CLOSED; after reopen, 201 | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-32 | API | AC-28 | Requester Action read model excludes Internal Notes; non-owned 404; requester hits /notes | Payload has only Action fields (no note content); 404; 403 on /notes | server/tests/lab-04/actions-taken.api.test.ts | Pass |
 | API-L4-33 | API | AC-29 | 404 edge cases: PATCH unknown actionId under a valid Ticket; GET/POST actions on unknown Ticket | 404 (no existence leak) | server/tests/lab-04/actions-taken.api.test.ts | Pass |
