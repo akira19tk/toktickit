@@ -27,6 +27,7 @@ let requester: { id: number };
 let lonely: { id: number }; // IT Staff with nothing owned / assigned
 
 let meSession: string;
+let otherStaffSession: string;
 let adminSession: string;
 let requesterSession: string;
 let lonelySession: string;
@@ -99,6 +100,7 @@ beforeAll(async () => {
   lonely = await createUser({ email: "lonely@sdh.test", password: PW, name: "Lee Lonely", role: "IT_STAFF", mustChangePassword: false });
 
   meSession = await loginAs(app, { email: "staff@sdh.test", password: PW });
+  otherStaffSession = await loginAs(app, { email: "other@sdh.test", password: PW });
   adminSession = await loginAs(app, { email: "admin@sdh.test", password: PW });
   requesterSession = await loginAs(app, { email: "req@sdh.test", password: PW });
   lonelySession = await loginAs(app, { email: "lonely@sdh.test", password: PW });
@@ -128,6 +130,11 @@ beforeAll(async () => {
 
   // ── Unassigned exclusions: CLOSED/CANCELLED unassigned excluded from count
   await makeTicket({ currentStatus: "CLOSED", ownerId: null, updatedAt: t(11000) });
+  await makeTicket({ currentStatus: "CANCELLED", ownerId: null, updatedAt: t(11500) });
+
+  // ── Other staff's assignment (scope isolation, API-L4-40): otherStaff owns the
+  // IN_PROGRESS ticket above (their only active owned ticket) and holds one OPEN
+  // action on the shared action ticket below — these count for them, not for me.
 
   // ── Urgent list (HIGH, not Closed/Cancelled), 6 active → capped at 5 newest ──
   // Newest-first by updatedAt. High+closed and High+cancelled must be excluded.
@@ -263,6 +270,83 @@ describe("API-L4-27: Urgent list contents/order (AC-24)", () => {
       expect(["CLOSED", "CANCELLED"]).not.toContain(row.currentStatus);
       expect(row.itPriority).toBe("HIGH");
     }
+  });
+});
+
+// ── API-L4-39 (PR #63 review, point 1) ──────────────────────────────────────
+
+describe("API-L4-39: metrics exclude frozen tickets and non-matching actions (AC-16, AC-23)", () => {
+  it("API-L4-39: CLOSED/CANCELLED owned-by-me excluded from myAssigned; CLOSED/CANCELLED unassigned excluded from unassigned", async () => {
+    const res = await get("/api/staff/dashboard", meSession);
+    expect(res.status).toBe(200);
+
+    const frozen = { in: ["CLOSED", "CANCELLED"] as TicketStatus[] };
+    const active = { notIn: ["CLOSED", "CANCELLED"] as TicketStatus[] };
+    const [frozenMine, frozenUnassigned, activeMine, activeUnassigned] = await Promise.all([
+      prisma.ticket.count({ where: { ownerId: me.id, currentStatus: frozen } }),
+      prisma.ticket.count({ where: { ownerId: null, currentStatus: frozen } }),
+      prisma.ticket.count({ where: { ownerId: me.id, currentStatus: active } }),
+      prisma.ticket.count({ where: { ownerId: null, currentStatus: active } }),
+    ]);
+
+    // Fixtures exist on both sides of the filter: a CLOSED + CANCELLED owned by
+    // me, and CLOSED + CANCELLED unassigned rows (the explicit pair plus the
+    // frozen HIGH urgent-list fixtures, which are unassigned). If the filter were
+    // dropped the counts would be larger, so these prove the exclusion fires.
+    expect(frozenMine).toBe(2);
+    expect(frozenUnassigned).toBeGreaterThanOrEqual(2);
+    expect(res.body.metrics.myAssigned).toBe(activeMine);
+    expect(res.body.metrics.unassigned).toBe(activeUnassigned);
+    expect(res.body.metrics.myAssigned).not.toBe(activeMine + frozenMine);
+    expect(res.body.metrics.unassigned).not.toBe(activeUnassigned + frozenUnassigned);
+  });
+
+  it("API-L4-39: myOpenActions counts only OPEN actions assigned to me (not COMPLETED-mine, other-assignee, or unassigned)", async () => {
+    const res = await get("/api/staff/dashboard", meSession);
+    expect(res.status).toBe(200);
+
+    const [openMine, allMine, allOpen] = await Promise.all([
+      prisma.actionTaken.count({ where: { assigneeId: me.id, status: "OPEN" } }),
+      prisma.actionTaken.count({ where: { assigneeId: me.id } }),       // incl. COMPLETED-mine
+      prisma.actionTaken.count({ where: { status: "OPEN" } }),           // incl. OPEN-other + OPEN-unassigned
+    ]);
+
+    expect(openMine).toBe(3);
+    expect(allMine).toBeGreaterThan(openMine); // a COMPLETED action assigned to me is excluded
+    expect(allOpen).toBeGreaterThan(openMine); // OPEN actions for others / unassigned are excluded
+    expect(res.body.metrics.myOpenActions).toBe(openMine);
+  });
+});
+
+// ── API-L4-40 (PR #63 review, point 3) ──────────────────────────────────────
+
+describe("API-L4-40: metrics are scoped to the authenticated staffer (AC-16, AC-18)", () => {
+  it("API-L4-40: two staff users get different myAssigned / myOpenActions from the same data", async () => {
+    const mine = await get("/api/staff/dashboard", meSession);
+    const theirs = await get("/api/staff/dashboard", otherStaffSession);
+    expect(mine.status).toBe(200);
+    expect(theirs.status).toBe(200);
+
+    const active = { notIn: ["CLOSED", "CANCELLED"] as TicketStatus[] };
+    const [myAssignedDb, otherAssignedDb, myActionsDb, otherActionsDb] = await Promise.all([
+      prisma.ticket.count({ where: { ownerId: me.id, currentStatus: active } }),
+      prisma.ticket.count({ where: { ownerId: otherStaff.id, currentStatus: active } }),
+      prisma.actionTaken.count({ where: { assigneeId: me.id, status: "OPEN" } }),
+      prisma.actionTaken.count({ where: { assigneeId: otherStaff.id, status: "OPEN" } }),
+    ]);
+
+    // Each staffer's me-scoped metrics match a direct per-user query.
+    expect(mine.body.metrics.myAssigned).toBe(myAssignedDb);
+    expect(theirs.body.metrics.myAssigned).toBe(otherAssignedDb);
+    expect(mine.body.metrics.myOpenActions).toBe(myActionsDb);
+    expect(theirs.body.metrics.myOpenActions).toBe(otherActionsDb);
+
+    // Different scopes → different values (guards against a global/shared count).
+    expect(mine.body.metrics.myAssigned).not.toBe(theirs.body.metrics.myAssigned);
+    expect(mine.body.metrics.myOpenActions).not.toBe(theirs.body.metrics.myOpenActions);
+    // The non-scoped global status counts, by contrast, are identical for both.
+    expect(mine.body.metrics.new).toBe(theirs.body.metrics.new);
+    expect(mine.body.metrics.open).toBe(theirs.body.metrics.open);
   });
 });
 

@@ -189,3 +189,28 @@ describe("RESP-L4-01: dashboard reflow — responsive grid + list structure (AC-
     expect(within(grid as HTMLElement).getAllByText(/^\d+$/).length).toBe(7);
   });
 });
+
+// ── UI-L4-14 (PR #63 review, point 5) ───────────────────────────────────────
+
+describe("UI-L4-14: loading and error states are accessible (AC-17, AC-20)", () => {
+  it("UI-L4-14: loading state exposes a status region with an accessible label", () => {
+    mockUser();
+    // A promise that never resolves keeps the component in its loading state.
+    vi.spyOn(api, "fetchStaffDashboard").mockReturnValue(new Promise(() => {}));
+    renderDash();
+
+    const status = screen.getByRole("status");
+    expect(status).toBeInTheDocument();
+    // The spinner carries the accessible name for assistive tech.
+    expect(within(status).getByLabelText("Loading dashboard")).toBeInTheDocument();
+  });
+
+  it("UI-L4-14: error state is an alert with a retry button", async () => {
+    mockUser();
+    vi.spyOn(api, "fetchStaffDashboard").mockRejectedValue(new Error("network"));
+    renderDash();
+
+    const alert = await screen.findByRole("alert");
+    expect(within(alert).getByRole("button", { name: /try again/i })).toBeInTheDocument();
+  });
+});

@@ -97,7 +97,7 @@ export default function StaffDashboard() {
     return (
       <div className="zen-dash">
         <Header name={user?.name} />
-        <div className="zen-card" style={{ marginTop: 16, textAlign: "center" }}>
+        <div className="zen-card" role="alert" style={{ marginTop: 16, textAlign: "center" }}>
           <span className="zen-icon" aria-hidden="true">⚠️</span>
           <h2 className="zen-section-title">Unable to Load Dashboard</h2>
           <p className="zen-muted">Could not reach the server. Please try again.</p>
