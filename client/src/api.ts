@@ -228,22 +228,28 @@ export interface TicketComment {
 // ── Error classes ──────────────────────────────────────────────────────────
 
 // Structured error from the API (status + machine code + optional field errors).
+// `details` carries any extra top-level fields from the error body (e.g.
+// OPEN_ACTIONS_EXIST includes `openActions`), so the UI can build its own copy
+// rather than echoing the raw server text.
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly errors: Record<string, string> | undefined;
+  readonly details: Record<string, unknown> | undefined;
 
   constructor(
     status: number,
     code: string,
     message: string,
-    errors?: Record<string, string>
+    errors?: Record<string, string>,
+    details?: Record<string, unknown>
   ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.errors = errors;
+    this.details = details;
   }
 }
 
@@ -594,7 +600,7 @@ export interface StatusChangeResult {
 async function jsonOrApiError<T>(res: Response, fallback: string): Promise<T> {
   if (res.ok) return res.json() as Promise<T>;
   const body = await res.json().catch(() => ({}));
-  throw new ApiError(res.status, body.code ?? "INTERNAL_ERROR", body.error ?? fallback, body.errors);
+  throw new ApiError(res.status, body.code ?? "INTERNAL_ERROR", body.error ?? fallback, body.errors, body);
 }
 
 const CSRF_JSON = {

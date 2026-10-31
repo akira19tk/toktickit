@@ -100,29 +100,54 @@ describe("UI-L4-08: status control transitions and double-submit", () => {
 });
 
 describe("UI-L4-09: resolution gate feedback", () => {
-  it("UI-L4-09: OPEN_ACTIONS_EXIST is shown inline and the typed summary is kept (AC-10)", async () => {
+  it("UI-L4-09: OPEN_ACTIONS_EXIST shows a client-side, pluralized message and keeps the summary (AC-10)", async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, "changeStaffStatus").mockRejectedValue(
-      new api.ApiError(409, "OPEN_ACTIONS_EXIST", "This ticket still has 2 open action(s).")
-    );
+    const statusSpy = vi.spyOn(api, "changeStaffStatus");
 
-    render(<StaffTicketDetail ticketId={41} onBack={() => {}} />);
-    await screen.findByTestId("operations-panel");
+    // Drive a resolve that the server rejects with OPEN_ACTIONS_EXIST carrying an
+    // `openActions` count; returns the rendered view + the surfaced alert.
+    async function resolveBlocked(openActions: number) {
+      statusSpy.mockRejectedValueOnce(
+        new api.ApiError(
+          409,
+          "OPEN_ACTIONS_EXIST",
+          // raw server phrasing — the UI must NOT echo this
+          `Resolve the ${openActions} open action(s) before resolving this ticket.`,
+          undefined,
+          { openActions }
+        )
+      );
+      const view = render(<StaffTicketDetail ticketId={41} onBack={() => {}} />);
+      await screen.findByTestId("operations-panel");
+      await user.selectOptions(screen.getByLabelText("Status"), "RESOLVED");
+      const summary = screen.getByLabelText("Resolution summary") as HTMLTextAreaElement;
+      await user.type(summary, "Swapped the battery and verified charge cycles.");
+      await user.click(screen.getByRole("button", { name: /apply status change/i }));
+      const alert = await screen.findByRole("alert");
+      return { view, alert, summary };
+    }
 
-    await user.selectOptions(screen.getByLabelText("Status"), "RESOLVED");
-    const summary = screen.getByLabelText("Resolution summary") as HTMLTextAreaElement;
-    await user.type(summary, "Swapped the battery and verified charge cycles.");
+    // Plural: own copy, correct "actions"/"them", and the raw server text is gone.
+    {
+      const { view, alert, summary } = await resolveBlocked(3);
+      expect(alert).toHaveTextContent(
+        "This ticket has 3 open actions. Complete or cancel them before resolving."
+      );
+      expect(alert).not.toHaveTextContent(/Resolve the/i);
+      // The typed summary survives the conflict (not lost to a reload)…
+      expect(summary.value).toMatch(/swapped the battery/i);
+      // …and the status did not change — still OPEN in the header.
+      expect(within(screen.getByTestId("detail-header")).getByText(/^open$/i)).toBeInTheDocument();
+      view.unmount();
+    }
 
-    await user.click(screen.getByRole("button", { name: /apply status change/i }));
-
-    // Conflict is surfaced inline, mentions open actions, and the summary the
-    // user typed is still present (not lost to a reload).
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent(/open action/i);
-    expect((screen.getByLabelText("Resolution summary") as HTMLTextAreaElement).value).toMatch(
-      /swapped the battery/i
-    );
-    // The status did not change — still OPEN in the header.
-    expect(within(screen.getByTestId("detail-header")).getByText(/^open$/i)).toBeInTheDocument();
+    // Singular: "1 open action" / "cancel it".
+    {
+      const { view, alert } = await resolveBlocked(1);
+      expect(alert).toHaveTextContent(
+        "This ticket has 1 open action. Complete or cancel it before resolving."
+      );
+      view.unmount();
+    }
   });
 });
