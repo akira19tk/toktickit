@@ -96,11 +96,11 @@ prove no lost update and no duplicate write.
 | MIG-L4-04 | Migration | AC-20 | Seed is idempotent; covers zero/one/multiple Actions and non-zero/zero metrics | Re-run safe; dashboard-demo data present | server/tests/lab-04/migration.test.ts | Pass |
 | MIG-L4-05 | Migration | AC-20 | ActionTaken FK deletes are RESTRICT (User as performedBy/assignee/updatedBy; Ticket with Actions) | Each delete rejected; referenced rows intact | server/tests/lab-04/migration.test.ts | Pass |
 | MIG-L4-06 | Migration | AC-20 | Seed on a partially populated DB (some Tickets have Actions, some don't) | Missing Actions filled, already-populated untouched, no duplicates, idempotent | server/tests/lab-04/migration.test.ts | Pass |
-| REG-L4-01 | Regression | AC-20 | Full Lab 1–3 server suites still green | All prior API/unit tests pass | server/tests/lab-01..03/* | Planned |
-| E2E-L4-01 | E2E | AC-01,AC-02,AC-04,AC-05,AC-22 | Actions Taken flow: create→assign→complete / cancel, multiple on one Ticket | Visible, persisted, role-restricted | e2e/lab-04/actions-taken-flow.spec.ts | Planned |
-| E2E-L4-02 | E2E | AC-10, AC-11 | Ticket resolution: blocked by open Action, then resolve, reopen | Gate enforced end-to-end | e2e/lab-04/ticket-resolution.spec.ts | Planned |
-| E2E-L4-03 | E2E | AC-15,AC-16,AC-17 | Dashboards: staff + requester metrics and drill-down | Counts match; navigation correct | e2e/lab-04/dashboards.spec.ts | Planned |
-| E2E-L4-04 | E2E | AC-20 | Representative Lab 1–3 regression (auth, My Tickets, detail, attachments, comments, notes, admin) | All prior flows pass | e2e/lab-04/dashboards.spec.ts | Planned |
+| REG-L4-01 | Regression | AC-20 | Full Lab 1–3 server suites still green | All prior API/unit tests pass | server/tests/lab-01..03/* | Pass |
+| E2E-L4-01 | E2E | AC-01,AC-02,AC-04,AC-05,AC-22 | Actions Taken flow: create→assign→complete / cancel, multiple on one Ticket | Visible, persisted, role-restricted | e2e/lab-04/actions-taken-flow.spec.ts | Pass |
+| E2E-L4-02 | E2E | AC-10, AC-11 | Ticket resolution: blocked by open Action, then resolve, reopen | Gate enforced end-to-end | e2e/lab-04/ticket-resolution.spec.ts | Pass |
+| E2E-L4-03 | E2E | AC-15,AC-16,AC-17 | Dashboards: staff + requester metrics and drill-down | Counts match; navigation correct | e2e/lab-04/dashboards.spec.ts | Pass |
+| E2E-L4-04 | E2E | AC-20 | Representative Lab 1–3 regression (auth, My Tickets, detail, attachments, comments, notes, admin) | All prior flows pass | e2e/lab-03/*.spec.ts + e2e/lab-04/dashboards.spec.ts | Pass |
 
 ## 2.1 Error / edge-case coverage audit
 
@@ -165,6 +165,20 @@ ticket-summary refresh.)
 review — PATCH error-ordering, nested-user-field whitelist, parallel-PATCH stale-update, and PATCH
 assignee semantics; the PATCH stale check was also made an atomic guarded UPDATE.)
 Final per-test status and the full passing output from `main` are recorded here once implemented.
+
+**Issue #55 run (full Labs 1–4 suite, feature/lab4-e2e).** All suites green; raw output in
+`artifacts/lab-04/test-output/`:
+
+- Server unit/API (`cd server && npm test`): **540 passed** (22 files) — satisfies **REG-L4-01**.
+- Migration (`npm run test:migration`): **46 passed** (2 files).
+- Client (`cd client && npm test`): **126 passed** (20 files).
+- E2E (`npm run e2e`): **36 passed** — Lab 4 **E2E-L4-01…04**, the dashboard loading/error screenshot
+  captures, the Lab 1–3 regression specs and smoke.
+
+**UNIT-L4-04** remains `Planned`: the Asia/Bangkok boundary unit is scheduled for a later issue (see the
+header note in `server/tests/lab-04/lib.unit.test.ts`); Issue #55 does not add it. The dashboard
+Asia/Bangkok boundary is still exercised end-to-end via the `recentlyResolved` metric (E2E-L4-03) and
+documented in `artifacts/lab-04/metrics-evidence.md`.
 
 (Client test path: the planned `client/src/**/__tests__/*.test.tsx` paths were normalized to the
 repository's established `client/tests/lab-04/*.test.tsx` convention — the Vitest config only includes
