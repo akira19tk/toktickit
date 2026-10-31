@@ -13,8 +13,8 @@ type MetricKey = keyof RequesterDashboard["metrics"];
 function Icon({ name }: { name: MetricKey }) {
   const paths: Record<MetricKey, ReactNode> = {
     open: <path d="M3 13h4l2 3h6l2-3h4M5 6l-2 7v6h18v-6l-2-7H5z" />,
-    inProgress: <><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></>,
-    waitingForMe: <><circle cx="12" cy="12" r="8" /><path d="M12 7v5l4 2" /></>,
+    inProgress: <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />,
+    waitingForMe: <path d="M6 2h12M6 22h12M8 2v4l4 4 4-4V2M8 22v-4l4-4 4 4v4" />,
     resolved: <><circle cx="12" cy="12" r="8" /><path d="M8.5 12.5l2.5 2.5 4.5-5" /></>,
     closed: <><rect x="4" y="7" width="16" height="13" rx="1" /><path d="M3 4h18v3H3zM9 11h6" /></>,
     recentlyResolved: <><path d="M3.5 12a8 8 0 1 0 2.5-5.8M4 3v4h4" /><path d="M9 12l2.2 2.2L15 10" /></>,

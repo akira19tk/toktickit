@@ -1221,7 +1221,9 @@ body {
   color: var(--color-muted);
 }
 .zen-dash-card-viewall {
-  margin-top: 4px;
+  /* Pin to the bottom so links line up across cards even when a label wraps. */
+  margin-top: auto;
+  padding-top: 4px;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-secondary);
