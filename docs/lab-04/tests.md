@@ -80,6 +80,9 @@ prove no lost update and no duplicate write.
 | UI-L4-07 | UI | AC-08 | ActionsTaken read-only for Requester | All fields shown; no create/edit controls | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
 | UI-L4-08 | UI | AC-11, AC-21 | TicketWorkflow shows only permitted transitions; disables on submit | Permitted options only; no double submit | client/tests/lab-04/TicketWorkflow.test.tsx | Pass |
 | UI-L4-09 | UI | AC-10 | TicketWorkflow surfaces OPEN_ACTIONS_EXIST without losing summary | Inline conflict; entered data preserved | client/tests/lab-04/TicketWorkflow.test.tsx | Pass |
+| UI-L4-10 | UI | AC-01, AC-04, AC-07 | ActionsTaken rejects whitespace-only description / follow-up note / completion result | Trimmed-empty input blocked inline; no API call | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
+| UI-L4-11 | UI | AC-02, AC-13 | 422 ASSIGNEE_INACTIVE (create) + 409 STALE_UPDATE (edit) preserve typed data and show feedback | Every field retained; message shown; form not reset | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
+| UI-L4-12 | UI | AC-01, AC-04 | Successful create/complete refresh the Actions list and Ticket summary | List re-fetched; onChanged (summary reload) fires once | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
 | RESP-L4-01 | Responsive/Style | AC-20 | Dashboards + Actions table reflow (desktop/tablet/mobile) | 2-up/1-up grid; Actions table → stacked cards; no horizontal overflow | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | MIG-L4-01 | Migration | AC-20 | Apply Lab 4 migration on a Lab 3 DB | All Lab 1–3 rows preserved; ActionTaken + enum created | server/tests/lab-04/migration.test.ts | Pass |
 | MIG-L4-02 | Migration | AC-10, AC-20 | Legacy Ticket (zero Actions) resolvable after migration | Resolution gate passes; no backfill needed | server/tests/lab-04/migration.test.ts | Pass |
@@ -113,19 +116,19 @@ Every error class across the Lab 4 endpoints has at least one explicit test:
 
 | AC | Tests |
 |---|---|
-| AC-01 | API-L4-01, UI-L4-05, E2E-L4-01 |
-| AC-02 | API-L4-02, API-L4-38, E2E-L4-01 |
+| AC-01 | API-L4-01, UI-L4-05, UI-L4-10, UI-L4-12, E2E-L4-01 |
+| AC-02 | API-L4-02, API-L4-38, UI-L4-11, E2E-L4-01 |
 | AC-03 | API-L4-03, API-L4-38 |
-| AC-04 | UNIT-L4-02, API-L4-04, UI-L4-06, E2E-L4-01 |
+| AC-04 | UNIT-L4-02, API-L4-04, UI-L4-06, UI-L4-10, UI-L4-12, E2E-L4-01 |
 | AC-05 | UNIT-L4-02, API-L4-05, UI-L4-06, E2E-L4-01 |
 | AC-06 | API-L4-06, UI-L4-06 |
-| AC-07 | UNIT-L4-03, API-L4-07, UI-L4-05 |
+| AC-07 | UNIT-L4-03, API-L4-07, UI-L4-05, UI-L4-10 |
 | AC-08 | API-L4-12, UI-L4-07 |
 | AC-09 | API-L4-13 |
 | AC-10 | API-L4-15, MIG-L4-02, UI-L4-09, E2E-L4-02 |
 | AC-11 | UNIT-L4-01, API-L4-16, UI-L4-08, E2E-L4-02 |
 | AC-12 | API-L4-17 |
-| AC-13 | API-L4-11, API-L4-18, API-L4-37 |
+| AC-13 | API-L4-11, API-L4-18, API-L4-37, UI-L4-11 |
 | AC-14 | API-L4-08, API-L4-31, API-L4-35 |
 | AC-15 | API-L4-21, API-L4-24, UI-L4-03, E2E-L4-03 |
 | AC-16 | API-L4-25, UI-L4-01, E2E-L4-03 |
@@ -146,9 +149,12 @@ Every error class across the Lab 4 endpoints has at least one explicit test:
 
 ## 4. Planned totals
 
-63 tests — Unit 4, API 38, UI 9, Responsive/Style 1, Migration 6, Regression 1, E2E 4.
+66 tests — Unit 4, API 38, UI 12, Responsive/Style 1, Migration 6, Regression 1, E2E 4.
 (Migration count grew from 4 to 6: **MIG-L4-05** and **MIG-L4-06** were added in response to the PR #58
 review — FK delete restrictions and partial-DB seed idempotency.)
+(UI count grew from 9 to 12: **UI-L4-10**–**UI-L4-12** were added in response to the PR #62 review —
+whitespace-only validation, 422/409 recoverable-error data retention, and create/complete list +
+ticket-summary refresh.)
 (API count grew from 34 to 38: **API-L4-35**–**API-L4-38** were added in response to the PR #59
 review — PATCH error-ordering, nested-user-field whitelist, parallel-PATCH stale-update, and PATCH
 assignee semantics; the PATCH stale check was also made an atomic guarded UPDATE.)

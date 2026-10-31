@@ -194,6 +194,65 @@ E2E **15/15**.
 
 **Follow-up Issues opened:** none — all four points resolved within PR #60.
 
+### PR #62 — feat(lab-04): Actions Taken UI + ticket workflow feedback on Ticket Detail (Issue #54)
+**Link:** https://github.com/akira19tk/toktickit/pull/62
+**Status:** Changes requested → addressed → re-review requested
+
+**Review received:**
+> 1. Form validation: Ensure required fields, follow-up notes, and completion results are validated correctly, including edge cases such as empty or whitespace-only input.
+> 2. Error handling: Verify that failed requests (409/422) preserve user-entered data and display clear feedback without resetting the form.
+> 3. Authorization and UI state: Confirm that Requesters cannot access editing controls and that COMPLETED/CANCELLED Actions remain read-only.
+> 4. State synchronization: Ensure successful create/update operations refresh both the Actions list and Ticket summary without showing stale data.
+> 5. Test coverage: Consider adding an end-to-end test for the complete Action lifecycle, including creation, editing, completion, and the resolution gate.
+
+**My responses and fixes:**
+
+1. **Form validation incl. whitespace-only input** — new **UI-L4-10** (test added).
+   The create form already trims (`description.trim()`, `followUpNote.trim()`) and completion
+   requires a non-empty trimmed result; **UI-L4-10** now pins the edge cases — a whitespace-only
+   **description**, a whitespace-only **follow-up note** (when follow-up is checked), and a
+   whitespace-only **completion result** are each rejected inline with **no API call**. The
+   server-side trim/bounds are independently covered by **API-L4-34** (`actions-taken.api.test.ts`,
+   empty/over-length description, future date, over-length notes → `400 VALIDATION_FAILED`, nothing
+   written), so both tiers are proven.
+
+2. **409/422 preserve entered data without resetting the form** — new **UI-L4-11** (test added).
+   On a recoverable error the component sets the message but never calls `reset()`, so controlled
+   inputs keep their values. **UI-L4-11** drives (a) a **422 `ASSIGNEE_INACTIVE`** on create and
+   asserts the "This staff member is inactive." message shows **and every field is retained**
+   (description, result, assignee, follow-up note, attachment notes); and (b) a **409
+   `STALE_UPDATE`** on an inline edit, asserting the edit stays open, shows "…changed since you
+   opened it", and keeps the typed value.
+
+3. **Requester read-only; COMPLETED/CANCELLED read-only** — cited **UI-L4-06 / UI-L4-07** + browser
+   verification (no new test needed). **UI-L4-06** asserts terminal rows expose no Complete/Cancel/
+   Edit controls; **UI-L4-07** asserts the Requester view has no create/edit/assign controls, shows
+   all fields, and never calls the staff endpoint. Confirmed live in the browser against the merged
+   backend: the Requester view at **375px** rendered read-only with **0** write controls and **0**
+   `/staff/*/actions` calls.
+
+4. **Create/update refresh the list and the Ticket summary (no stale data)** — new **UI-L4-12**
+   (test added). A successful mutation calls `refresh()`, which re-fetches the Actions list **and**
+   invokes the `onChanged` prop (the detail screen passes `reload`, refreshing the status summary).
+   **UI-L4-12** asserts that after a **create** and after a **complete**, `fetchStaffActions` is
+   called again (list re-fetch) and `onChanged` fires **exactly once** each.
+
+5. **Full-lifecycle E2E** — tracked as **E2E-L4-01** (`e2e/lab-04/actions-taken-flow.spec.ts`, create
+   → assign → complete / cancel, multiple on one Ticket) and **E2E-L4-02** (resolution gate) under
+   **Issue #55 (E2E + screenshots)**, planned next. No change in this PR — the E2E specs are owned
+   by #55 per the sprint plan.
+
+**Also addressed:** the resolve-blocked message now shows a **client-side, pluralized** copy
+("This ticket has 1 open action. Complete or cancel it before resolving." / "…3 open actions…
+them…") built from the server's structured `openActions` count rather than echoing the raw server
+text — `d733de6`; asserted by **UI-L4-09**.
+
+**Verification:** client suite **107** green (UI-L4-10/11/12 added), `tsc` clean; Lab 1–3 E2E
+regression **15/15**; browser-verified end-to-end against the merged backend.
+
+**Follow-up Issues opened:** none — items 1–4 resolved within PR #62; item 5 (lifecycle E2E) is
+Issue #55.
+
 <!-- Add further feature-PR reviews below as the sprint proceeds. -->
 
 ---
@@ -208,7 +267,7 @@ E2E **15/15**.
 | #60 | #51 | Ticket workflow (resolution gate, Admin write, Lab 3 auth test updates) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #__ | #52 | Requester dashboard (API + UI) | | | lab4-staging |
 | #__ | #53 | Staff dashboard (API + UI + queue filters) | | | lab4-staging |
-| #__ | #54 | Actions Taken UI | | | lab4-staging |
+| #62 | #54 | Actions Taken UI | | Changes requested → fixed, re-review | lab4-staging |
 | #__ | #55 | E2E + screenshots | | | lab4-staging |
 | #__ | #56 | Accessibility & visual consistency | | | lab4-staging |
 | #__ | #57 | Final hardening & release | | | lab4-staging |
