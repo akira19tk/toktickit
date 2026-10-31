@@ -284,6 +284,30 @@ Issue #55.
 
 ---
 
+### PR #65 — Accessibility and regression hardening (Issues #56 / #57)
+
+**Link:** https://github.com/akira19tk/toktickit/pull/65  
+**Reviewer:** Thannaporn (@daisysia)  
+**Review:** https://github.com/akira19tk/toktickit/pull/65#pullrequestreview-5724909297  
+**Status:** Approved on commit `d31a3ec` (2026-11-01, Asia/Bangkok); awaiting merge into `lab4-staging`.
+
+**Review summary and evidence:**
+
+1. Accessibility and consistency: reviewer approved contrast, responsive layout, keyboard support and
+   date formatting. Implementation: `4afc4d6`; evidence and refreshed fixture screenshots: `d31a3ec`.
+2. Test stability: reviewer approved file isolation, pool cleanup and awaited React updates.
+   Server **544**, migration **46**, client **127**, E2E **36** passed; actual logs are under
+   `artifacts/lab-04/test-output/hardening-*`.
+3. Follow-ups: remaining Prisma CLI audit advisory, full manual accessibility inspection and
+   release/main verification were acknowledged and remain documented in `artifacts/lab-04/hardening.md`.
+
+**Response/disposition:** No changes requested; no implementation changes required for this approval.
+This documentation-only update records the review. No additional tests run for the review record.
+Approval applies to `d31a3ec`; this subsequent documentation commit does not represent a new peer approval.
+No review response has been posted on behalf of the student.
+
+---
+
 ## Summary
 
 | PR | Issue | Scope | Reviewer | Status | Merged into |
@@ -296,6 +320,6 @@ Issue #55.
 | #63 | #53 | Staff dashboard (API + UI + queue filters) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #62 | #54 | Actions Taken UI | | Changes requested → fixed, re-review | lab4-staging |
 | #__ | #55 | E2E + screenshots | | | lab4-staging |
-| #__ | #56 | Accessibility & visual consistency | | | lab4-staging |
-| #__ | #57 | Final hardening & release | | | lab4-staging |
+| #65 | #56 | Accessibility & visual consistency | Thannaporn (daisysia) | Approved; awaiting merge | lab4-staging |
+| #65 | #57 | Final hardening | Thannaporn (daisysia) | Approved; awaiting merge | lab4-staging |
 | #__ | — | Release PR | | | main |
