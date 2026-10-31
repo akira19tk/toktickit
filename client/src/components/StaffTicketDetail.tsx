@@ -23,6 +23,7 @@ import {
 } from "../api";
 import StatusBadge from "./StatusBadge";
 import PriorityBadge from "./PriorityBadge";
+import ActionsTaken from "./ActionsTaken";
 
 interface Props {
   ticketId: number;
@@ -61,6 +62,15 @@ function errorMessage(err: unknown, field?: string): string {
       case "NO_CHANGE": return "That value is already set — nothing to change.";
       case "TICKET_UNASSIGNED": return "Claim the ticket before changing its status.";
       case "TICKET_CLOSED": return "This ticket is closed or cancelled.";
+      case "OPEN_ACTIONS_EXIST": {
+        const n = Number(err.details?.openActions);
+        if (Number.isFinite(n) && n > 0) {
+          return n === 1
+            ? "This ticket has 1 open action. Complete or cancel it before resolving."
+            : `This ticket has ${n} open actions. Complete or cancel them before resolving.`;
+        }
+        return "This ticket has open actions. Complete or cancel them before resolving.";
+      }
       case "ALREADY_OWNED": return "This ticket already has an owner.";
       default: return err.message;
     }
@@ -668,6 +678,9 @@ export default function StaffTicketDetail({ ticketId, onBack }: Props) {
           </div>
         )}
       </div>
+
+      {/* Actions Taken (ui-spec §7.1) */}
+      <ActionsTaken ticketId={ticketId} mode="staff" assignees={assignees} onChanged={reload} />
 
       {/* Close / Cancel confirmation dialog */}
       {confirmTarget && (
