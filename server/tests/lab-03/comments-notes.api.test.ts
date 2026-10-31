@@ -678,12 +678,13 @@ describe("API-35: IT Staff posts Public Comment and Internal Note (AC-52)", () =
 });
 
 // ===========================================================================
-// API-36: Administrator reads but cannot write ticket operations (AC-54)
-// Reads 200 (allowedTransitions empty); claim/status/owner/priority/comment/
-// note writes 403.
+// API-36: Administrator reads, and (Lab 4) may change status (AC-54)
+// Reads 200 (allowedTransitions now populated — Lab 4 gives Admin status-write
+// access, spec §11.4); status change 200; claim/owner/priority/comment/note
+// writes stay 403 (Lab 3 behavior preserved).
 // ===========================================================================
 
-describe("API-36: Administrator reads but cannot write ticket operations (AC-54)", () => {
+describe("API-36: Administrator reads, and (Lab 4) may change status (AC-54)", () => {
   let ticketId: number;
   let unassignedId: number;
 
@@ -700,10 +701,14 @@ describe("API-36: Administrator reads but cannot write ticket operations (AC-54)
     expect(res.status).toBe(200);
   });
 
-  it("API-36: Admin reads Ticket Detail → 200 with allowedTransitions empty", async () => {
+  it("API-36: Admin reads Ticket Detail → 200 with allowedTransitions populated (Lab 4)", async () => {
     const res = await request(app).get(`/api/staff/tickets/${ticketId}`).set("Cookie", adminSession);
     expect(res.status).toBe(200);
-    expect(res.body.allowedTransitions).toEqual([]);
+    // Lab 4: Admin has status-write access, so the current-state transitions are
+    // returned (the Ticket is OPEN here). Previously this was always [] for Admin.
+    expect(new Set(res.body.allowedTransitions)).toEqual(
+      new Set(["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"])
+    );
   });
 
   it("API-36: Admin reads Public Comments → 200", async () => {
@@ -727,11 +732,12 @@ describe("API-36: Administrator reads but cannot write ticket operations (AC-54)
     expect(t!.ownerId).toBeNull();
   });
 
-  it("API-36: Admin cannot change status → 403", async () => {
+  it("API-36: Admin CAN change status → 200 (Lab 4 §11.4 — intentional change from Lab 3)", async () => {
     const res = await request(app)
       .patch(`/api/staff/tickets/${ticketId}/status`)
       .set("Cookie", adminSession).set("X-Requested-With", "TokTickIT").send({ status: "IN_PROGRESS" });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
+    expect(res.body.currentStatus).toBe("IN_PROGRESS");
   });
 
   it("API-36: Admin cannot change owner → 403", async () => {

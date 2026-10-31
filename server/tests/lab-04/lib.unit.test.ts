@@ -3,8 +3,11 @@
 // UNIT-L4-03 (follow-up note rule). UNIT-L4-01 (ticket matrix) and
 // UNIT-L4-04 (Asia/Bangkok boundary) are added by later issues.
 
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { describe, it, expect } from "vitest";
-import type { ActionStatus } from "@prisma/client";
+import type { ActionStatus, TicketStatus } from "@prisma/client";
 import {
   ACTION_TRANSITIONS,
   allowedActionTransitions,
@@ -12,6 +15,11 @@ import {
   validateActionTransition,
   validateFollowUp,
 } from "../../src/lib/actions";
+import {
+  STATUS_TRANSITIONS,
+  allowedTransitions,
+  canTransition,
+} from "../../src/lib/ticketStatus";
 
 const ALL_ACTION_STATUSES: ActionStatus[] = ["OPEN", "COMPLETED", "CANCELLED"];
 
@@ -22,6 +30,136 @@ const EXPECTED_ACTION_MATRIX: Record<ActionStatus, ActionStatus[]> = {
   COMPLETED: [],
   CANCELLED: [],
 };
+
+// ---------------------------------------------------------------------------
+// UNIT-L4-01 — Ticket transition matrix incl. CANCELLED terminal (AC-11)
+// Preserves the Lab 3 matrix (NEW → OPEN, IN_PROGRESS, CANCELLED). The BR-14
+// doc table dropping NEW → IN_PROGRESS is a transcription error (the matrix is
+// carried over from Lab 3), corrected in this PR's docs commit.
+// ---------------------------------------------------------------------------
+const ALL_TICKET_STATUSES: TicketStatus[] = [
+  "NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER",
+  "RESOLVED", "CLOSED", "REOPENED", "CANCELLED",
+];
+
+// Independent copy of the matrix; the test fails if the source drifts, so it is
+// NOT imported from the source.
+const EXPECTED_TICKET_MATRIX: Record<TicketStatus, TicketStatus[]> = {
+  NEW: ["OPEN", "IN_PROGRESS", "CANCELLED"],
+  OPEN: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  IN_PROGRESS: ["OPEN", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  WAITING_FOR_REQUESTER: ["OPEN", "IN_PROGRESS", "RESOLVED", "CANCELLED"],
+  RESOLVED: ["CLOSED", "REOPENED"],
+  CLOSED: ["REOPENED"],
+  REOPENED: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  CANCELLED: [],
+};
+
+describe("UNIT-L4-01: ticket transition matrix", () => {
+  it("UNIT-L4-01: allowedTransitions matches the matrix for every status", () => {
+    for (const from of ALL_TICKET_STATUSES) {
+      expect(new Set(allowedTransitions(from))).toEqual(
+        new Set(EXPECTED_TICKET_MATRIX[from])
+      );
+      expect(allowedTransitions(from)).toHaveLength(
+        EXPECTED_TICKET_MATRIX[from].length
+      );
+    }
+  });
+
+  it("UNIT-L4-01: CANCELLED is terminal — no exits", () => {
+    expect(allowedTransitions("CANCELLED")).toEqual([]);
+    for (const to of ALL_TICKET_STATUSES) {
+      expect(canTransition("CANCELLED", to)).toBe(false);
+    }
+  });
+
+  it("UNIT-L4-01: CLOSED may only reopen", () => {
+    expect(allowedTransitions("CLOSED")).toEqual(["REOPENED"]);
+  });
+
+  it("UNIT-L4-01: every pair not in the matrix is rejected", () => {
+    for (const from of ALL_TICKET_STATUSES) {
+      const allowed = new Set(EXPECTED_TICKET_MATRIX[from]);
+      for (const to of ALL_TICKET_STATUSES) {
+        expect(canTransition(from, to)).toBe(allowed.has(to));
+      }
+    }
+  });
+
+  it("UNIT-L4-01: allowedTransitions returns a fresh array (no matrix mutation)", () => {
+    const first = allowedTransitions("OPEN");
+    first.push("NEW");
+    expect(allowedTransitions("OPEN")).not.toContain("NEW");
+    expect(STATUS_TRANSITIONS.OPEN).not.toContain("NEW");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// UNIT-L4-01 (spec reconciliation) — the code matrix must equal the spec BR-14
+// table, edge by edge. Rather than trusting a hand-copied expectation, this
+// parses the actual BR-14 markdown table from docs/lab-04/specification.md and
+// compares every (from → to) pair against canTransition(). It fails if the code
+// and the spec ever disagree on a single edge — catching both silent code drift
+// and an un-reconciled spec edit.
+// ---------------------------------------------------------------------------
+
+// Parse the BR-14 transition table out of the specification markdown. Returns a
+// map from each source status to its allowed-target set.
+function parseBr14Matrix(): Record<TicketStatus, Set<TicketStatus>> {
+  const specPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../../docs/lab-04/specification.md"
+  );
+  const lines = readFileSync(specPath, "utf8").split("\n");
+
+  const br14Idx = lines.findIndex((l) => l.includes("**BR-14**"));
+  expect(br14Idx, "BR-14 must be present in the specification").toBeGreaterThanOrEqual(0);
+
+  const headerIdx = lines.findIndex(
+    (l, i) => i > br14Idx && /\|\s*From\s*\|\s*Allowed targets\s*\|/.test(l)
+  );
+  expect(headerIdx, "BR-14 table header must follow the BR-14 clause").toBeGreaterThan(br14Idx);
+
+  const matrix = {} as Record<TicketStatus, Set<TicketStatus>>;
+  // Data rows start two lines after the header (skip the |---|---| separator).
+  for (let i = headerIdx + 2; i < lines.length; i += 1) {
+    const row = lines[i].trim();
+    if (!row.startsWith("|")) break; // table ended
+    const cells = row.split("|").map((c) => c.trim());
+    // cells[0] is the empty string before the first pipe.
+    const from = cells[1] as TicketStatus;
+    const targetsCell = cells[2] ?? "";
+    const targets = /none/i.test(targetsCell)
+      ? []
+      : targetsCell.split(",").map((t) => t.trim()).filter(Boolean);
+    matrix[from] = new Set(targets as TicketStatus[]);
+  }
+  return matrix;
+}
+
+describe("UNIT-L4-01: code matrix equals the spec BR-14 table (edge by edge)", () => {
+  const SPEC_MATRIX = parseBr14Matrix();
+
+  it("UNIT-L4-01: the spec table lists exactly the 8 statuses", () => {
+    expect(new Set(Object.keys(SPEC_MATRIX))).toEqual(new Set(ALL_TICKET_STATUSES));
+  });
+
+  it("UNIT-L4-01: every (from → to) edge agrees between code and spec", () => {
+    const disagreements: string[] = [];
+    for (const from of ALL_TICKET_STATUSES) {
+      const specAllows = SPEC_MATRIX[from];
+      for (const to of ALL_TICKET_STATUSES) {
+        const code = canTransition(from, to);
+        const spec = specAllows.has(to);
+        if (code !== spec) {
+          disagreements.push(`${from} → ${to}: code=${code}, spec=${spec}`);
+        }
+      }
+    }
+    expect(disagreements, disagreements.join("; ")).toEqual([]);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // UNIT-L4-02 — Action lifecycle validator (AC-04, AC-05)

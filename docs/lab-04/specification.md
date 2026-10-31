@@ -139,7 +139,7 @@ existing Lab 2 Attachments; it is not a new upload channel), and deleting Action
 
   | From | Allowed targets |
   | --- | --- |
-  | NEW | OPEN, CANCELLED |
+  | NEW | OPEN, IN_PROGRESS, CANCELLED |
   | OPEN | IN_PROGRESS, WAITING_FOR_REQUESTER, RESOLVED, CANCELLED |
   | IN_PROGRESS | OPEN, WAITING_FOR_REQUESTER, RESOLVED, CANCELLED |
   | WAITING_FOR_REQUESTER | OPEN, IN_PROGRESS, RESOLVED, CANCELLED |
