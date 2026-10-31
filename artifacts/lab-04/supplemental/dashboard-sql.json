@@ -1,0 +1,25 @@
+{
+  "database": "toktickit_e2e",
+  "user": "staff.e2e@example.com",
+  "capturedAt": "2026-10-31T22:21:25.455Z",
+  "sql": "SELECT (SELECT count(*)::int FROM \"Ticket\" WHERE \"currentStatus\"='NEW') AS \"new\", (SELECT count(*)::int FROM \"Ticket\" WHERE \"currentStatus\"='OPEN') AS \"open\", (SELECT count(*)::int FROM \"Ticket\" WHERE \"currentStatus\"='IN_PROGRESS') AS \"inProgress\", (SELECT count(*)::int FROM \"Ticket\" WHERE \"currentStatus\"='WAITING_FOR_REQUESTER') AS \"waitingForRequester\", (SELECT count(*)::int FROM \"Ticket\" t JOIN \"User\" u ON u.id=t.\"ownerId\" WHERE u.email='staff.e2e@example.com' AND t.\"currentStatus\" NOT IN ('CLOSED','CANCELLED')) AS \"myAssigned\", (SELECT count(*)::int FROM \"Ticket\" WHERE \"ownerId\" IS NULL AND \"currentStatus\" NOT IN ('CLOSED','CANCELLED')) AS \"unassigned\", (SELECT count(*)::int FROM \"ActionTaken\" a JOIN \"User\" u ON u.id=a.\"assigneeId\" WHERE u.email='staff.e2e@example.com' AND a.status='OPEN') AS \"myOpenActions\";",
+  "counts": {
+    "new": 4,
+    "open": 18,
+    "inProgress": 3,
+    "waitingForRequester": 0,
+    "myAssigned": 23,
+    "unassigned": 4,
+    "myOpenActions": 3
+  },
+  "observedUi": {
+    "new": 4,
+    "open": 18,
+    "inProgress": 3,
+    "waitingForRequester": 0,
+    "myAssigned": 23,
+    "unassigned": 4,
+    "myOpenActions": 3
+  },
+  "allSevenMatch": true
+}
