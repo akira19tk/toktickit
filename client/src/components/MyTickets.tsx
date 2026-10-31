@@ -15,6 +15,8 @@ import PriorityBadge from "./PriorityBadge";
 interface Props {
   onCreateTicket: () => void;
   onOpenTicket?: (ticketId: number) => void;
+  // Seeds the status filter from a dashboard drill-down (specification §8.1).
+  initialStatus?: string;
 }
 
 interface Filters {
@@ -25,6 +27,18 @@ interface Filters {
 }
 
 const EMPTY_FILTERS: Filters = { search: "", categoryId: "", priority: "", status: "" };
+
+// Statuses a Requester can filter by (matches the workflow + drill-down targets).
+const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "NEW", label: "New" },
+  { value: "OPEN", label: "Open" },
+  { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "WAITING_FOR_REQUESTER", label: "Waiting for Requester" },
+  { value: "RESOLVED", label: "Resolved" },
+  { value: "CLOSED", label: "Closed" },
+  { value: "REOPENED", label: "Reopened" },
+  { value: "CANCELLED", label: "Cancelled" },
+];
 
 function hasActiveFilters(f: Filters) {
   return !!(f.search || f.categoryId || f.priority || f.status);
@@ -42,9 +56,11 @@ function pageWindow(current: number, total: number, max = 5) {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export default function MyTickets({ onCreateTicket, onOpenTicket }: Props) {
+export default function MyTickets({ onCreateTicket, onOpenTicket, initialStatus }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>(
+    initialStatus ? { ...EMPTY_FILTERS, status: initialStatus } : EMPTY_FILTERS
+  );
   const [sortBy, setSortBy] = useState<"createdAt" | "ticketNumber">("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
@@ -429,7 +445,11 @@ function FilterRow({ filters, categories, onFilterChange, onClear }: FilterRowPr
         onChange={(e) => onFilterChange("status", e.target.value)}
       >
         <option value="">All Statuses</option>
-        <option value="NEW">New</option>
+        {STATUS_OPTIONS.map((s) => (
+          <option key={s.value} value={s.value}>
+            {s.label}
+          </option>
+        ))}
       </select>
       <button className="zen-btn zen-btn-secondary" onClick={onClear}>
         Clear Filters

@@ -73,6 +73,10 @@ export const routes: RouteEntry[] = [
   { method: "GET",   path: "/api/staff/tickets/:id/actions",                              allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
   { method: "PATCH", path: "/api/staff/tickets/:id/actions/:actionId",                    allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
 
+  // ── Requester dashboard (REQUESTER only) ──────────────────────────────────
+  // Issue #52. REQUESTER only; IT_STAFF/ADMIN get 403 (they use /staff/dashboard).
+  { method: "GET",   path: "/api/requester/dashboard",                 allowedRoles: ["REQUESTER"], requesterOwnership: false },
+
   // ── Admin routes (ADMIN only) ─────────────────────────────────────────────
   // Issue #28 (Administrator User Management). ADMIN only; every other
   // authenticated role gets 403 (BR-23). These rows activate API-19's real

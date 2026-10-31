@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import StaffQueuePage from "./pages/StaffQueuePage";
 import StaffTicketDetailPage from "./pages/StaffTicketDetailPage";
 import AdminUsers from "./pages/AdminUsers";
+import RequesterDashboard from "./pages/RequesterDashboard";
 import {
   CreateTicketPage,
   MyTicketsPage,
@@ -43,6 +44,28 @@ export default function App() {
           />
 
           {/* Requester routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <RequireRole role="REQUESTER">
+                <AppShell>
+                  <RequesterDashboard />
+                </AppShell>
+              </RequireRole>
+            }
+          />
+          {/* /tickets is the canonical My Tickets list (drill-down target per
+              specification §8.1); /my-tickets is kept as an alias for Lab 2/3. */}
+          <Route
+            path="/tickets"
+            element={
+              <RequireRole role="REQUESTER">
+                <AppShell>
+                  <MyTicketsPage />
+                </AppShell>
+              </RequireRole>
+            }
+          />
           <Route
             path="/my-tickets"
             element={
