@@ -280,6 +280,45 @@ Issue #55.
 
 **Follow-up Issues opened:** none — all five points addressed within PR #63.
 
+### PR #64 — test(lab-04): E2E suites, screenshots + metrics evidence (Issue #55)
+**Link:** https://github.com/akira19tk/toktickit/pull/64
+**Status:** Approved (no change requests)
+
+**Review received:**
+> Approved! Great work on completing the Lab 4 E2E test coverage and supporting evidence! The
+> end-to-end scenarios cover the Actions Taken lifecycle, Ticket resolution workflow, dashboard
+> metrics, and role-based access. I especially appreciate the responsive screenshots at multiple
+> viewport sizes and the SQL-to-API comparisons that help validate dashboard accuracy. The reported
+> test results are excellent (540 server, 46 migration, 126 client, and 34 E2E tests passing), and the
+> documentation and test artifacts appear well-organized. Everything looks good based on the provided
+> summary. No further concerns from my side. Approved — nice work!
+
+**My responses and evidence** — no code change (approval with no requested changes); each theme maps to
+existing tests/artifacts:
+
+1. **Actions Taken lifecycle** — **E2E-L4-01** (`e2e/lab-04/actions-taken-flow.spec.ts`): form create; two
+   different IT_STAFF (`staff.e2e` + `staff2.e2e`, BR-02) on one ticket; non-author complete (AC-22);
+   inline validation; complete-without-result blocked then completed; cancel dialog; assign; requester
+   read-only; `422 ASSIGNEE_INACTIVE`; stale-action `STALE_UPDATE`. Screens: `screenshots/actions-taken/`.
+2. **Ticket resolution workflow** — **E2E-L4-02** (`ticket-resolution.spec.ts`): permitted-transitions-only;
+   Resolve gated by an OPEN action (summary preserved) then allowed; reopen + close; requester
+   "appears resolved" leaves status unchanged; status `STALE_UPDATE`. Screen: `actions-taken/resolve-blocked-*`.
+3. **Dashboard metrics + SQL-to-API** — **E2E-L4-03** (`dashboards.spec.ts`) asserts every card against a
+   direct Prisma query on `toktickit_e2e`; the static metric→SQL→result→live-API-JSON evidence is in
+   `artifacts/lab-04/metrics-evidence.md`.
+4. **Role-based access** — requester read-only Actions (E2E-L4-01); requester Forbidden on the staff area
+   **and** `GET /api/staff/dashboard → 403` (E2E-L4-03); screen `actions-taken/forbidden-*`.
+5. **Responsive screenshots** — dashboards + Actions at 1440/768/375; Lab 1–3 regenerated for the new nav;
+   plus follow-up `page.route`-mocked loading/error dashboard captures at 1440/375.
+
+**Count correction:** the E2E total is now **36** (not the 34 noted at review time) — the two dashboard
+loading/error captures were added after the initial summary.
+
+**Verification:** server **540** green, migration **46**, client **126**, E2E **36**; no code changed in
+response to this review, so the suite was not re-run for it.
+
+**Follow-up Issues opened:** none — approved as-is.
+
 <!-- Add further feature-PR reviews below as the sprint proceeds. -->
 
 ---
@@ -295,7 +334,7 @@ Issue #55.
 | #__ | #52 | Requester dashboard (API + UI) | | | lab4-staging |
 | #63 | #53 | Staff dashboard (API + UI + queue filters) | Thannaporn (daisysia) | Changes requested → fixed, re-review | lab4-staging |
 | #62 | #54 | Actions Taken UI | | Changes requested → fixed, re-review | lab4-staging |
-| #__ | #55 | E2E + screenshots | | | lab4-staging |
+| #64 | #55 | E2E + screenshots | Thannaporn (daisysia) | Approved | lab4-staging |
 | #__ | #56 | Accessibility & visual consistency | | | lab4-staging |
 | #__ | #57 | Final hardening & release | | | lab4-staging |
 | #__ | — | Release PR | | | main |
