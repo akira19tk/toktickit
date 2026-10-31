@@ -14,7 +14,7 @@
 // then fails safe with 409 STALE_UPDATE. Admin is now permitted on …/status
 // (spec §11.4) but stays read-only on claim/owner/it-priority/comments/notes.
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import request from "supertest";
 import { createApp } from "../../src/app";
 import { prisma } from "../../src/prismaClient";
@@ -315,6 +315,50 @@ describe("API-L4-18: Status PATCH expectedUpdatedAt (AC-13)", () => {
   });
 });
 
+// ── API-L4-18 (retry exhaustion) ────────────────────────────────────────────────
+// Fail-safe under a persistent serialization conflict (BR-23). The resolve path
+// runs in a Serializable transaction that retries once; if BOTH the initial
+// attempt and the retry hit a serialization failure (Postgres 40001 / Prisma
+// P2034), the route must return 409 STALE_UPDATE — never a 500 — and must leave
+// the Ticket completely untouched (no partial write).
+
+describe("API-L4-18: serializable retry exhaustion on RESOLVED (BR-23 fail-safe)", () => {
+  it("API-L4-18: two serialization failures → 409 STALE_UPDATE; status + updatedAt unchanged", async () => {
+    const id = await makeTicket({ currentStatus: "OPEN" });
+    await makeAction(id, "COMPLETED"); // gate clear, so the route enters the serializable tx
+    const before = (await prisma.ticket.findUnique({ where: { id } }))!;
+
+    // Inject two consecutive serialization failures so the single retry is
+    // exhausted; the second failure must surface as STALE_UPDATE, not a 500.
+    const serErr = Object.assign(new Error("could not serialize access"), { code: "P2034" });
+    const spy = vi
+      .spyOn(prisma, "$transaction")
+      .mockRejectedValueOnce(serErr)
+      .mockRejectedValueOnce(serErr);
+
+    try {
+      const res = await setStatus(id, staffASession).send({
+        status: "RESOLVED",
+        resolutionSummary: VALID_SUMMARY,
+      });
+      expect(res.status).toBe(409);
+      expect(res.body.code).toBe("STALE_UPDATE");
+      // initial attempt + exactly one retry, both rejected — retry is exhausted.
+      expect(spy).toHaveBeenCalledTimes(2);
+    } finally {
+      spy.mockRestore();
+    }
+
+    // No partial update: status, resolution fields, and the optimistic-concurrency
+    // token (updatedAt) are all exactly as they were before the failed request.
+    const after = (await prisma.ticket.findUnique({ where: { id } }))!;
+    expect(after.currentStatus).toBe("OPEN");
+    expect(after.updatedAt.getTime()).toBe(before.updatedAt.getTime());
+    expect(after.resolvedAt).toBeNull();
+    expect(after.resolutionSummary).toBeNull();
+  });
+});
+
 // ── API-L4-19 ─────────────────────────────────────────────────────────────────
 // Administrator authorization (AC-18, BR-17): ADMIN may change Ticket status
 // (Lab 4 change) but remains read-only on claim/owner/it-priority/comment/note.
@@ -412,40 +456,51 @@ describe("API-L4-20: Double-submitted status transition (AC-21)", () => {
 // resolve is rejected (OPEN_ACTIONS_EXIST, or STALE_UPDATE on a fail-safe retry).
 
 describe("API-L4-30: Concurrent resolve + Action-create race (AC-27)", () => {
-  it("API-L4-30: invariant holds — never RESOLVED with an OPEN Action", async () => {
-    const id = await makeTicket({ currentStatus: "OPEN" });
-    await makeAction(id, "COMPLETED"); // every existing Action already closed
+  // The race outcome is timing-dependent, so one pass can miss the interleaving
+  // that would break the invariant. Repeat the race over several fresh Tickets
+  // and assert, after EACH iteration, that no RESOLVED Ticket holds an OPEN
+  // Action. Any single violation fails the whole test.
+  const ITERATIONS = 10;
 
-    const [resolveRes, createRes] = await Promise.all([
-      setStatus(id, staffASession).send({
-        status: "RESOLVED",
-        resolutionSummary: VALID_SUMMARY,
-      }),
-      post(`/api/staff/tickets/${id}/actions`, staffASession).send({
-        description: "Follow-up work recorded concurrently with the resolve.",
-      }),
-    ]);
+  it(`API-L4-30: invariant holds across ${ITERATIONS} races — never RESOLVED with an OPEN Action`, async () => {
+    for (let i = 0; i < ITERATIONS; i += 1) {
+      const id = await makeTicket({ currentStatus: "OPEN" });
+      await makeAction(id, "COMPLETED"); // every existing Action already closed
 
-    const ticket = await prisma.ticket.findUnique({ where: { id } });
-    const openCount = await prisma.actionTaken.count({ where: { ticketId: id, status: "OPEN" } });
+      const [resolveRes, createRes] = await Promise.all([
+        setStatus(id, staffASession).send({
+          status: "RESOLVED",
+          resolutionSummary: VALID_SUMMARY,
+        }),
+        post(`/api/staff/tickets/${id}/actions`, staffASession).send({
+          description: "Follow-up work recorded concurrently with the resolve.",
+        }),
+      ]);
 
-    // Hard invariant: a RESOLVED Ticket may never hold an OPEN Action.
-    if (ticket!.currentStatus === "RESOLVED") expect(openCount).toBe(0);
+      const ticket = await prisma.ticket.findUnique({ where: { id } });
+      const openCount = await prisma.actionTaken.count({ where: { ticketId: id, status: "OPEN" } });
 
-    // Each request ends in exactly one of its two legal outcomes.
-    expect([200, 409]).toContain(resolveRes.status);
-    expect([201, 409]).toContain(createRes.status);
+      // Hard invariant, re-checked every iteration: a RESOLVED Ticket may never
+      // hold an OPEN Action.
+      if (ticket!.currentStatus === "RESOLVED") {
+        expect(openCount, `iteration ${i}: RESOLVED ticket must have 0 open actions`).toBe(0);
+      }
 
-    if (resolveRes.status === 200) {
-      // Resolve won → Ticket RESOLVED, the concurrent create was rejected.
-      expect(ticket!.currentStatus).toBe("RESOLVED");
-      expect(createRes.status).toBe(409);
-      expect(createRes.body.code).toBe("TICKET_CLOSED");
-      expect(openCount).toBe(0);
-    } else {
-      // Resolve lost → it failed safely and the Ticket is still active.
-      expect(resolveRes.body.code).toMatch(/OPEN_ACTIONS_EXIST|STALE_UPDATE/);
-      expect(ticket!.currentStatus).not.toBe("RESOLVED");
+      // Each request ends in exactly one of its two legal outcomes.
+      expect([200, 409], `iteration ${i}: resolve status`).toContain(resolveRes.status);
+      expect([201, 409], `iteration ${i}: create status`).toContain(createRes.status);
+
+      if (resolveRes.status === 200) {
+        // Resolve won → Ticket RESOLVED, the concurrent create was rejected.
+        expect(ticket!.currentStatus).toBe("RESOLVED");
+        expect(createRes.status).toBe(409);
+        expect(createRes.body.code).toBe("TICKET_CLOSED");
+        expect(openCount).toBe(0);
+      } else {
+        // Resolve lost → it failed safely and the Ticket is still active.
+        expect(resolveRes.body.code).toMatch(/OPEN_ACTIONS_EXIST|STALE_UPDATE/);
+        expect(ticket!.currentStatus).not.toBe("RESOLVED");
+      }
     }
   });
 });
