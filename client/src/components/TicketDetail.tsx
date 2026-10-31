@@ -15,6 +15,7 @@ import {
 } from "../api";
 import StatusBadge from "./StatusBadge";
 import PriorityBadge from "./PriorityBadge";
+import ActionsTaken from "./ActionsTaken";
 
 interface Props {
   ticketId: number;
@@ -362,6 +363,9 @@ export default function TicketDetail({ ticketId, onBack }: Props) {
           </div>
         )}
       </div>
+
+      {/* Actions Taken — read-only for the Requester (ui-spec §7.2) */}
+      <ActionsTaken ticketId={ticketId} mode="requester" />
 
       {/* ── Remove dialog ────────────────────────────────────────────────── */}
       {removeTarget && (

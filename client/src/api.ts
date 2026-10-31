@@ -704,6 +704,93 @@ export async function downloadStaffAttachment(
   setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 }
 
+// ── Actions Taken (Issue #54) ────────────────────────────────────────────────
+
+export interface ActionUserRef {
+  id: number;
+  name: string;
+}
+
+export interface ActionTaken {
+  id: number;
+  ticketId: number;
+  actionDate: string;
+  description: string;
+  result: string | null;
+  status: "OPEN" | "COMPLETED" | "CANCELLED";
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  performedBy: ActionUserRef;
+  assignee: ActionUserRef | null;
+  updatedBy: ActionUserRef | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionPayload {
+  actionDate?: string;
+  description: string;
+  result?: string;
+  assigneeId?: number | null;
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+}
+
+export interface PatchActionPayload {
+  description?: string;
+  result?: string;
+  assigneeId?: number | null;
+  followUpRequired?: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+  status?: "COMPLETED" | "CANCELLED";
+  expectedUpdatedAt?: string;
+}
+
+// Staff/Admin: list all Actions on a Ticket (newest-first, server-ordered).
+export async function fetchStaffActions(ticketId: number): Promise<ActionTaken[]> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/actions`);
+  const body = await jsonOrApiError<{ actions: ActionTaken[] }>(res, "Failed to load actions");
+  return body.actions;
+}
+
+export async function createStaffAction(
+  ticketId: number,
+  payload: CreateActionPayload
+): Promise<ActionTaken> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/tickets/${ticketId}/actions`, {
+    method: "POST",
+    headers: CSRF_JSON,
+    body: JSON.stringify(payload),
+  });
+  return jsonOrApiError<ActionTaken>(res, "Failed to create the action");
+}
+
+export async function patchStaffAction(
+  ticketId: number,
+  actionId: number,
+  payload: PatchActionPayload
+): Promise<ActionTaken> {
+  const res = await apiFetch(
+    `${API_BASE_URL}/api/staff/tickets/${ticketId}/actions/${actionId}`,
+    {
+      method: "PATCH",
+      headers: CSRF_JSON,
+      body: JSON.stringify(payload),
+    }
+  );
+  return jsonOrApiError<ActionTaken>(res, "Failed to update the action");
+}
+
+// Requester (owner): read-only list of Actions on their own Ticket.
+export async function fetchRequesterActions(ticketId: number): Promise<ActionTaken[]> {
+  const res = await apiFetch(`${API_BASE_URL}/api/tickets/${ticketId}/actions`);
+  const body = await jsonOrApiError<{ actions: ActionTaken[] }>(res, "Failed to load actions");
+  return body.actions;
+}
+
 export async function createTicket(
   payload: CreateTicketPayload
 ): Promise<CreatedTicket> {

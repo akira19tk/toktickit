@@ -75,11 +75,11 @@ prove no lost update and no duplicate write.
 | UI-L4-02 | UI | AC-17 | StaffDashboard card/row drill-down navigation | Navigates to correct queue/detail route+params | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | UI-L4-03 | UI | AC-15, AC-25 | RequesterDashboard own metrics + Waiting for Me cue | Correct cards; attention cue present | client/tests/lab-04/RequesterDashboard.test.tsx | Pass |
 | UI-L4-04 | UI | AC-17 | RequesterDashboard drill-down + empty state | Links to /tickets?status=…; empty renders 0/message | client/tests/lab-04/RequesterDashboard.test.tsx | Pass |
-| UI-L4-05 | UI | AC-01, AC-07 | ActionsTaken create form + follow-up validation | Required errors inline; follow-up note gated | client/src/components/__tests__/ActionsTaken.test.tsx | Planned |
-| UI-L4-06 | UI | AC-04, AC-05, AC-06 | ActionsTaken complete/cancel; read-only terminal | Controls show when permitted; terminal read-only | client/src/components/__tests__/ActionsTaken.test.tsx | Planned |
-| UI-L4-07 | UI | AC-08 | ActionsTaken read-only for Requester | All fields shown; no create/edit controls | client/src/components/__tests__/ActionsTaken.test.tsx | Planned |
-| UI-L4-08 | UI | AC-11, AC-21 | TicketWorkflow shows only permitted transitions; disables on submit | Permitted options only; no double submit | client/src/components/__tests__/TicketWorkflow.test.tsx | Planned |
-| UI-L4-09 | UI | AC-10 | TicketWorkflow surfaces OPEN_ACTIONS_EXIST without losing summary | Inline conflict; entered data preserved | client/src/components/__tests__/TicketWorkflow.test.tsx | Planned |
+| UI-L4-05 | UI | AC-01, AC-07 | ActionsTaken create form + follow-up validation | Required errors inline; follow-up note gated | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
+| UI-L4-06 | UI | AC-04, AC-05, AC-06 | ActionsTaken complete/cancel; read-only terminal | Controls show when permitted; terminal read-only | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
+| UI-L4-07 | UI | AC-08 | ActionsTaken read-only for Requester | All fields shown; no create/edit controls | client/tests/lab-04/ActionsTaken.test.tsx | Pass |
+| UI-L4-08 | UI | AC-11, AC-21 | TicketWorkflow shows only permitted transitions; disables on submit | Permitted options only; no double submit | client/tests/lab-04/TicketWorkflow.test.tsx | Pass |
+| UI-L4-09 | UI | AC-10 | TicketWorkflow surfaces OPEN_ACTIONS_EXIST without losing summary | Inline conflict; entered data preserved | client/tests/lab-04/TicketWorkflow.test.tsx | Pass |
 | RESP-L4-01 | Responsive/Style | AC-20 | Dashboards + Actions table reflow (desktop/tablet/mobile) | 2-up/1-up grid; Actions table → stacked cards; no horizontal overflow | client/src/pages/__tests__/StaffDashboard.test.tsx | Planned |
 | MIG-L4-01 | Migration | AC-20 | Apply Lab 4 migration on a Lab 3 DB | All Lab 1–3 rows preserved; ActionTaken + enum created | server/tests/lab-04/migration.test.ts | Pass |
 | MIG-L4-02 | Migration | AC-10, AC-20 | Legacy Ticket (zero Actions) resolvable after migration | Resolution gate passes; no backfill needed | server/tests/lab-04/migration.test.ts | Pass |
@@ -153,3 +153,9 @@ review — FK delete restrictions and partial-DB seed idempotency.)
 review — PATCH error-ordering, nested-user-field whitelist, parallel-PATCH stale-update, and PATCH
 assignee semantics; the PATCH stale check was also made an atomic guarded UPDATE.)
 Final per-test status and the full passing output from `main` are recorded here once implemented.
+
+(Client test path: the planned `client/src/**/__tests__/*.test.tsx` paths were normalized to the
+repository's established `client/tests/lab-04/*.test.tsx` convention — the Vitest config only includes
+`tests/**/*.test.tsx`, and every Lab 1–3 client suite already lives under `client/tests/lab-0N/`. The
+UI-L4-08/09 **TicketWorkflow** tests drive the status control through `StaffTicketDetail`, where it lives,
+rather than a standalone component — no GitHub Issue owned this UI, so it was built under #54.)

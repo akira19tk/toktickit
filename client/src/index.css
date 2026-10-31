@@ -1278,3 +1278,107 @@ body {
   flex-wrap: wrap;
   margin-top: 16px;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Actions Taken (Lab 4, ui-spec §7) — reuses Zen Green tokens.
+   ══════════════════════════════════════════════════════════════ */
+
+.at-section { margin-top: 16px; }
+
+.at-create-toggle { margin: 4px 0 12px; }
+
+.at-create-form {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  background: var(--color-surface);
+}
+
+.zen-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.zen-check input { width: 16px; height: 16px; }
+
+.at-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.at-row {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.at-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.at-date { font-size: 12px; margin-left: auto; }
+
+.at-row-body { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
+.at-field { display: flex; flex-direction: column; gap: 2px; }
+.at-field-label { font-size: 12px; color: var(--color-muted); font-weight: 600; }
+.at-field-value { font-size: 14px; color: var(--color-text); white-space: pre-wrap; }
+
+.at-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+.at-assign { display: flex; align-items: center; gap: 6px; }
+
+.at-row-edit { display: flex; flex-direction: column; gap: 8px; }
+
+/* Status badge — colour plus a non-colour cue (tint / check / strike-through). */
+.at-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.at-badge--open { background: var(--color-pale); color: var(--color-primary); }
+.at-badge--done { background: var(--color-primary); color: #fff; }
+.at-badge--cancelled { background: var(--color-muted); color: #fff; }
+.at-badge--cancelled s { text-decoration: line-through; }
+
+.at-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.at-loading, .at-failure { padding: 12px 0; }
+
+/* Mobile: the two-column action body stacks so nothing scrolls horizontally. */
+@media (max-width: 767px) {
+  .at-row-body { grid-template-columns: 1fr; }
+  .at-row-actions { flex-direction: column; align-items: stretch; }
+  .at-assign { flex-wrap: wrap; }
+  .at-date { margin-left: 0; }
+}
