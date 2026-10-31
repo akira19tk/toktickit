@@ -241,9 +241,10 @@ router.get(
     });
     if (!ticket) return void notFound(res);
 
-    // An Administrator is read-only: allowedTransitions is always empty (BR-22).
-    const transitions =
-      req.user!.role === "ADMIN" ? [] : allowedTransitions(ticket.currentStatus);
+    // allowedTransitions reflects the current status for both IT Staff and Admin:
+    // Lab 4 gives Admin status-write access (spec §11.4 / api-spec §4), so the
+    // list is populated for Admin too — the UI shows only permitted transitions.
+    const transitions = allowedTransitions(ticket.currentStatus);
 
     res.status(200).json({
       id: ticket.id,
@@ -435,14 +436,61 @@ router.patch(
 );
 
 // ── PATCH /api/staff/tickets/:id/status ──────────────────────────────────────
-// Order (BR-24 as clarified): 404 → 400 enum membership → 409 NO_CHANGE →
-// 409 INVALID_TRANSITION (with `allowed`) → 409 TICKET_UNASSIGNED → then the
-// target-conditional 400 checks (resolutionSummary for RESOLVED, confirm for
-// CLOSED/CANCELLED) run only once the transition itself is legal.
+// Lab 4 (Issue #51): ADMIN now has status-write access (spec §11.4). The full
+// transition matrix (BR-14) and the resolution gate (BR-12) are enforced here.
+// Order (BR-15 / api-spec §6): 404 → 400 enum membership → 409 NO_CHANGE →
+// 409 INVALID_TRANSITION (with `allowed`) → 409 TICKET_UNASSIGNED →
+// 409 OPEN_ACTIONS_EXIST (RESOLVED only) → 400 summary/confirm →
+// 409 STALE_UPDATE (checked last, via a guarded UPDATE).
+//
+// BR-23 (atomic resolution gate): the OPEN-Actions check and the status UPDATE
+// run in one serializable transaction, re-reading Action states inside it, so a
+// concurrent Action-create (which re-checks the Ticket status in its own
+// serializable transaction, BR-10) can never leave a RESOLVED Ticket with an
+// OPEN Action. A serialization conflict (P2034 / Postgres 40001) retries once,
+// then fails safe with 409 STALE_UPDATE — never a 500.
+
+const staleUpdate = (res: Response) =>
+  res.status(409).json({
+    error: "This ticket was updated by someone else. Reload and try again.",
+    code: "STALE_UPDATE",
+  });
+
+// Result of the serializable resolve transaction: the gate fired, the summary
+// was invalid, the guarded update matched nothing (stale), or it committed.
+type ResolveOutcome =
+  | { kind: "OPEN_ACTIONS"; openActions: number }
+  | { kind: "SUMMARY" }
+  | { kind: "STALE" }
+  | { kind: "OK" };
+
+// Postgres serialization_failure (40001), surfaced by Prisma as P2034 (write
+// conflict / deadlock) or a raw-query error whose meta.code is "40001".
+function isSerializationFailure(e: unknown): boolean {
+  const err = e as { code?: string; meta?: { code?: string } };
+  return err?.code === "P2034" || err?.code === "40001" || err?.meta?.code === "40001";
+}
+
+// Runs fn in a Serializable transaction, retrying once on a serialization
+// conflict. A second conflict propagates to the caller (mapped to STALE_UPDATE).
+async function runSerializable<T>(
+  fn: (tx: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
+  try {
+    return await prisma.$transaction(fn, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
+  } catch (e) {
+    if (!isSerializationFailure(e)) throw e;
+    return await prisma.$transaction(fn, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
+  }
+}
 
 router.patch(
   "/tickets/:id/status",
-  requireRole("IT_STAFF") as RequestHandler,
+  requireRole("IT_STAFF", "ADMIN") as RequestHandler,
   async (req: Request, res: Response) => {
     const id = parseId(req.params.id);
     if (id === null) return void notFound(res);
@@ -481,45 +529,91 @@ router.patch(
       });
     }
 
-    const data: Prisma.TicketUpdateInput = { currentStatus: target };
+    // Optional optimistic-concurrency token (BR-16). Applied as a guarded UPDATE
+    // (WHERE updatedAt = expected) so it is checked last and two concurrent
+    // writers cannot both win. A malformed token is treated as stale.
+    const guard: Prisma.TicketWhereInput = { id };
+    if (hasKey(body, "expectedUpdatedAt") && body.expectedUpdatedAt != null && body.expectedUpdatedAt !== "") {
+      const expected = new Date(String(body.expectedUpdatedAt));
+      if (Number.isNaN(expected.getTime())) return void staleUpdate(res);
+      guard.updatedAt = expected;
+    }
+
     if (target === "RESOLVED") {
+      // Gate + summary + guarded UPDATE, atomic and serializable (BR-23). The
+      // OPEN-Actions check (409) precedes the summary validation (400) per BR-15.
       const summary = String(body.resolutionSummary ?? "").trim();
-      if (summary.length < 10 || summary.length > 1000) {
+      let outcome: ResolveOutcome;
+      try {
+        outcome = await runSerializable(async (tx) => {
+          const openActions = await tx.actionTaken.count({
+            where: { ticketId: id, status: "OPEN" },
+          });
+          if (openActions > 0) return { kind: "OPEN_ACTIONS", openActions };
+          if (summary.length < 10 || summary.length > 1000) return { kind: "SUMMARY" };
+          const { count } = await tx.ticket.updateMany({
+            where: guard,
+            data: {
+              currentStatus: "RESOLVED",
+              resolutionSummary: summary,
+              resolvedAt: new Date(),
+              requesterResolvedAt: null, // cleared on RESOLVED (BR-35, BR-41)
+            },
+          });
+          return count === 0 ? { kind: "STALE" } : { kind: "OK" };
+        });
+      } catch (e) {
+        if (isSerializationFailure(e)) return void staleUpdate(res);
+        throw e;
+      }
+
+      if (outcome.kind === "OPEN_ACTIONS") {
+        return void res.status(409).json({
+          error: `Resolve the ${outcome.openActions} open action(s) before resolving this ticket.`,
+          code: "OPEN_ACTIONS_EXIST",
+          openActions: outcome.openActions,
+        });
+      }
+      if (outcome.kind === "SUMMARY") {
         return void res.status(400).json({
           error: "A resolution summary of 10–1000 characters is required.",
           errors: { resolutionSummary: "Enter a resolution summary of 10–1000 characters." },
         });
       }
-      data.resolutionSummary = summary;
-      data.resolvedAt = new Date();
-      data.requesterResolvedAt = null; // cleared on RESOLVED (BR-35, BR-41)
-    } else if (target === "CLOSED" || target === "CANCELLED") {
-      if (body.confirm !== true) {
-        return void res.status(400).json({
-          error: "Please confirm this action.",
-          errors: { confirm: "Confirmation is required." },
-        });
+      if (outcome.kind === "STALE") return void staleUpdate(res);
+    } else {
+      const data: Prisma.TicketUpdateManyMutationInput = { currentStatus: target };
+      if (target === "CLOSED" || target === "CANCELLED") {
+        if (body.confirm !== true) {
+          return void res.status(400).json({
+            error: "Please confirm this action.",
+            errors: { confirm: "Confirmation is required." },
+          });
+        }
+        if (target === "CLOSED") {
+          data.closedAt = new Date(); // only CLOSED sets closedAt (BR-36)
+        }
+        // CANCELLED leaves closedAt null (BR-36)
+      } else if (target === "REOPENED") {
+        // REOPENED clears resolution/close dates and the indicator (BR-37, BR-41);
+        // the previous resolutionSummary is kept until replaced.
+        data.resolvedAt = null;
+        data.closedAt = null;
+        data.requesterResolvedAt = null;
       }
-      if (target === "CLOSED") {
-        data.closedAt = new Date(); // only CLOSED sets closedAt (BR-36)
-      }
-      // CANCELLED leaves closedAt null (BR-36)
-    } else if (target === "REOPENED") {
-      // REOPENED clears resolution/close dates and the indicator (BR-37, BR-41);
-      // the previous resolutionSummary is kept until replaced.
-      data.resolvedAt = null;
-      data.closedAt = null;
-      data.requesterResolvedAt = null;
+
+      const { count } = await prisma.ticket.updateMany({ where: guard, data });
+      if (count === 0) return void staleUpdate(res);
     }
 
-    const updated = await prisma.ticket.update({ where: { id }, data });
+    const updated = await prisma.ticket.findUnique({ where: { id } });
     res.status(200).json({
-      currentStatus: updated.currentStatus,
-      resolvedAt: updated.resolvedAt,
-      closedAt: updated.closedAt,
-      requesterResolvedAt: updated.requesterResolvedAt,
-      resolutionSummary: updated.resolutionSummary,
-      allowedTransitions: allowedTransitions(updated.currentStatus),
+      currentStatus: updated!.currentStatus,
+      resolvedAt: updated!.resolvedAt,
+      closedAt: updated!.closedAt,
+      requesterResolvedAt: updated!.requesterResolvedAt,
+      resolutionSummary: updated!.resolutionSummary,
+      allowedTransitions: allowedTransitions(updated!.currentStatus),
     });
   }
 );
@@ -782,9 +876,13 @@ router.post(
 
     const v = fields.values;
     // BR-10/BR-23: re-check the Ticket status inside a serializable transaction
-    // so a concurrent resolve cannot slip a new OPEN Action onto a RESOLVED Ticket.
-    const created = await prisma.$transaction(
-      async (tx) => {
+    // so a concurrent resolve cannot slip a new OPEN Action onto a RESOLVED
+    // Ticket. A serialization conflict retries once (runSerializable), then fails
+    // safe with 409 STALE_UPDATE — never a 500. After a losing retry the Ticket is
+    // already RESOLVED, so the re-read returns null → TICKET_CLOSED instead.
+    let created;
+    try {
+      created = await runSerializable(async (tx) => {
         const fresh = await tx.ticket.findUnique({
           where: { id },
           select: { currentStatus: true },
@@ -804,9 +902,11 @@ router.post(
           },
           include: ACTION_INCLUDE,
         });
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
-    );
+      });
+    } catch (e) {
+      if (isSerializationFailure(e)) return void staleUpdate(res);
+      throw e;
+    }
 
     if (!created) return void ticketClosed(res);
     res.status(201).json(actionView(created));

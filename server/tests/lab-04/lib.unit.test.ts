@@ -4,7 +4,7 @@
 // UNIT-L4-04 (Asia/Bangkok boundary) are added by later issues.
 
 import { describe, it, expect } from "vitest";
-import type { ActionStatus } from "@prisma/client";
+import type { ActionStatus, TicketStatus } from "@prisma/client";
 import {
   ACTION_TRANSITIONS,
   allowedActionTransitions,
@@ -12,6 +12,11 @@ import {
   validateActionTransition,
   validateFollowUp,
 } from "../../src/lib/actions";
+import {
+  STATUS_TRANSITIONS,
+  allowedTransitions,
+  canTransition,
+} from "../../src/lib/ticketStatus";
 
 const ALL_ACTION_STATUSES: ActionStatus[] = ["OPEN", "COMPLETED", "CANCELLED"];
 
@@ -22,6 +27,70 @@ const EXPECTED_ACTION_MATRIX: Record<ActionStatus, ActionStatus[]> = {
   COMPLETED: [],
   CANCELLED: [],
 };
+
+// ---------------------------------------------------------------------------
+// UNIT-L4-01 — Ticket transition matrix incl. CANCELLED terminal (AC-11)
+// Preserves the Lab 3 matrix (NEW → OPEN, IN_PROGRESS, CANCELLED). The BR-14
+// doc table dropping NEW → IN_PROGRESS is a transcription error (the matrix is
+// carried over from Lab 3), corrected in this PR's docs commit.
+// ---------------------------------------------------------------------------
+const ALL_TICKET_STATUSES: TicketStatus[] = [
+  "NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER",
+  "RESOLVED", "CLOSED", "REOPENED", "CANCELLED",
+];
+
+// Independent copy of the matrix; the test fails if the source drifts, so it is
+// NOT imported from the source.
+const EXPECTED_TICKET_MATRIX: Record<TicketStatus, TicketStatus[]> = {
+  NEW: ["OPEN", "IN_PROGRESS", "CANCELLED"],
+  OPEN: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  IN_PROGRESS: ["OPEN", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  WAITING_FOR_REQUESTER: ["OPEN", "IN_PROGRESS", "RESOLVED", "CANCELLED"],
+  RESOLVED: ["CLOSED", "REOPENED"],
+  CLOSED: ["REOPENED"],
+  REOPENED: ["IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CANCELLED"],
+  CANCELLED: [],
+};
+
+describe("UNIT-L4-01: ticket transition matrix", () => {
+  it("UNIT-L4-01: allowedTransitions matches the matrix for every status", () => {
+    for (const from of ALL_TICKET_STATUSES) {
+      expect(new Set(allowedTransitions(from))).toEqual(
+        new Set(EXPECTED_TICKET_MATRIX[from])
+      );
+      expect(allowedTransitions(from)).toHaveLength(
+        EXPECTED_TICKET_MATRIX[from].length
+      );
+    }
+  });
+
+  it("UNIT-L4-01: CANCELLED is terminal — no exits", () => {
+    expect(allowedTransitions("CANCELLED")).toEqual([]);
+    for (const to of ALL_TICKET_STATUSES) {
+      expect(canTransition("CANCELLED", to)).toBe(false);
+    }
+  });
+
+  it("UNIT-L4-01: CLOSED may only reopen", () => {
+    expect(allowedTransitions("CLOSED")).toEqual(["REOPENED"]);
+  });
+
+  it("UNIT-L4-01: every pair not in the matrix is rejected", () => {
+    for (const from of ALL_TICKET_STATUSES) {
+      const allowed = new Set(EXPECTED_TICKET_MATRIX[from]);
+      for (const to of ALL_TICKET_STATUSES) {
+        expect(canTransition(from, to)).toBe(allowed.has(to));
+      }
+    }
+  });
+
+  it("UNIT-L4-01: allowedTransitions returns a fresh array (no matrix mutation)", () => {
+    const first = allowedTransitions("OPEN");
+    first.push("NEW");
+    expect(allowedTransitions("OPEN")).not.toContain("NEW");
+    expect(STATUS_TRANSITIONS.OPEN).not.toContain("NEW");
+  });
+});
 
 // ---------------------------------------------------------------------------
 // UNIT-L4-02 — Action lifecycle validator (AC-04, AC-05)

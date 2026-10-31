@@ -58,7 +58,9 @@ export const routes: RouteEntry[] = [
   { method: "POST",  path: "/api/staff/tickets/:id/claim",                               allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
   { method: "PATCH", path: "/api/staff/tickets/:id/owner",                               allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
   { method: "PATCH", path: "/api/staff/tickets/:id/it-priority",                         allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
-  { method: "PATCH", path: "/api/staff/tickets/:id/status",                              allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
+  // Lab 4 Issue #51 — ADMIN gains status-write access (spec §11.4); every other
+  // staff mutation (claim/owner/it-priority/comments/notes) stays IT_STAFF only.
+  { method: "PATCH", path: "/api/staff/tickets/:id/status",                              allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
   { method: "GET",   path: "/api/staff/tickets/:id/attachments/:attachmentId/download",  allowedRoles: ["IT_STAFF"],          requesterOwnership: false },
   // Issue #27 Stage 2 — staff Public Comments and Internal Notes. GET allows
   // ADMIN read-only; POST is IT_STAFF only (a Requester is refused at the gate).
