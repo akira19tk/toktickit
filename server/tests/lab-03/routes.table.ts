@@ -49,6 +49,8 @@ export const routes: RouteEntry[] = [
   { method: "GET",  path: "/api/tickets/:id/actions",              allowedRoles: ["REQUESTER"], requesterOwnership: true },
 
   // ── Staff routes (IT_STAFF only, some also ADMIN read-only) ───────────────
+  // Lab 4 Issue #53 — IT Staff dashboard. IT_STAFF/ADMIN; Requester → 403.
+  { method: "GET",  path: "/api/staff/dashboard", allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
   // Issue #26 (Staff Queue) — detail/operations appended by Issue #27.
   { method: "GET",  path: "/api/staff/tickets",   allowedRoles: ["IT_STAFF", "ADMIN"], requesterOwnership: false },
   { method: "GET",  path: "/api/staff/assignees", allowedRoles: ["IT_STAFF"],          requesterOwnership: false },

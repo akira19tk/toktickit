@@ -3,10 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../api";
 
-function roleHome(role: string): string {
-  if (role === "IT_STAFF") return "/staff/queue";
-  if (role === "ADMIN") return "/admin/users";
-  return "/my-tickets";
+function roleHome(_role: string): string {
+  // Every role lands on the role-aware Dashboard (ui-spec §3).
+  return "/dashboard";
 }
 
 interface LocationState {

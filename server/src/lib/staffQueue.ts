@@ -7,12 +7,19 @@
 // positive integer, a pageSize above 50, or an unsupported sort/filter value
 // falls back to the default — never an error.
 
-import type { Priority, TicketStatus } from "@prisma/client";
+import type { ActionStatus, Priority, TicketStatus } from "@prisma/client";
 
 export type OwnerFilter =
   | { kind: "ANY" }
   | { kind: "ME" }
   | { kind: "UNASSIGNED" }
+  | { kind: "USER"; id: number };
+
+// Action-assignee drill-down (dashboard "My Open Actions"): ME resolves to the
+// session user, or a specific staffer id; ANY means no action-assignee filter.
+export type ActionAssigneeFilter =
+  | { kind: "ANY" }
+  | { kind: "ME" }
   | { kind: "USER"; id: number };
 
 export type StatusFilter = "ACTIVE" | "ALL" | TicketStatus;
@@ -30,6 +37,8 @@ export interface StaffQueueParams {
   priority?: Priority;
   categoryId?: number;
   owner: OwnerFilter;
+  actionAssignee: ActionAssigneeFilter;
+  actionStatus?: ActionStatus;
   requesterResolved: boolean;
   sortBy: SortBy;
   sortDir: SortDir;
@@ -58,6 +67,12 @@ const VALID_PRIORITIES: ReadonlySet<string> = new Set<Priority>([
   "LOW",
   "MEDIUM",
   "HIGH",
+]);
+
+const VALID_ACTION_STATUSES: ReadonlySet<string> = new Set<ActionStatus>([
+  "OPEN",
+  "COMPLETED",
+  "CANCELLED",
 ]);
 
 // Lowercased sort key → canonical camelCase sort field.
@@ -97,6 +112,18 @@ function parseOwner(raw: unknown): OwnerFilter {
   return { kind: "ANY" }; // unsupported value → default
 }
 
+// Action-assignee drill-down: ME, a specific staffer id, or ANY (unsupported →
+// default ANY, per the queue fallback rule).
+function parseActionAssignee(raw: unknown): ActionAssigneeFilter {
+  const s = String(raw ?? "").trim();
+  if (s.toUpperCase() === "ME") return { kind: "ME" };
+  if (/^\d+$/.test(s)) {
+    const id = parseInt(s, 10);
+    if (id >= 1) return { kind: "USER", id };
+  }
+  return { kind: "ANY" };
+}
+
 function parseStatus(raw: unknown): StatusFilter {
   const s = String(raw ?? "").trim().toUpperCase();
   if (s === "" || s === "ACTIVE") return "ACTIVE";
@@ -131,6 +158,11 @@ export function parseStaffQueueQuery(
 
   const categoryId = parsePositiveInt(query.categoryId, 0);
 
+  const actionStatusRaw = String(query.actionStatus ?? "").trim().toUpperCase();
+  const actionStatus = VALID_ACTION_STATUSES.has(actionStatusRaw)
+    ? (actionStatusRaw as ActionStatus)
+    : undefined;
+
   // Only the exact string "true" enables the filter; any other value is
   // ignored (fallback rule). BR-57 / api-spec §5.
   const requesterResolved =
@@ -142,6 +174,8 @@ export function parseStaffQueueQuery(
     priority,
     categoryId: categoryId > 0 ? categoryId : undefined,
     owner: parseOwner(query.owner),
+    actionAssignee: parseActionAssignee(query.actionAssignee),
+    actionStatus,
     requesterResolved,
     sortBy,
     sortDir,

@@ -170,6 +170,8 @@ export interface StaffQueueParams {
   priority?: string;
   categoryId?: number;
   owner?: string; // ANY | ME | UNASSIGNED | <userId>
+  actionAssignee?: string; // ME | <userId> — dashboard "My Open Actions" drill-down
+  actionStatus?: string; // OPEN | COMPLETED | CANCELLED
   requesterResolved?: boolean; // true → only Requester-indicated-resolved tickets
   sortBy?: string;
   sortDir?: string;
@@ -438,6 +440,39 @@ export interface RequesterDashboard {
 
 export async function fetchRequesterDashboard(): Promise<RequesterDashboard> {
   const res = await apiFetch(`${API_BASE_URL}/api/requester/dashboard`);
+  if (!res.ok) throw new Error(`Failed to load dashboard: ${res.status}`);
+  return res.json();
+}
+
+// ── IT Staff dashboard (Issue #53) ───────────────────────────────────────────
+
+export interface StaffDashboardMetrics {
+  new: number;
+  open: number;
+  inProgress: number;
+  waitingForRequester: number;
+  myAssigned: number;
+  unassigned: number;
+  myOpenActions: number;
+}
+
+export interface StaffDashboardTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  currentStatus: string;
+  itPriority: string;
+  updatedAt: string;
+}
+
+export interface StaffDashboard {
+  metrics: StaffDashboardMetrics;
+  myRecentTickets: StaffDashboardTicket[];
+  urgentTickets: StaffDashboardTicket[];
+}
+
+export async function fetchStaffDashboard(): Promise<StaffDashboard> {
+  const res = await apiFetch(`${API_BASE_URL}/api/staff/dashboard`);
   if (!res.ok) throw new Error(`Failed to load dashboard: ${res.status}`);
   return res.json();
 }
